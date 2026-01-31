@@ -1,0 +1,167 @@
+use opencode_adapter::{OpenCodeCli, OpenCodeConfig, discover_opencode, RunResult, StreamEvent};
+use rig::completion::{
+    CompletionError, CompletionModel, CompletionRequest, CompletionResponse,
+    message::AssistantContent,
+    ToolDefinition,
+    GetTokenUsage, Usage,
+};
+use rig::OneOrMany;
+use rig::streaming::{StreamingCompletionResponse, RawStreamingChoice};
+use rig::tool::Tool;
+use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
+use crate::sessions::SessionManager;
+use crate::errors::ProviderError;
+use crate::utils::format_chat_history;
+use futures::StreamExt;
+use tokio_stream::wrappers::UnboundedReceiverStream;
+
+/// Arguments for the OpenCode tool.
+#[derive(Deserialize, Serialize, JsonSchema)]
+pub struct OpenCodeArgs {
+    /// The instruction for `OpenCode`
+    pub instruction: String,
+    /// Optional session ID for persistent sandboxed environment
+    pub session_id: Option<String>,
+}
+
+/// A wrapper for `StreamEvent` to satisfy Rig traits.
+#[derive(Clone, Serialize, Deserialize)]
+pub struct OpenCodeStreamEvent(pub StreamEvent);
+
+impl GetTokenUsage for OpenCodeStreamEvent {
+    fn token_usage(&self) -> Option<Usage> {
+        None
+    }
+}
+
+/// The Rig `CompletionModel` implementation for OpenCode.
+#[derive(Clone)]
+pub struct OpenCodeModel {
+    /// The underlying CLI client.
+    pub cli: OpenCodeCli,
+}
+
+impl CompletionModel for OpenCodeModel {
+    type Response = RunResult;
+    type StreamingResponse = ();
+    type Client = OpenCodeCli;
+
+    fn make(client: &Self::Client, _model: impl Into<String>) -> Self {
+        Self { cli: client.clone() }
+    }
+
+    async fn completion(
+        &self,
+        request: CompletionRequest,
+    ) -> Result<CompletionResponse<Self::Response>, CompletionError> {
+        let prompt_str = format_chat_history(&request);
+
+        let config = OpenCodeConfig::default();
+        let result = self.cli.run(&prompt_str, &config).await
+            .map_err(|e| CompletionError::ProviderError(e.to_string()))?;
+
+        Ok(CompletionResponse {
+            choice: OneOrMany::one(AssistantContent::text(result.stdout.clone())),
+            usage: Default::default(),
+            raw_response: result,
+        })
+    }
+
+    async fn stream(
+        &self,
+        request: CompletionRequest,
+    ) -> Result<StreamingCompletionResponse<Self::StreamingResponse>, CompletionError> {
+        let prompt_str = format_chat_history(&request);
+
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let cli = self.cli.clone();
+        
+        // Spawn the CLI process in the background
+        let config = OpenCodeConfig::default();
+
+        tokio::spawn(async move {
+            let _ = cli.stream(&prompt_str, &config, tx).await;
+        });
+
+        // Convert the receiver into a stream
+        let stream = UnboundedReceiverStream::new(rx)
+            .map(|event| {
+                match event {
+                    StreamEvent::Text { text } => {
+                        Ok(RawStreamingChoice::Message(text))
+                    }
+                    StreamEvent::Error { message } => {
+                        Err(CompletionError::ProviderError(message))
+                    }
+                    StreamEvent::Unknown(_) => {
+                        Ok(RawStreamingChoice::Message(String::new()))
+                    }
+                }
+            });
+
+        Ok(StreamingCompletionResponse::stream(Box::pin(stream)))
+    }
+}
+
+/// A Rig Tool that exposes the OpenCode CLI.
+pub struct OpenCodeTool {
+    /// The underlying CLI client.
+    pub cli: OpenCodeCli,
+    /// The session manager.
+    pub manager: SessionManager,
+}
+
+impl OpenCodeTool {
+    /// Creates a new `OpenCodeTool`.
+    ///
+    /// # Errors
+    /// Returns an `OpenCodeError` if discovery or health check fails.
+    pub async fn new() -> Result<Self, opencode_adapter::OpenCodeError> {
+        let path = discover_opencode()?;
+        let cli = OpenCodeCli::new(path);
+        cli.check_health().await?;
+        Ok(Self { 
+            cli,
+            manager: SessionManager::new(),
+        })
+    }
+}
+
+impl Tool for OpenCodeTool {
+    const NAME: &'static str = "opencode";
+    type Error = ProviderError;
+    type Args = OpenCodeArgs;
+    type Output = String;
+
+    async fn definition(&self, _prompt: String) -> ToolDefinition {
+        ToolDefinition {
+            name: Self::NAME.to_string(),
+            description: "Execute a command using OpenCode CLI.".to_string(),
+            parameters: serde_json::to_value(schemars::schema_for!(OpenCodeArgs))
+                .unwrap_or_else(|_| serde_json::json!({})),
+        }
+    }
+
+    async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        let session_id = args.session_id.unwrap_or_else(|| "default".to_string());
+        let cwd = self.manager.get_session_dir(&session_id).await
+            .map_err(|e| ProviderError::Session(e.to_string()))?;
+        
+        let config = OpenCodeConfig {
+            cwd: Some(cwd),
+            ..Default::default()
+        };
+        let result = self.cli.run(&args.instruction, &config).await?;
+        
+        if result.exit_code != 0 {
+            return Err(ProviderError::OpenCode(opencode_adapter::OpenCodeError::NonZeroExit {
+                exit_code: result.exit_code,
+                stdout: result.stdout,
+                stderr: result.stderr,
+            }));
+        }
+
+        Ok(result.stdout)
+    }
+}

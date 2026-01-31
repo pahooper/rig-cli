@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = [
+    "rig-provider",
+    "mcp",
+    "claudecode-adapter",
+    "codex-adapter",
+    "opencode-adapter",
+]
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+pedantic = "warn"
+nursery  = "warn"
+perf     = "warn"
+cargo    = "warn"
+
+# Common upgrades:
+unwrap_used   = "warn"
+expect_used   = "warn"
+panic         = "warn"
+todo          = "warn"
+unimplemented = "warn"
+dbg_macro     = "warn"
+
+# Allowed nits:
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
