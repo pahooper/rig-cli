@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 1 of 11 (Resource Management Foundation) - COMPLETE
-Plan: 4 of 4 in current phase (01-01, 01-02, 01-03, 01-04 complete)
+Plan: 5 of 5 in current phase (01-01, 01-02, 01-03, 01-04, 01-05 complete)
 Status: Phase complete
-Last activity: 2026-02-01 — Completed 01-04-PLAN.md (rig-provider bounded channel integration)
+Last activity: 2026-02-01 — Completed 01-05-PLAN.md (graceful_shutdown consistency fix)
 
 Progress: [████░░░░░░] 100% of Phase 1
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 5 min
-- Total execution time: 0.3 hours
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-resource-management-foundation | 4 | 20min | 5min |
+| 01-resource-management-foundation | 5 | 23min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 01-03 (3min), 01-02 (6min), 01-04 (7min)
-- Trend: Phase 1 complete, all adapters using bounded channels
+- Last 5 plans: 01-01 (4min), 01-03 (3min), 01-02 (6min), 01-04 (7min), 01-05 (3min)
+- Trend: Phase 1 complete, all adapters have consistent resource management
 
 *Updated after each plan completion*
 
@@ -51,6 +51,7 @@ Recent decisions affecting current work:
 - Use same bounded channel architecture across all adapters for consistency (01-01, 01-02, 01-03)
 - Standardize on 100-message channel capacity, 10MB output limit, 5s grace period across all adapters
 - Use pid: 0 placeholder in rig-provider NonZeroExit since RunResult doesn't carry PID (01-04)
+- Match claudecode-adapter's graceful_shutdown pattern exactly across all adapters (01-05)
 
 ### Pending Todos
 
@@ -62,6 +63,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-01T20:03:00Z
-Stopped at: Completed 01-04-PLAN.md (Phase 1 complete)
+Last session: 2026-02-01
+Stopped at: Completed 01-05-PLAN.md (Phase 1 complete with zero verifier warnings)
 Resume file: None
