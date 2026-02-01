@@ -1,3 +1,5 @@
+//! Subprocess lifecycle management for `OpenCode` invocations.
+
 use crate::error::OpenCodeError;
 use crate::types::{OpenCodeConfig, RunResult};
 use nix::sys::signal::{self, Signal};
@@ -14,15 +16,69 @@ const CHANNEL_CAPACITY: usize = 100;
 const MAX_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 const GRACE_PERIOD: Duration = Duration::from_secs(5);
 
+/// Mutable state shared across the output-accumulation helpers.
+struct OutputState {
+    stdout_rx: mpsc::Receiver<String>,
+    stderr_rx: mpsc::Receiver<String>,
+    stdout_lines: Vec<String>,
+    stderr_lines: Vec<String>,
+    stdout_bytes: usize,
+    stderr_bytes: usize,
+    join_set: JoinSet<()>,
+}
+
+/// Runs `OpenCode` as a child process, optionally streaming events.
+///
+/// If `sender` is provided, parsed events are forwarded in real time.
+/// Output is bounded to [`MAX_OUTPUT_BYTES`] per stream.
 pub async fn run_opencode(
     path: &std::path::Path,
     message: &str,
     config: &OpenCodeConfig,
     sender: Option<mpsc::Sender<crate::types::StreamEvent>>,
 ) -> Result<RunResult, OpenCodeError> {
-    let args = crate::cmd::build_args(message, config);
     let start_time = Instant::now();
+    let (mut child, pid) = spawn_child(path, message, config)?;
 
+    let stdout = child.stdout.take().ok_or(OpenCodeError::NoStdout)?;
+    let stderr = child.stderr.take().ok_or(OpenCodeError::NoStderr)?;
+
+    let (stdout_tx, stdout_rx) = mpsc::channel::<String>(CHANNEL_CAPACITY);
+    let (stderr_tx, stderr_rx) = mpsc::channel::<String>(CHANNEL_CAPACITY);
+
+    let mut state = OutputState {
+        stdout_rx,
+        stderr_rx,
+        stdout_lines: Vec::new(),
+        stderr_lines: Vec::new(),
+        stdout_bytes: 0,
+        stderr_bytes: 0,
+        join_set: JoinSet::new(),
+    };
+
+    spawn_readers(&mut state.join_set, stdout, stderr, stdout_tx, stderr_tx, sender);
+
+    let execution_result = timeout(
+        config.timeout,
+        accumulate_output(&mut child, &mut state, start_time, pid),
+    )
+    .await;
+
+    match execution_result {
+        Ok(result) => result,
+        Err(_timeout_elapsed) => {
+            handle_timeout(&mut child, pid, &mut state, start_time).await
+        }
+    }
+}
+
+/// Spawns the `OpenCode` child process and returns it with its PID.
+fn spawn_child(
+    path: &std::path::Path,
+    message: &str,
+    config: &OpenCodeConfig,
+) -> Result<(tokio::process::Child, u32), OpenCodeError> {
+    let args = crate::cmd::build_args(message, config);
     let mut cmd = Command::new(path);
     cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
 
@@ -30,37 +86,33 @@ pub async fn run_opencode(
         cmd.current_dir(cwd);
     }
 
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| OpenCodeError::SpawnFailed {
-            stage: "spawn subprocess".to_string(),
-            source: e,
-        })?;
+    let child = cmd.spawn().map_err(|e| OpenCodeError::SpawnFailed {
+        stage: "spawn subprocess".to_string(),
+        source: e,
+    })?;
 
-    let stdout = child.stdout.take().ok_or(OpenCodeError::NoStdout)?;
-    let stderr = child.stderr.take().ok_or(OpenCodeError::NoStderr)?;
     let pid = child.id().ok_or(OpenCodeError::NoPid)?;
+    Ok((child, pid))
+}
 
-    // Bounded internal channels
-    let (stdout_tx, mut stdout_rx) = mpsc::channel::<String>(CHANNEL_CAPACITY);
-    let (stderr_tx, mut stderr_rx) = mpsc::channel::<String>(CHANNEL_CAPACITY);
-
-    // JoinSet for tracking reader tasks
-    let mut join_set = JoinSet::new();
-
-    // Stdout reader task
-    let sender_clone = sender.clone();
+/// Spawns async reader tasks for stdout and stderr into the `JoinSet`.
+fn spawn_readers(
+    join_set: &mut JoinSet<()>,
+    stdout: tokio::process::ChildStdout,
+    stderr: tokio::process::ChildStderr,
+    stdout_tx: mpsc::Sender<String>,
+    stderr_tx: mpsc::Sender<String>,
+    sender: Option<mpsc::Sender<crate::types::StreamEvent>>,
+) {
     join_set.spawn(async move {
         let mut reader = BufReader::new(stdout).lines();
         while let Ok(Some(line)) = reader.next_line().await {
-            // Try to parse as StreamEvent for forwarding
-            if let Some(tx) = &sender_clone {
+            if let Some(tx) = &sender {
                 if let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) {
                     if let Ok(event) = serde_json::from_value::<crate::types::StreamEvent>(val) {
                         let _ = tx.send(event).await;
                     }
                 } else {
-                    // Raw text line
                     let _ = tx
                         .send(crate::types::StreamEvent::Text {
                             text: line.clone() + "\n",
@@ -68,15 +120,12 @@ pub async fn run_opencode(
                         .await;
                 }
             }
-
-            // Send to internal channel for accumulation (bounded backpressure)
             if stdout_tx.send(line).await.is_err() {
                 break;
             }
         }
     });
 
-    // Stderr reader task
     join_set.spawn(async move {
         let mut reader = BufReader::new(stderr).lines();
         while let Ok(Some(line)) = reader.next_line().await {
@@ -85,128 +134,128 @@ pub async fn run_opencode(
             }
         }
     });
+}
 
-    // Main accumulation loop with bounded memory
-    let mut stdout_lines = Vec::new();
-    let mut stderr_lines = Vec::new();
-    let mut stdout_bytes = 0;
-    let mut stderr_bytes = 0;
+/// Main select loop that accumulates stdout/stderr and waits for exit.
+async fn accumulate_output(
+    child: &mut tokio::process::Child,
+    state: &mut OutputState,
+    start_time: Instant,
+    pid: u32,
+) -> Result<RunResult, OpenCodeError> {
+    loop {
+        tokio::select! {
+            Some(line) = state.stdout_rx.recv() => {
+                push_bounded(line, &mut state.stdout_lines, &mut state.stdout_bytes)?;
+            }
+            Some(line) = state.stderr_rx.recv() => {
+                push_bounded(line, &mut state.stderr_lines, &mut state.stderr_bytes)?;
+            }
+            status = child.wait() => {
+                drain_remaining(state)?;
 
-    // Timeout wrapper for main execution
-    let execution_result = timeout(config.timeout, async {
-        loop {
-            tokio::select! {
-                Some(line) = stdout_rx.recv() => {
-                    stdout_bytes += line.len();
-                    if stdout_bytes > MAX_OUTPUT_BYTES {
-                        return Err(OpenCodeError::OutputTruncated {
-                            captured_bytes: stdout_bytes,
-                            limit_bytes: MAX_OUTPUT_BYTES,
-                        });
-                    }
-                    stdout_lines.push(line);
-                }
-                Some(line) = stderr_rx.recv() => {
-                    stderr_bytes += line.len();
-                    if stderr_bytes > MAX_OUTPUT_BYTES {
-                        return Err(OpenCodeError::OutputTruncated {
-                            captured_bytes: stderr_bytes,
-                            limit_bytes: MAX_OUTPUT_BYTES,
-                        });
-                    }
-                    stderr_lines.push(line);
-                }
-                status = child.wait() => {
-                    // Process exited, drain remaining buffered output
-                    drain_stream_bounded(&mut stdout_rx, &mut stdout_lines, &mut stdout_bytes, MAX_OUTPUT_BYTES).await?;
-                    drain_stream_bounded(&mut stderr_rx, &mut stderr_lines, &mut stderr_bytes, MAX_OUTPUT_BYTES).await?;
+                state.join_set.abort_all();
+                while state.join_set.join_next().await.is_some() {}
 
-                    // Abort reader tasks and wait for cleanup
-                    join_set.abort_all();
-                    while join_set.join_next().await.is_some() {}
+                let status = status.map_err(|e| OpenCodeError::SpawnFailed {
+                    stage: "wait for child".to_string(),
+                    source: e,
+                })?;
 
-                    let status = status.map_err(|e| OpenCodeError::SpawnFailed {
-                        stage: "wait for child".to_string(),
-                        source: e,
-                    })?;
+                let duration = start_time.elapsed();
+                let exit_code = status.code().unwrap_or(-1);
 
-                    let duration = start_time.elapsed();
-                    let exit_code = status.code().unwrap_or(-1);
+                let stdout = state.stdout_lines.join("\n");
+                let stderr = state.stderr_lines.join("\n");
 
-                    let stdout = stdout_lines.join("\n");
-                    let stderr = stderr_lines.join("\n");
-
-                    if exit_code != 0 {
-                        return Err(OpenCodeError::NonZeroExit {
-                            exit_code,
-                            pid,
-                            elapsed: duration,
-                            stdout,
-                            stderr,
-                        });
-                    }
-
-                    return Ok(RunResult {
+                if exit_code != 0 {
+                    return Err(OpenCodeError::NonZeroExit {
+                        exit_code,
+                        pid,
+                        elapsed: duration,
                         stdout,
                         stderr,
-                        exit_code,
-                        duration_ms: duration.as_millis() as u64,
                     });
                 }
+
+                return Ok(RunResult {
+                    stdout,
+                    stderr,
+                    exit_code,
+                    duration_ms: duration_to_millis(duration),
+                });
             }
-        }
-    })
-    .await;
-
-    match execution_result {
-        Ok(result) => result,
-        Err(_timeout_elapsed) => {
-            // Timeout - graceful shutdown with SIGTERM -> SIGKILL
-            let elapsed = start_time.elapsed();
-            let _ = graceful_shutdown(&mut child, pid).await;
-
-            // Drain remaining output after shutdown
-            drain_stream_bounded(
-                &mut stdout_rx,
-                &mut stdout_lines,
-                &mut stdout_bytes,
-                MAX_OUTPUT_BYTES,
-            )
-            .await?;
-            drain_stream_bounded(
-                &mut stderr_rx,
-                &mut stderr_lines,
-                &mut stderr_bytes,
-                MAX_OUTPUT_BYTES,
-            )
-            .await?;
-
-            join_set.abort_all();
-            while join_set.join_next().await.is_some() {}
-
-            Err(OpenCodeError::Timeout {
-                elapsed,
-                pid,
-                partial_stdout: stdout_lines.join("\n"),
-                partial_stderr: stderr_lines.join("\n"),
-            })
         }
     }
 }
 
-/// Drain remaining lines from channel with bounded memory enforcement
-async fn drain_stream_bounded(
+/// Pushes a line into the accumulator, enforcing the byte limit.
+fn push_bounded(
+    line: String,
+    lines: &mut Vec<String>,
+    bytes: &mut usize,
+) -> Result<(), OpenCodeError> {
+    *bytes += line.len();
+    if *bytes > MAX_OUTPUT_BYTES {
+        return Err(OpenCodeError::OutputTruncated {
+            captured_bytes: *bytes,
+            limit_bytes: MAX_OUTPUT_BYTES,
+        });
+    }
+    lines.push(line);
+    Ok(())
+}
+
+/// Handles the timeout path: graceful shutdown, drain, and error.
+async fn handle_timeout(
+    child: &mut tokio::process::Child,
+    pid: u32,
+    state: &mut OutputState,
+    start_time: Instant,
+) -> Result<RunResult, OpenCodeError> {
+    let elapsed = start_time.elapsed();
+    let _ = graceful_shutdown(child, pid).await;
+
+    drain_remaining(state)?;
+
+    state.join_set.abort_all();
+    while state.join_set.join_next().await.is_some() {}
+
+    Err(OpenCodeError::Timeout {
+        elapsed,
+        pid,
+        partial_stdout: state.stdout_lines.join("\n"),
+        partial_stderr: state.stderr_lines.join("\n"),
+    })
+}
+
+/// Drains remaining buffered lines from both channels synchronously.
+fn drain_remaining(state: &mut OutputState) -> Result<(), OpenCodeError> {
+    drain_channel(
+        &mut state.stdout_rx,
+        &mut state.stdout_lines,
+        &mut state.stdout_bytes,
+    )?;
+    drain_channel(
+        &mut state.stderr_rx,
+        &mut state.stderr_lines,
+        &mut state.stderr_bytes,
+    )?;
+    Ok(())
+}
+
+/// Drains a single channel with bounded memory enforcement.
+fn drain_channel(
     rx: &mut mpsc::Receiver<String>,
     lines: &mut Vec<String>,
     bytes: &mut usize,
-    max_bytes: usize,
 ) -> Result<(), OpenCodeError> {
     while let Ok(line) = rx.try_recv() {
         *bytes += line.len();
-        if *bytes > max_bytes {
+        if *bytes > MAX_OUTPUT_BYTES {
             return Err(OpenCodeError::OutputTruncated {
                 captured_bytes: *bytes,
-                limit_bytes: max_bytes,
+                limit_bytes: MAX_OUTPUT_BYTES,
             });
         }
         lines.push(line);
@@ -214,21 +263,19 @@ async fn drain_stream_bounded(
     Ok(())
 }
 
-/// Graceful shutdown: SIGTERM, wait grace period, then SIGKILL
+/// Graceful shutdown: `SIGTERM`, wait grace period, then `SIGKILL`.
 async fn graceful_shutdown(
     child: &mut tokio::process::Child,
     pid: u32,
 ) -> Result<(), OpenCodeError> {
-    let nix_pid = Pid::from_raw(pid as i32);
+    let nix_pid = pid_to_nix(pid)?;
 
-    // Send SIGTERM for graceful shutdown
     signal::kill(nix_pid, Signal::SIGTERM).map_err(|e| OpenCodeError::SignalFailed {
         signal: "SIGTERM".to_string(),
         pid,
         source: e,
     })?;
 
-    // Wait for process to exit within grace period
     match timeout(GRACE_PERIOD, child.wait()).await {
         Ok(Ok(_status)) => Ok(()),
         Ok(Err(e)) => Err(OpenCodeError::SpawnFailed {
@@ -236,7 +283,6 @@ async fn graceful_shutdown(
             source: e,
         }),
         Err(_) => {
-            // Grace period expired - force kill
             child.kill().await.map_err(|e| OpenCodeError::SpawnFailed {
                 stage: "SIGKILL".to_string(),
                 source: e,
@@ -248,4 +294,18 @@ async fn graceful_shutdown(
             Ok(())
         }
     }
+}
+
+/// Converts a `u32` PID to a nix `Pid`, returning an error on overflow.
+fn pid_to_nix(pid: u32) -> Result<Pid, OpenCodeError> {
+    let raw = i32::try_from(pid).map_err(|_| OpenCodeError::SpawnFailed {
+        stage: "PID conversion overflow".to_string(),
+        source: std::io::Error::other("PID value exceeds i32::MAX"),
+    })?;
+    Ok(Pid::from_raw(raw))
+}
+
+/// Converts a `Duration` to milliseconds as `u64`, saturating on overflow.
+fn duration_to_millis(d: Duration) -> u64 {
+    u64::try_from(d.as_millis()).unwrap_or(u64::MAX)
 }

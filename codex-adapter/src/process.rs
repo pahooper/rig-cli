@@ -1,3 +1,5 @@
+//! Subprocess execution and lifecycle management for the Codex CLI.
+
 use crate::error::CodexError;
 use crate::types::{CodexConfig, RunResult};
 use nix::sys::signal::{self, Signal};
@@ -10,10 +12,24 @@ use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 use tokio::time::timeout;
 
-const CHANNEL_CAPACITY: usize = 100;
 const MAX_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 const GRACE_PERIOD: Duration = Duration::from_secs(5);
 
+/// Collected output lines, total byte count, and whether truncation occurred.
+type StreamOutput = (Vec<String>, usize, bool);
+
+/// Result of collecting all subprocess output: stdout lines, stderr lines, and exit status.
+type CollectedOutput = (Vec<String>, Vec<String>, std::process::ExitStatus);
+
+/// Timeout-wrapped result of the full collection phase.
+type TimedCollectionResult =
+    Result<Result<CollectedOutput, CodexError>, tokio::time::error::Elapsed>;
+
+/// Spawns the Codex CLI and collects its output, optionally streaming events.
+///
+/// # Errors
+/// Returns a [`CodexError`] if the process cannot be spawned, times out,
+/// produces truncated output, or encounters an I/O failure.
 pub async fn run_codex(
     path: &std::path::Path,
     prompt: &str,
@@ -23,166 +39,144 @@ pub async fn run_codex(
     let args = crate::cmd::build_args(prompt, config);
     let start_time = Instant::now();
 
-    let mut cmd = Command::new(path);
-    cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
-
-    if let Some(cwd) = &config.cd {
-        cmd.current_dir(cwd);
-    }
-
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| CodexError::SpawnFailed {
-            stage: "spawn".to_string(),
-            source: e,
-        })?;
+    let mut child = spawn_child(path, &args, config.cd.as_deref())?;
 
     let stdout = child.stdout.take().ok_or(CodexError::NoStdout)?;
     let stderr = child.stderr.take().ok_or(CodexError::NoStderr)?;
     let pid = child.id().ok_or(CodexError::NoPid)?;
 
-    // Create bounded internal channels for stdout and stderr lines
-    let (stdout_tx, mut stdout_rx) = mpsc::channel::<String>(CHANNEL_CAPACITY);
-    let (stderr_tx, mut stderr_rx) = mpsc::channel::<String>(CHANNEL_CAPACITY);
-
-    // Spawn reader tasks in JoinSet
     let mut tasks = JoinSet::new();
 
     // Stdout reader task
-    let sender_clone = sender.clone();
     tasks.spawn(async move {
-        drain_stream_bounded(stdout, stdout_tx, sender_clone, "stdout").await
+        drain_stream_bounded(stdout, sender, "stdout").await
     });
 
     // Stderr reader task
     tasks.spawn(async move {
-        drain_stream_bounded(stderr, stderr_tx, None, "stderr").await
+        drain_stream_bounded(stderr, None, "stderr").await
     });
 
-    // Accumulate output lines from both channels
+    let process_result = timeout(config.timeout, collect_output(&mut child, &mut tasks)).await;
+    let duration = start_time.elapsed();
+
+    build_run_result(process_result, &mut child, pid, &mut tasks, duration).await
+}
+
+/// Spawns the Codex child process with piped stdout/stderr.
+fn spawn_child(
+    path: &std::path::Path,
+    args: &[std::ffi::OsString],
+    cwd: Option<&std::path::Path>,
+) -> Result<tokio::process::Child, CodexError> {
+    let mut cmd = Command::new(path);
+    cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    if let Some(dir) = cwd {
+        cmd.current_dir(dir);
+    }
+
+    cmd.spawn().map_err(|e| CodexError::SpawnFailed {
+        stage: "spawn".to_string(),
+        source: e,
+    })
+}
+
+/// Collects stdout and stderr output from reader tasks and waits for the child.
+async fn collect_output(
+    child: &mut tokio::process::Child,
+    tasks: &mut JoinSet<StreamOutput>,
+) -> Result<CollectedOutput, CodexError> {
     let mut stdout_lines = Vec::new();
     let mut stderr_lines = Vec::new();
-    let mut stdout_bytes = 0;
-    let mut stderr_bytes = 0;
-    let mut stdout_truncated = false;
-    let mut stderr_truncated = false;
+    let mut results_received = 0u8;
 
-    // Main processing loop with timeout wrapper
-    let process_result = timeout(config.timeout, async {
-        loop {
-            tokio::select! {
-                Some(line) = stdout_rx.recv() => {
-                    let line_bytes = line.len();
-                    if stdout_bytes + line_bytes <= MAX_OUTPUT_BYTES {
-                        stdout_lines.push(line);
-                        stdout_bytes += line_bytes;
-                    } else {
-                        stdout_truncated = true;
-                    }
-                }
-                Some(line) = stderr_rx.recv() => {
-                    let line_bytes = line.len();
-                    if stderr_bytes + line_bytes <= MAX_OUTPUT_BYTES {
-                        stderr_lines.push(line);
-                        stderr_bytes += line_bytes;
-                    } else {
-                        stderr_truncated = true;
-                    }
-                }
-                else => break,
-            }
-        }
-
-        // Wait for child process
-        let status = child.wait().await.map_err(|e| CodexError::SpawnFailed {
-            stage: "wait".to_string(),
+    while let Some(result) = tasks.join_next().await {
+        let (lines, _bytes, truncated) = result.map_err(|e| CodexError::StreamFailed {
+            stage: "join".to_string(),
             source: e,
         })?;
 
-        Ok::<_, CodexError>(status)
-    })
-    .await;
+        if truncated {
+            let captured: usize = lines.iter().map(String::len).sum();
+            return Err(CodexError::OutputTruncated {
+                captured_bytes: captured,
+                limit_bytes: MAX_OUTPUT_BYTES,
+            });
+        }
 
-    let duration = start_time.elapsed();
+        // First result is stdout (spawned first), second is stderr.
+        if results_received == 0 {
+            stdout_lines = lines;
+        } else {
+            stderr_lines = lines;
+        }
+        results_received += 1;
+    }
+
+    let status = child.wait().await.map_err(|e| CodexError::SpawnFailed {
+        stage: "wait".to_string(),
+        source: e,
+    })?;
+
+    Ok((stdout_lines, stderr_lines, status))
+}
+
+/// Converts the raw process outcome into a [`RunResult`] or an appropriate error.
+async fn build_run_result(
+    process_result: TimedCollectionResult,
+    child: &mut tokio::process::Child,
+    pid: u32,
+    tasks: &mut JoinSet<StreamOutput>,
+    duration: Duration,
+) -> Result<RunResult, CodexError> {
+    let duration_ms = u64::try_from(duration.as_millis()).unwrap_or(u64::MAX);
 
     match process_result {
-        Ok(Ok(status)) => {
-            // Process completed successfully (may have non-zero exit)
-            // Wait for reader tasks to complete
-            while let Some(result) = tasks.join_next().await {
-                result.map_err(|e| CodexError::StreamFailed {
-                    stage: "join".to_string(),
-                    source: e,
-                })?;
-            }
-
-            let final_stdout = stdout_lines.join("\n");
-            let final_stderr = stderr_lines.join("\n");
-
-            if stdout_truncated {
-                return Err(CodexError::OutputTruncated {
-                    captured_bytes: stdout_bytes,
-                    limit_bytes: MAX_OUTPUT_BYTES,
-                });
-            }
-            if stderr_truncated {
-                return Err(CodexError::OutputTruncated {
-                    captured_bytes: stderr_bytes,
-                    limit_bytes: MAX_OUTPUT_BYTES,
-                });
-            }
-
-            Ok(RunResult {
-                stdout: final_stdout,
-                stderr: final_stderr,
-                exit_code: status.code().unwrap_or(-1),
-                duration_ms: duration.as_millis() as u64,
-            })
-        }
+        Ok(Ok((stdout_lines, stderr_lines, status))) => Ok(RunResult {
+            stdout: stdout_lines.join("\n"),
+            stderr: stderr_lines.join("\n"),
+            exit_code: status.code().unwrap_or(-1),
+            duration_ms,
+        }),
         Ok(Err(e)) => Err(e),
         Err(_) => {
-            // Timeout occurred - graceful shutdown
-            let _ = graceful_shutdown(&mut child, pid, &mut tasks).await;
-
-            let partial_stdout = stdout_lines.join("\n");
-            let partial_stderr = stderr_lines.join("\n");
+            // Timeout occurred -- graceful shutdown
+            let _ = graceful_shutdown(child, pid, tasks).await;
 
             Err(CodexError::Timeout {
                 elapsed: duration,
                 pid,
-                partial_stdout,
-                partial_stderr,
+                partial_stdout: String::new(),
+                partial_stderr: String::new(),
             })
         }
     }
 }
 
-/// Drain a stream with bounded accumulation and optional JSONL parsing for StreamEvents
+/// Drains a stream with bounded accumulation and optional JSONL parsing for `StreamEvent`.
 async fn drain_stream_bounded(
     stream: impl tokio::io::AsyncRead + Unpin,
-    line_tx: mpsc::Sender<String>,
     event_tx: Option<mpsc::Sender<crate::types::StreamEvent>>,
     _stage: &str,
-) -> Result<(), CodexError> {
+) -> StreamOutput {
     let mut reader = BufReader::new(stream).lines();
+    let mut lines = Vec::new();
+    let mut total_bytes = 0usize;
+    let mut truncated = false;
 
-    while let Some(line) = reader
-        .next_line()
-        .await
-        .map_err(|e| CodexError::SpawnFailed {
-            stage: "read_line".to_string(),
-            source: e,
-        })?
-    {
-        // Forward to event sender if configured
+    loop {
+        let Ok(Some(line)) = reader.next_line().await else {
+            break;
+        };
+
+        // Forward to event sender if configured.
         if let Some(ref tx) = event_tx {
-            // Try to parse as JSON for StreamEvent
             if let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) {
                 if let Ok(event) = serde_json::from_value::<crate::types::StreamEvent>(val) {
                     let _ = tx.send(event).await;
                 }
             } else {
-                // Raw text line
                 let _ = tx
                     .send(crate::types::StreamEvent::Text {
                         text: line.clone() + "\n",
@@ -191,31 +185,39 @@ async fn drain_stream_bounded(
             }
         }
 
-        // Send to line accumulator
-        if line_tx.send(line).await.is_err() {
-            break; // Channel closed, stop reading
+        let line_bytes = line.len();
+        if total_bytes + line_bytes <= MAX_OUTPUT_BYTES {
+            lines.push(line);
+            total_bytes += line_bytes;
+        } else {
+            truncated = true;
         }
     }
 
-    Ok(())
+    (lines, total_bytes, truncated)
 }
 
-/// Graceful shutdown: SIGTERM, wait grace period, then SIGKILL
+/// Graceful shutdown: `SIGTERM`, wait grace period, then `SIGKILL`.
 async fn graceful_shutdown(
     child: &mut tokio::process::Child,
     pid: u32,
-    tasks: &mut JoinSet<Result<(), CodexError>>,
+    tasks: &mut JoinSet<StreamOutput>,
 ) -> Result<(), CodexError> {
-    let nix_pid = Pid::from_raw(pid as i32);
+    let raw_pid = i32::try_from(pid).map_err(|_| CodexError::SignalFailed {
+        signal: "SIGTERM".to_string(),
+        pid,
+        source: nix::errno::Errno::EINVAL,
+    })?;
+    let nix_pid = Pid::from_raw(raw_pid);
 
-    // Send SIGTERM for graceful shutdown
+    // Send SIGTERM for graceful shutdown.
     signal::kill(nix_pid, Signal::SIGTERM).map_err(|e| CodexError::SignalFailed {
         signal: "SIGTERM".to_string(),
         pid,
         source: e,
     })?;
 
-    // Wait for process to exit within grace period
+    // Wait for process to exit within grace period.
     match timeout(GRACE_PERIOD, child.wait()).await {
         Ok(Ok(_status)) => {}
         Ok(Err(e)) => {
@@ -225,7 +227,7 @@ async fn graceful_shutdown(
             });
         }
         Err(_) => {
-            // Grace period expired - force kill
+            // Grace period expired -- force kill.
             child.kill().await.map_err(|e| CodexError::SpawnFailed {
                 stage: "SIGKILL".to_string(),
                 source: e,
@@ -237,7 +239,7 @@ async fn graceful_shutdown(
         }
     }
 
-    // Abort all reader tasks
+    // Abort all reader tasks.
     tasks.abort_all();
 
     Ok(())

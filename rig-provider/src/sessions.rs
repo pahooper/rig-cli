@@ -30,6 +30,7 @@ impl SessionManager {
             let dir = Arc::new(tempfile::tempdir()?);
             let path = dir.path().to_path_buf();
             sessions.insert(session_id.to_string(), dir);
+            drop(sessions);
             Ok(path)
         }
     }

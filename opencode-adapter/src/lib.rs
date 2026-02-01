@@ -1,4 +1,8 @@
-#![warn(clippy::pedantic)]
+//! Adapter crate for running the `OpenCode` CLI as a subprocess.
+//!
+//! Provides discovery, configuration, health checks, and streaming
+//! execution of the `OpenCode` binary from Rust.
+
 pub mod cmd;
 pub mod discovery;
 pub mod error;
@@ -12,20 +16,21 @@ pub use error::OpenCodeError;
 pub use process::run_opencode;
 pub use types::*;
 
+/// High-level handle for the `OpenCode` CLI binary.
 #[derive(Clone)]
 pub struct OpenCodeCli {
+    /// Filesystem path to the `OpenCode` executable.
     pub path: std::path::PathBuf,
 }
 
 impl OpenCodeCli {
-    pub fn new(path: std::path::PathBuf) -> Self {
+    /// Creates a new handle pointing at the given binary path.
+    #[must_use]
+    pub const fn new(path: std::path::PathBuf) -> Self {
         Self { path }
     }
 
-    /// Checks if the OpenCode CLI is working correctly.
-    ///
-    /// # Errors
-    /// Returns an error if the binary cannot be executed or fails its own health check.
+    /// Runs `--version` to verify the binary is functional.
     pub async fn check_health(&self) -> Result<(), OpenCodeError> {
         let output = Command::new(&self.path)
             .arg("--version")
@@ -41,14 +46,14 @@ impl OpenCodeCli {
         } else {
             Err(OpenCodeError::SpawnFailed {
                 stage: "health check validation".to_string(),
-                source: std::io::Error::new(
-                    std::io::ErrorKind::Other,
+                source: std::io::Error::other(
                     "OpenCode health check failed",
                 ),
             })
         }
     }
 
+    /// Runs `OpenCode` to completion and returns the full result.
     pub async fn run(
         &self,
         message: &str,
@@ -57,6 +62,7 @@ impl OpenCodeCli {
         run_opencode(&self.path, message, config, None).await
     }
 
+    /// Runs `OpenCode` while streaming events through `sender`.
     pub async fn stream(
         &self,
         message: &str,

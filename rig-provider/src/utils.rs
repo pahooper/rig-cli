@@ -1,12 +1,15 @@
+use std::fmt::Write;
+
 use rig::completion::message::{AssistantContent, Message, UserContent};
 use rig::completion::CompletionRequest;
 
 /// Formats the chat history into a single string prompting the user for the next action.
+#[must_use]
 pub fn format_chat_history(request: &CompletionRequest) -> String {
     let mut prompt_str = String::new();
 
     if let Some(preamble) = &request.preamble {
-        prompt_str.push_str(&format!("System: {}\n\n", preamble));
+        let _ = write!(prompt_str, "System: {preamble}\n\n");
     }
 
     for msg in request.chat_history.iter() {
@@ -20,7 +23,7 @@ pub fn format_chat_history(request: &CompletionRequest) -> String {
                     })
                     .collect::<Vec<_>>()
                     .join("\n");
-                prompt_str.push_str(&format!("User: {}\n", text));
+                let _ = writeln!(prompt_str, "User: {text}");
             }
             Message::Assistant { content, .. } => {
                 let text = content
@@ -31,7 +34,7 @@ pub fn format_chat_history(request: &CompletionRequest) -> String {
                     })
                     .collect::<Vec<_>>()
                     .join("\n");
-                prompt_str.push_str(&format!("Assistant: {}\n", text));
+                let _ = writeln!(prompt_str, "Assistant: {text}");
             }
         }
     }

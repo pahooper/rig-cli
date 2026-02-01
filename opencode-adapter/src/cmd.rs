@@ -1,6 +1,10 @@
+//! Command-line argument construction for the `OpenCode` binary.
+
 use crate::types::OpenCodeConfig;
 use std::ffi::OsString;
 
+/// Builds the argument list for an `OpenCode` subprocess invocation.
+#[must_use]
 pub fn build_args(message: &str, config: &OpenCodeConfig) -> Vec<OsString> {
     let mut args = Vec::new();
 
@@ -10,7 +14,6 @@ pub fn build_args(message: &str, config: &OpenCodeConfig) -> Vec<OsString> {
         args.push(OsString::from("--model"));
         args.push(OsString::from(model));
     }
-
 
     if config.print_logs {
         args.push(OsString::from("--print-logs"));

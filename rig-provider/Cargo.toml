@@ -2,6 +2,12 @@
 name = "rig-provider"
 version = "0.1.0"
 edition = "2021"
+description = "Rig provider turning CLI agents into idiomatic Rig CompletionModel and Tool implementations"
+license = "MIT"
+repository = "https://github.com/pnod/rig-cli"
+readme = "README.md"
+keywords = ["rig", "cli", "provider", "llm"]
+categories = ["development-tools"]
 
 [dependencies]
 rig-mcp-server = { path = "../mcp" }

@@ -1,3 +1,5 @@
+//! The Rig Provider binary serves as an MCP server bridging AI CLI adapters.
+
 use clap::{Parser, Subcommand};
 use rig::tool::ToolSet;
 use rig_mcp_server::prelude::*;
@@ -27,6 +29,7 @@ enum Commands {
     },
 }
 
+/// Structured output from the provider containing the AI result and metadata.
 #[derive(Debug, Deserialize, Serialize, JsonSchema, Clone)]
 pub struct ProviderOutput {
     /// The final result of the AI's work

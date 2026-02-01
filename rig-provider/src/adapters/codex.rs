@@ -67,7 +67,7 @@ impl CompletionModel for CodexModel {
 
         Ok(CompletionResponse {
             choice: OneOrMany::one(AssistantContent::text(result.stdout.clone())),
-            usage: Default::default(),
+            usage: Usage::default(),
             raw_response: result,
         })
     }

@@ -11,7 +11,7 @@ pub enum ProviderError {
     #[error("Codex adapter error: {0}")]
     Codex(#[from] codex_adapter::CodexError),
 
-    /// Error from the OpenCode adapter.
+    /// Error from the `OpenCode` adapter.
     #[error("OpenCode adapter error: {0}")]
     OpenCode(#[from] opencode_adapter::OpenCodeError),
 

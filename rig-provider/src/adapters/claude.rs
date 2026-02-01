@@ -5,7 +5,7 @@ use claudecode_adapter::{init, ClaudeCli, RunConfig, RunResult, StreamEvent};
 use futures::StreamExt;
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
-    CompletionResponse, ToolDefinition,
+    CompletionResponse, ToolDefinition, Usage,
 };
 use rig::streaming::{RawStreamingChoice, RawStreamingToolCall, StreamingCompletionResponse};
 use rig::tool::Tool;
@@ -63,7 +63,7 @@ impl CompletionModel for ClaudeModel {
 
         Ok(CompletionResponse {
             choice: OneOrMany::one(AssistantContent::text(result.stdout.clone())),
-            usage: Default::default(),
+            usage: Usage::default(),
             raw_response: result,
         })
     }
@@ -78,8 +78,10 @@ impl CompletionModel for ClaudeModel {
         let cli = self.cli.clone();
 
         // Spawn the CLI process in the background
-        let mut config = RunConfig::default();
-        config.output_format = Some(claudecode_adapter::OutputFormat::StreamJson);
+        let mut config = RunConfig {
+            output_format: Some(claudecode_adapter::OutputFormat::StreamJson),
+            ..RunConfig::default()
+        };
 
         if !request.tools.is_empty() {
             let allowed_tools: Vec<String> = request.tools.iter().map(|t| t.name.clone()).collect();

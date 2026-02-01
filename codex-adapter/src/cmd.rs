@@ -1,6 +1,10 @@
+//! Command-line argument construction for the Codex CLI.
+
 use crate::types::{ApprovalPolicy, CodexConfig, SandboxMode};
 use std::ffi::OsString;
 
+/// Builds the argument list for a Codex CLI invocation.
+#[must_use]
 pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
     let mut args = Vec::new();
 
@@ -50,7 +54,7 @@ pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
 
     for (k, v) in &config.overrides {
         args.push(OsString::from("--config"));
-        args.push(OsString::from(format!("{}={}", k, v)));
+        args.push(OsString::from(format!("{k}={v}")));
     }
 
     args.push(OsString::from(prompt));

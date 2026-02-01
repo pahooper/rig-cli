@@ -2,7 +2,7 @@
 
 use rig::completion::ToolDefinition;
 use rig::tool::server::{ToolServerError, ToolServerHandle};
-use rig::tool::{ToolSet, ToolSetError};
+use rig::tool::{ToolError, ToolSet, ToolSetError};
 use rmcp::RoleServer;
 use rmcp::service::RequestContext;
 use rmcp::{
@@ -259,11 +259,12 @@ impl RigMcpHandlerBuilder {
     ///
     /// # Errors
     /// Returns `ToolSetError` if the toolset is missing or if fetching definitions fails.
-    ///
-    /// # Panics
-    /// Panics if the `ToolSet` is missing from the builder.
     pub async fn build(self) -> Result<RigMcpHandler, ToolSetError> {
-        let toolset = self.toolset.expect("ToolSet is required for build()");
+        let toolset = self.toolset.ok_or_else(|| {
+            ToolSetError::ToolCallError(ToolError::ToolCallError(
+                "ToolSet is required for build(); call .toolset() first".into(),
+            ))
+        })?;
         let definitions = toolset.get_tool_definitions().await?;
         let tool_definitions = definitions
             .into_iter()
@@ -280,13 +281,13 @@ impl RigMcpHandlerBuilder {
     ///
     /// # Errors
     /// Returns `ToolServerError` if the server handle is missing or if fetching definitions fails.
-    ///
-    /// # Panics
-    /// Panics if the `ToolServerHandle` is missing from the builder.
     pub async fn build_from_server(self) -> Result<RigMcpHandler, ToolServerError> {
-        let handle = self
-            .tool_server
-            .expect("ToolServerHandle is required for build_from_server()");
+        let handle = self.tool_server.ok_or_else(|| {
+            ToolServerError::ToolsetError(ToolSetError::ToolCallError(ToolError::ToolCallError(
+                "ToolServerHandle is required for build_from_server(); call .tool_server() first"
+                    .into(),
+            )))
+        })?;
         let definitions = handle.get_tool_defs(None).await?;
         let tool_definitions = definitions
             .into_iter()

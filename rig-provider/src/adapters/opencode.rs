@@ -16,7 +16,7 @@ use crate::utils::format_chat_history;
 use futures::StreamExt;
 use tokio_stream::wrappers::ReceiverStream;
 
-/// Arguments for the OpenCode tool.
+/// Arguments for the `OpenCode` tool.
 #[derive(Deserialize, Serialize, JsonSchema)]
 pub struct OpenCodeArgs {
     /// The instruction for `OpenCode`
@@ -35,7 +35,7 @@ impl GetTokenUsage for OpenCodeStreamEvent {
     }
 }
 
-/// The Rig `CompletionModel` implementation for OpenCode.
+/// The Rig `CompletionModel` implementation for `OpenCode`.
 #[derive(Clone)]
 pub struct OpenCodeModel {
     /// The underlying CLI client.
@@ -63,7 +63,7 @@ impl CompletionModel for OpenCodeModel {
 
         Ok(CompletionResponse {
             choice: OneOrMany::one(AssistantContent::text(result.stdout.clone())),
-            usage: Default::default(),
+            usage: Usage::default(),
             raw_response: result,
         })
     }
@@ -106,7 +106,7 @@ impl CompletionModel for OpenCodeModel {
     }
 }
 
-/// A Rig Tool that exposes the OpenCode CLI.
+/// A Rig Tool that exposes the `OpenCode` CLI.
 pub struct OpenCodeTool {
     /// The underlying CLI client.
     pub cli: OpenCodeCli,

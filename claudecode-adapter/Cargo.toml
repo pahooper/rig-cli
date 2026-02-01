@@ -3,8 +3,12 @@ name = "claudecode-adapter"
 version = "0.1.0"
 edition = "2021"
 authors = ["Claude"]
-description = "A Rust library providing programmatic interface to Claude Code CLI tool"
+description = "Rust adapter for Claude Code CLI subprocess execution"
 license = "MIT"
+repository = "https://github.com/pnod/rig-cli"
+readme = "README.md"
+keywords = ["claude", "cli", "adapter", "subprocess"]
+categories = ["development-tools"]
 
 [lints]
 workspace = true

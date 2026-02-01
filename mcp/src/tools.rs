@@ -68,7 +68,7 @@ where
                 description: self.submit_tool_description,
                 schema: self.schema.clone(),
                 on_submit: self.on_submit,
-                success_message: success_message.clone(),
+                success_message,
                 _marker: PhantomData,
             },
             ValidateJsonTool {
@@ -79,7 +79,7 @@ where
             JsonExampleTool {
                 name: self.example_tool_name,
                 description: self.example_tool_description,
-                example: example.clone(),
+                example,
             },
         )
     }
@@ -262,11 +262,10 @@ where
         // Since we are using T as Args, Rig already handles deserialization.
         // However, we still have the JSON schema for the MCP definition.
 
-        if let Some(ref callback) = self.on_submit {
-            Ok(callback(args))
-        } else {
-            Ok(self.success_message.to_string())
-        }
+        self.on_submit.as_ref().map_or_else(
+            || Ok(self.success_message.to_string()),
+            |callback| Ok(callback(args)),
+        )
     }
 }
 

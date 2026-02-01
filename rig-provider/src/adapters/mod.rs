@@ -2,5 +2,5 @@
 pub mod claude;
 /// Codex adapter.
 pub mod codex;
-/// OpenCode adapter.
+/// `OpenCode` adapter.
 pub mod opencode;

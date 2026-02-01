@@ -1,6 +1,11 @@
+//! Command-line argument builder for Claude CLI invocations.
+
 use crate::types::{BuiltinToolSet, JsonSchema, OutputFormat, RunConfig, SystemPromptMode};
 use std::ffi::OsString;
 
+/// Builds the argument list for a `claude --print` invocation from the given
+/// prompt and configuration.
+#[must_use]
 pub fn build_args(prompt: &str, config: &RunConfig) -> Vec<OsString> {
     let mut args = Vec::new();
 
