@@ -35,7 +35,7 @@ impl ClaudeCli {
         &self,
         prompt: &str,
         config: &types::RunConfig,
-        sender: tokio::sync::mpsc::UnboundedSender<types::StreamEvent>,
+        sender: tokio::sync::mpsc::Sender<types::StreamEvent>,
     ) -> Result<types::RunResult, ClaudeError> {
         run_claude(&self.path, prompt, config, Some(sender)).await
     }
