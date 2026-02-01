@@ -19,3 +19,4 @@ which = "6.0"
 tracing = "0.1"
 async-trait = "0.1"
 futures = "0.3"
+nix = { version = "0.29", features = ["signal"] }
