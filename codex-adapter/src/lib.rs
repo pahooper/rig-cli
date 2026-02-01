@@ -27,12 +27,21 @@ impl CodexCli {
     /// # Errors
     /// Returns an error if the binary cannot be executed or fails its own health check.
     pub async fn check_health(&self) -> Result<(), CodexError> {
-        let output = Command::new(&self.path).arg("--version").output().await?;
+        let output = Command::new(&self.path)
+            .arg("--version")
+            .output()
+            .await
+            .map_err(|e| CodexError::SpawnFailed {
+                stage: "health check".to_string(),
+                source: e,
+            })?;
 
         if output.status.success() {
             Ok(())
         } else {
-            Err(CodexError::Other("Codex health check failed".to_string()))
+            Err(CodexError::ExecutableNotFound(
+                "Codex health check failed".to_string(),
+            ))
         }
     }
 
@@ -48,7 +57,7 @@ impl CodexCli {
         &self,
         prompt: &str,
         config: &types::CodexConfig,
-        sender: tokio::sync::mpsc::UnboundedSender<types::StreamEvent>,
+        sender: tokio::sync::mpsc::Sender<types::StreamEvent>,
     ) -> Result<types::RunResult, CodexError> {
         run_codex(&self.path, prompt, config, Some(sender)).await
     }
