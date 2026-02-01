@@ -9,18 +9,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-Phase: 1 of 11 (Resource Management Foundation) - COMPLETE
-Plan: 5 of 5 in current phase (01-01, 01-02, 01-03, 01-04, 01-05 complete)
-Status: Phase complete
-Last activity: 2026-02-01 — Completed 01-05-PLAN.md (graceful_shutdown consistency fix)
+Phase: 2 of 11 (Retry & Validation Loop) - IN PROGRESS
+Plan: 1 of 3 in current phase (02-01 complete)
+Status: In progress
+Last activity: 2026-02-01 — Completed 02-01-PLAN.md (extraction foundation types)
 
-Progress: [████░░░░░░] 100% of Phase 1
+Progress: [█████░░░░░] 1/6 plans complete (Phase 1: 5/5, Phase 2: 1/3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 5 min
+- Total plans completed: 6
+- Average duration: 4 min
 - Total execution time: 0.4 hours
 
 **By Phase:**
@@ -28,10 +28,11 @@ Progress: [████░░░░░░] 100% of Phase 1
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-resource-management-foundation | 5 | 23min | 5min |
+| 02-retry-validation-loop | 1 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 01-03 (3min), 01-02 (6min), 01-04 (7min), 01-05 (3min)
-- Trend: Phase 1 complete, all adapters have consistent resource management
+- Last 5 plans: 01-03 (3min), 01-02 (6min), 01-04 (7min), 01-05 (3min), 02-01 (3min)
+- Trend: Phase 2 started - extraction foundation types established
 
 *Updated after each plan completion*
 
@@ -52,6 +53,9 @@ Recent decisions affecting current work:
 - Standardize on 100-message channel capacity, 10MB output limit, 5s grace period across all adapters
 - Use pid: 0 placeholder in rig-provider NonZeroExit since RunResult doesn't carry PID (01-04)
 - Match claudecode-adapter's graceful_shutdown pattern exactly across all adapters (01-05)
+- Use chars().count() not len() for token estimation to handle UTF-8 correctly (02-01)
+- ExtractionError::MaxRetriesExceeded holds complete history, raw output, and metrics (02-01)
+- Validation feedback includes schema, submission echo, all errors, and attempt counter (02-01)
 
 ### Pending Todos
 
@@ -64,5 +68,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 01-05-PLAN.md (Phase 1 complete with zero verifier warnings)
+Stopped at: Completed 02-01-PLAN.md (extraction foundation types with zero clippy warnings)
 Resume file: None
