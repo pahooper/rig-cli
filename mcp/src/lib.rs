@@ -8,7 +8,9 @@ pub mod tools;
 
 /// Common traits and types for ergonomic usage of the Rig MCP server.
 pub mod prelude {
-    pub use crate::extraction::{ExtractionConfig, ExtractionError, ExtractionMetrics};
+    pub use crate::extraction::{
+        ExtractionConfig, ExtractionError, ExtractionMetrics, ExtractionOrchestrator,
+    };
     pub use crate::server::{McpConfig, RigMcpHandler, ToolSetExt};
     pub use crate::tools::JsonSchemaToolkit;
 }
