@@ -91,40 +91,40 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RSRC-01 | — | Pending |
-| RSRC-02 | — | Pending |
-| RSRC-03 | — | Pending |
-| RSRC-04 | — | Pending |
-| RSRC-05 | — | Pending |
-| EXTR-01 | — | Pending |
-| EXTR-02 | — | Pending |
-| EXTR-03 | — | Pending |
-| EXTR-04 | — | Pending |
-| EXTR-05 | — | Pending |
-| CONT-01 | — | Pending |
-| CONT-02 | — | Pending |
-| CONT-03 | — | Pending |
-| CONT-04 | — | Pending |
-| OBSV-01 | — | Pending |
-| OBSV-02 | — | Pending |
-| PLAT-01 | — | Pending |
-| PLAT-02 | — | Pending |
-| PLAT-03 | — | Pending |
-| PLAT-04 | — | Pending |
-| PLAT-05 | — | Pending |
-| QUAL-01 | — | Pending |
-| QUAL-02 | — | Pending |
-| QUAL-03 | — | Pending |
-| QUAL-04 | — | Pending |
-| ADPT-01 | — | Pending |
-| ADPT-02 | — | Pending |
-| ADPT-03 | — | Pending |
+| RSRC-01 | Phase 1 | Pending |
+| RSRC-02 | Phase 1 | Pending |
+| RSRC-03 | Phase 1 | Pending |
+| RSRC-04 | Phase 1 | Pending |
+| RSRC-05 | Phase 1 | Pending |
+| EXTR-01 | Phase 2 | Pending |
+| EXTR-04 | Phase 2 | Pending |
+| EXTR-02 | Phase 3 | Pending |
+| EXTR-03 | Phase 3 | Pending |
+| EXTR-05 | Phase 3 | Pending |
+| CONT-01 | Phase 4 | Pending |
+| CONT-02 | Phase 4 | Pending |
+| CONT-03 | Phase 4 | Pending |
+| CONT-04 | Phase 4 | Pending |
+| OBSV-01 | Phase 5 | Pending |
+| OBSV-02 | Phase 5 | Pending |
+| PLAT-01 | Phase 6 | Pending |
+| PLAT-02 | Phase 6 | Pending |
+| PLAT-05 | Phase 6 | Pending |
+| PLAT-03 | Phase 7 | Pending |
+| PLAT-04 | Phase 7 | Pending |
+| QUAL-02 | Phase 7 | Pending |
+| ADPT-01 | Phase 8 | Pending |
+| QUAL-01 | Phase 8 | Pending |
+| ADPT-02 | Phase 9 | Pending |
+| ADPT-03 | Phase 10 | Pending |
+| QUAL-03 | Phase 11 | Pending |
+| QUAL-04 | Phase 11 | Pending |
 
 **Coverage:**
 - v1 requirements: 28 total
-- Mapped to phases: 0
-- Unmapped: 28
+- Mapped to phases: 28
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 after initial definition*
+*Last updated: 2026-02-01 after roadmap creation*
