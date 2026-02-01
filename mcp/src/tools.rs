@@ -7,6 +7,7 @@ use schemars::{JsonSchema, schema_for};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use std::fmt::Write as _;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use thiserror::Error;
@@ -314,11 +315,26 @@ impl Tool for ValidateJsonTool {
         if errors.is_empty() {
             Ok("JSON is valid. You may now call the submit tool.".to_string())
         } else {
-            let msgs: Vec<String> = errors.iter().map(ToString::to_string).collect();
-            Ok(format!(
-                "JSON is invalid. Please fix the following errors before submitting:\n{}",
-                msgs.join("\n")
-            ))
+            // Build richer feedback with instance paths, schema, and echoed submission
+            let mut feedback = String::from("JSON validation failed.\n\nErrors:\n");
+
+            for error in &errors {
+                let _ = writeln!(feedback, "  - At path '{}': {}", error.instance_path, error);
+            }
+
+            feedback.push_str("\nExpected schema:\n");
+            let schema_str = serde_json::to_string_pretty(&*self.schema)
+                .unwrap_or_else(|_| self.schema.to_string());
+            feedback.push_str(&schema_str);
+
+            feedback.push_str("\n\nYour submission:\n");
+            let submission_str = serde_json::to_string_pretty(&args.json)
+                .unwrap_or_else(|_| args.json.to_string());
+            feedback.push_str(&submission_str);
+
+            feedback.push_str("\n\nPlease fix all errors above and resubmit using the validate_json tool, then call submit.");
+
+            Ok(feedback)
         }
     }
 }
