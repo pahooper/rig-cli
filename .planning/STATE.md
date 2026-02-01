@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 2 of 11 (Retry & Validation Loop) - IN PROGRESS
-Plan: 1 of 3 in current phase (02-01 complete)
+Plan: 2 of 3 in current phase (02-01, 02-02 complete)
 Status: In progress
-Last activity: 2026-02-01 — Completed 02-01-PLAN.md (extraction foundation types)
+Last activity: 2026-02-01 — Completed 02-02-PLAN.md (extraction orchestrator and enhanced validation)
 
-Progress: [█████░░░░░] 1/6 plans complete (Phase 1: 5/5, Phase 2: 1/3)
+Progress: [██████░░░░] 2/6 plans complete (Phase 1: 5/5, Phase 2: 2/3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 4 min
-- Total execution time: 0.4 hours
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-resource-management-foundation | 5 | 23min | 5min |
-| 02-retry-validation-loop | 1 | 3min | 3min |
+| 02-retry-validation-loop | 2 | 6min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (3min), 01-02 (6min), 01-04 (7min), 01-05 (3min), 02-01 (3min)
-- Trend: Phase 2 started - extraction foundation types established
+- Last 5 plans: 01-02 (6min), 01-04 (7min), 01-05 (3min), 02-01 (3min), 02-02 (3min)
+- Trend: Phase 2 progressing - retry orchestration complete
 
 *Updated after each plan completion*
 
@@ -56,6 +56,9 @@ Recent decisions affecting current work:
 - Use chars().count() not len() for token estimation to handle UTF-8 correctly (02-01)
 - ExtractionError::MaxRetriesExceeded holds complete history, raw output, and metrics (02-01)
 - Validation feedback includes schema, submission echo, all errors, and attempt counter (02-01)
+- Orchestrator not generic over T - works with serde_json::Value, caller deserializes (02-02)
+- Conversation continuation strategy: append feedback to prompt for retry context (02-02)
+- Parse failures count against same retry budget as validation failures (02-02)
 
 ### Pending Todos
 
@@ -68,5 +71,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 02-01-PLAN.md (extraction foundation types with zero clippy warnings)
+Stopped at: Completed 02-02-PLAN.md (extraction orchestrator with async retry loop and enhanced ValidateJsonTool)
 Resume file: None
