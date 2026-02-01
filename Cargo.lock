@@ -289,6 +289,7 @@ name = "codex-adapter"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "nix",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
