@@ -1,16 +1,24 @@
 use crate::error::OpenCodeError;
 use crate::types::{OpenCodeConfig, RunResult};
+use nix::sys::signal::{self, Signal};
+use nix::unistd::Pid;
 use std::process::Stdio;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use tokio::time::timeout;
+use tokio::sync::mpsc;
+use tokio::task::JoinSet;
+use tokio::time::{sleep, timeout};
+
+const CHANNEL_CAPACITY: usize = 100;
+const MAX_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MB
+const GRACE_PERIOD: Duration = Duration::from_secs(5);
 
 pub async fn run_opencode(
     path: &std::path::Path,
     message: &str,
     config: &OpenCodeConfig,
-    sender: Option<tokio::sync::mpsc::UnboundedSender<crate::types::StreamEvent>>,
+    sender: Option<mpsc::Sender<crate::types::StreamEvent>>,
 ) -> Result<RunResult, OpenCodeError> {
     let args = crate::cmd::build_args(message, config);
     let start_time = Instant::now();
@@ -22,71 +30,207 @@ pub async fn run_opencode(
         cmd.current_dir(cwd);
     }
 
-    let mut child = cmd.spawn()?;
-    let stdout = child.stdout.take().expect("Failed to open stdout");
-    let stderr = child.stderr.take().expect("Failed to open stderr");
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| OpenCodeError::SpawnFailed {
+            stage: "spawn subprocess".to_string(),
+            source: e,
+        })?;
 
-    let captured_stdout = std::sync::Arc::new(tokio::sync::Mutex::new(String::new()));
-    let captured_stderr = std::sync::Arc::new(tokio::sync::Mutex::new(String::new()));
+    let stdout = child.stdout.take().ok_or(OpenCodeError::NoStdout)?;
+    let stderr = child.stderr.take().ok_or(OpenCodeError::NoStderr)?;
+    let pid = child.id().ok_or(OpenCodeError::NoPid)?;
 
-    let stdout_cap = captured_stdout.clone();
-    let stdout_task = tokio::spawn(async move {
+    // Bounded internal channels
+    let (stdout_tx, mut stdout_rx) = mpsc::channel::<String>(CHANNEL_CAPACITY);
+    let (stderr_tx, mut stderr_rx) = mpsc::channel::<String>(CHANNEL_CAPACITY);
+
+    // JoinSet for tracking reader tasks
+    let mut join_set = JoinSet::new();
+
+    // Stdout reader task
+    let sender_clone = sender.clone();
+    join_set.spawn(async move {
         let mut reader = BufReader::new(stdout).lines();
         while let Ok(Some(line)) = reader.next_line().await {
-            let mut s = stdout_cap.lock().await;
-
-            if let Some(tx) = &sender {
+            // Try to parse as StreamEvent for forwarding
+            if let Some(tx) = &sender_clone {
                 if let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) {
-                     if let Ok(event) = serde_json::from_value::<crate::types::StreamEvent>(val) {
-                         let _ = tx.send(event);
-                     } else {
-                         // Fallback
-                     }
+                    if let Ok(event) = serde_json::from_value::<crate::types::StreamEvent>(val) {
+                        let _ = tx.send(event).await;
+                    }
                 } else {
                     // Raw text line
-                    let _ = tx.send(crate::types::StreamEvent::Text { text: line.clone() + "\n" });
+                    let _ = tx
+                        .send(crate::types::StreamEvent::Text {
+                            text: line.clone() + "\n",
+                        })
+                        .await;
                 }
             }
 
-            s.push_str(&line);
-            s.push('\n');
+            // Send to internal channel for accumulation (bounded backpressure)
+            if stdout_tx.send(line).await.is_err() {
+                break;
+            }
         }
     });
 
-    let stderr_cap = captured_stderr.clone();
-    let stderr_task = tokio::spawn(async move {
+    // Stderr reader task
+    join_set.spawn(async move {
         let mut reader = BufReader::new(stderr).lines();
         while let Ok(Some(line)) = reader.next_line().await {
-            let mut s = stderr_cap.lock().await;
-            s.push_str(&line);
-            s.push('\n');
+            if stderr_tx.send(line).await.is_err() {
+                break;
+            }
         }
     });
 
-    let wait_task = async {
-        let status = child.wait().await?;
-        let _ = stdout_task.await;
-        let _ = stderr_task.await;
-        Ok::<_, OpenCodeError>(status)
-    };
+    // Main accumulation loop with bounded memory
+    let mut stdout_lines = Vec::new();
+    let mut stderr_lines = Vec::new();
+    let mut stdout_bytes = 0;
+    let mut stderr_bytes = 0;
 
-    match timeout(config.timeout, wait_task).await {
-        Ok(res) => {
-            let status = res?;
-            let duration = start_time.elapsed();
-            let final_stdout = captured_stdout.lock().await.clone();
-            let final_stderr = captured_stderr.lock().await.clone();
+    // Timeout wrapper for main execution
+    let execution_result = timeout(config.timeout, async {
+        loop {
+            tokio::select! {
+                Some(line) = stdout_rx.recv() => {
+                    stdout_bytes += line.len();
+                    if stdout_bytes > MAX_OUTPUT_BYTES {
+                        return Err(OpenCodeError::OutputTruncated {
+                            captured_bytes: stdout_bytes,
+                            limit_bytes: MAX_OUTPUT_BYTES,
+                        });
+                    }
+                    stdout_lines.push(line);
+                }
+                Some(line) = stderr_rx.recv() => {
+                    stderr_bytes += line.len();
+                    if stderr_bytes > MAX_OUTPUT_BYTES {
+                        return Err(OpenCodeError::OutputTruncated {
+                            captured_bytes: stderr_bytes,
+                            limit_bytes: MAX_OUTPUT_BYTES,
+                        });
+                    }
+                    stderr_lines.push(line);
+                }
+                status = child.wait() => {
+                    // Process exited, drain remaining buffered output
+                    drain_stream_bounded(&mut stdout_rx, &mut stdout_lines, &mut stdout_bytes, MAX_OUTPUT_BYTES).await?;
+                    drain_stream_bounded(&mut stderr_rx, &mut stderr_lines, &mut stderr_bytes, MAX_OUTPUT_BYTES).await?;
 
-            Ok(RunResult {
-                stdout: final_stdout,
-                stderr: final_stderr,
-                exit_code: status.code().unwrap_or(-1),
-                duration_ms: duration.as_millis() as u64,
+                    // Abort reader tasks and wait for cleanup
+                    join_set.abort_all();
+                    while join_set.join_next().await.is_some() {}
+
+                    let status = status.map_err(|e| OpenCodeError::SpawnFailed {
+                        stage: "wait for child".to_string(),
+                        source: e,
+                    })?;
+
+                    let duration = start_time.elapsed();
+                    let exit_code = status.code().unwrap_or(-1);
+
+                    let stdout = stdout_lines.join("\n");
+                    let stderr = stderr_lines.join("\n");
+
+                    if exit_code != 0 {
+                        return Err(OpenCodeError::NonZeroExit {
+                            exit_code,
+                            pid,
+                            elapsed: duration,
+                            stdout,
+                            stderr,
+                        });
+                    }
+
+                    return Ok(RunResult {
+                        stdout,
+                        stderr,
+                        exit_code,
+                        duration_ms: duration.as_millis() as u64,
+                    });
+                }
+            }
+        }
+    })
+    .await;
+
+    match execution_result {
+        Ok(result) => result,
+        Err(_timeout_elapsed) => {
+            // Timeout - graceful shutdown with SIGTERM -> SIGKILL
+            let elapsed = start_time.elapsed();
+            graceful_shutdown(pid).await;
+
+            // Drain remaining output after shutdown
+            drain_stream_bounded(
+                &mut stdout_rx,
+                &mut stdout_lines,
+                &mut stdout_bytes,
+                MAX_OUTPUT_BYTES,
+            )
+            .await?;
+            drain_stream_bounded(
+                &mut stderr_rx,
+                &mut stderr_lines,
+                &mut stderr_bytes,
+                MAX_OUTPUT_BYTES,
+            )
+            .await?;
+
+            join_set.abort_all();
+            while join_set.join_next().await.is_some() {}
+
+            Err(OpenCodeError::Timeout {
+                elapsed,
+                pid,
+                partial_stdout: stdout_lines.join("\n"),
+                partial_stderr: stderr_lines.join("\n"),
             })
         }
-        Err(_) => {
-            let _ = child.kill().await;
-            Err(OpenCodeError::Timeout(config.timeout))
+    }
+}
+
+/// Drain remaining lines from channel with bounded memory enforcement
+async fn drain_stream_bounded(
+    rx: &mut mpsc::Receiver<String>,
+    lines: &mut Vec<String>,
+    bytes: &mut usize,
+    max_bytes: usize,
+) -> Result<(), OpenCodeError> {
+    while let Ok(line) = rx.try_recv() {
+        *bytes += line.len();
+        if *bytes > max_bytes {
+            return Err(OpenCodeError::OutputTruncated {
+                captured_bytes: *bytes,
+                limit_bytes: max_bytes,
+            });
+        }
+        lines.push(line);
+    }
+    Ok(())
+}
+
+/// Gracefully shutdown subprocess: SIGTERM, wait grace period, then SIGKILL
+async fn graceful_shutdown(pid: u32) {
+    let nix_pid = Pid::from_raw(pid as i32);
+
+    // Send SIGTERM
+    if let Err(e) = signal::kill(nix_pid, Signal::SIGTERM) {
+        eprintln!("Failed to send SIGTERM to PID {pid}: {e}");
+    }
+
+    // Wait for grace period
+    sleep(GRACE_PERIOD).await;
+
+    // Send SIGKILL if still alive
+    if let Err(e) = signal::kill(nix_pid, Signal::SIGKILL) {
+        // ESRCH means process already exited, which is fine
+        if e != nix::errno::Errno::ESRCH {
+            eprintln!("Failed to send SIGKILL to PID {pid}: {e}");
         }
     }
 }

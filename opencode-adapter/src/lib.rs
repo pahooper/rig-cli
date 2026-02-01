@@ -27,14 +27,25 @@ impl OpenCodeCli {
     /// # Errors
     /// Returns an error if the binary cannot be executed or fails its own health check.
     pub async fn check_health(&self) -> Result<(), OpenCodeError> {
-        let output = Command::new(&self.path).arg("--version").output().await?;
+        let output = Command::new(&self.path)
+            .arg("--version")
+            .output()
+            .await
+            .map_err(|e| OpenCodeError::SpawnFailed {
+                stage: "health check".to_string(),
+                source: e,
+            })?;
 
         if output.status.success() {
             Ok(())
         } else {
-            Err(OpenCodeError::Other(
-                "OpenCode health check failed".to_string(),
-            ))
+            Err(OpenCodeError::SpawnFailed {
+                stage: "health check validation".to_string(),
+                source: std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "OpenCode health check failed",
+                ),
+            })
         }
     }
 
@@ -50,7 +61,7 @@ impl OpenCodeCli {
         &self,
         message: &str,
         config: &types::OpenCodeConfig,
-        sender: tokio::sync::mpsc::UnboundedSender<types::StreamEvent>,
+        sender: tokio::sync::mpsc::Sender<types::StreamEvent>,
     ) -> Result<types::RunResult, OpenCodeError> {
         run_opencode(&self.path, message, config, Some(sender)).await
     }
