@@ -36,10 +36,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Subprocesses are killed and awaited without leaving zombie processes
   4. Stream readers fully drain before process exit (no data loss from race conditions)
   5. All error paths propagate errors instead of panicking (no .expect() or .unwrap() in stream handling)
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: TBD
+- [ ] 01-01-PLAN.md — Rewrite claudecode-adapter with bounded channels, JoinSet, graceful shutdown, rich errors
+- [ ] 01-02-PLAN.md — Rewrite codex-adapter with bounded channels, JoinSet, graceful shutdown, rich errors
+- [ ] 01-03-PLAN.md — Rewrite opencode-adapter with bounded channels, JoinSet, graceful shutdown, rich errors
+- [ ] 01-04-PLAN.md — Update rig-provider callers to bounded channels, workspace-wide RSRC verification
 
 ### Phase 2: Retry & Validation Loop
 **Goal**: Agent self-corrects on validation errors through bounded retry attempts
@@ -189,7 +192,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Resource Management Foundation | 0/TBD | Not started | - |
+| 1. Resource Management Foundation | 0/4 | Planned | - |
 | 2. Retry & Validation Loop | 0/TBD | Not started | - |
 | 3. Payload & Instruction System | 0/TBD | Not started | - |
 | 4. Agent Containment | 0/TBD | Not started | - |
