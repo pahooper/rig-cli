@@ -14,7 +14,7 @@ use crate::sessions::SessionManager;
 use crate::errors::ProviderError;
 use crate::utils::format_chat_history;
 use futures::StreamExt;
-use tokio_stream::wrappers::UnboundedReceiverStream;
+use tokio_stream::wrappers::ReceiverStream;
 
 /// Arguments for the OpenCode tool.
 #[derive(Deserialize, Serialize, JsonSchema)]
@@ -74,18 +74,20 @@ impl CompletionModel for OpenCodeModel {
     ) -> Result<StreamingCompletionResponse<Self::StreamingResponse>, CompletionError> {
         let prompt_str = format_chat_history(&request);
 
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let (tx, rx) = tokio::sync::mpsc::channel(100);
         let cli = self.cli.clone();
-        
+
         // Spawn the CLI process in the background
         let config = OpenCodeConfig::default();
 
         tokio::spawn(async move {
+            // Error from CLI stream is intentionally dropped here;
+            // the receiver will see the channel close and handle accordingly
             let _ = cli.stream(&prompt_str, &config, tx).await;
         });
 
         // Convert the receiver into a stream
-        let stream = UnboundedReceiverStream::new(rx)
+        let stream = ReceiverStream::new(rx)
             .map(|event| {
                 match event {
                     StreamEvent::Text { text } => {
@@ -157,6 +159,8 @@ impl Tool for OpenCodeTool {
         if result.exit_code != 0 {
             return Err(ProviderError::OpenCode(opencode_adapter::OpenCodeError::NonZeroExit {
                 exit_code: result.exit_code,
+                pid: 0,
+                elapsed: std::time::Duration::from_millis(result.duration_ms),
                 stdout: result.stdout,
                 stderr: result.stderr,
             }));

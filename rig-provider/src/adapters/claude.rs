@@ -12,7 +12,7 @@ use rig::tool::Tool;
 use rig::OneOrMany;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use tokio_stream::wrappers::UnboundedReceiverStream;
+use tokio_stream::wrappers::ReceiverStream;
 use uuid::Uuid;
 
 /// Arguments for the Claude Code tool.
@@ -74,7 +74,7 @@ impl CompletionModel for ClaudeModel {
     ) -> Result<StreamingCompletionResponse<Self::StreamingResponse>, CompletionError> {
         let prompt_str = format_chat_history(&request);
 
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let (tx, rx) = tokio::sync::mpsc::channel(100);
         let cli = self.cli.clone();
 
         // Spawn the CLI process in the background
@@ -87,11 +87,13 @@ impl CompletionModel for ClaudeModel {
         }
 
         tokio::spawn(async move {
+            // Error from CLI stream is intentionally dropped here;
+            // the receiver will see the channel close and handle accordingly
             let _ = cli.stream(&prompt_str, &config, tx).await;
         });
 
         // Convert the receiver into a stream
-        let stream = UnboundedReceiverStream::new(rx).map(|event| {
+        let stream = ReceiverStream::new(rx).map(|event| {
             match event {
                 StreamEvent::Text { text } => Ok(RawStreamingChoice::Message(text)),
                 StreamEvent::ToolCall { name, input } => {
@@ -178,6 +180,8 @@ impl Tool for ClaudeTool {
             return Err(ProviderError::Claude(
                 claudecode_adapter::ClaudeError::NonZeroExit {
                     exit_code: result.exit_code,
+                    pid: 0,
+                    elapsed: std::time::Duration::from_millis(result.duration_ms),
                     stdout: result.stdout,
                     stderr: result.stderr,
                 },
