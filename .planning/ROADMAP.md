@@ -51,13 +51,14 @@ Plans:
 **Requirements**: EXTR-01, EXTR-04
 **Success Criteria** (what must be TRUE):
   1. When agent submits invalid JSON, validation errors are fed back with specific field-level feedback
-  2. Retry loop attempts up to configurable max (default 3) with exponential backoff
+  2. Retry loop attempts up to configurable max (default 3) with immediate retry
   3. Token cost or attempt count is tracked per extraction
   4. Retry loop terminates after max attempts with clear failure indication
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — Foundation types: ExtractionError, ExtractionMetrics, AttemptRecord, ExtractionConfig, validation feedback builder
+- [ ] 02-02-PLAN.md — ExtractionOrchestrator retry loop, enhanced ValidateJsonTool feedback, module wiring
 
 ### Phase 3: Payload & Instruction System
 **Goal**: Developer can pass context data to agents and force tool workflow
@@ -194,7 +195,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Resource Management Foundation | 5/5 | Complete | 2026-02-01 |
-| 2. Retry & Validation Loop | 0/TBD | Not started | - |
+| 2. Retry & Validation Loop | 0/2 | Not started | - |
 | 3. Payload & Instruction System | 0/TBD | Not started | - |
 | 4. Agent Containment | 0/TBD | Not started | - |
 | 5. Observability Infrastructure | 0/TBD | Not started | - |
