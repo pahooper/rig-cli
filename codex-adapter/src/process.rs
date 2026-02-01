@@ -8,7 +8,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
-use tokio::time::{sleep, timeout};
+use tokio::time::timeout;
 
 const CHANNEL_CAPACITY: usize = 100;
 const MAX_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MB
@@ -142,7 +142,7 @@ pub async fn run_codex(
         Ok(Err(e)) => Err(e),
         Err(_) => {
             // Timeout occurred - graceful shutdown
-            graceful_shutdown(pid, &mut tasks).await?;
+            let _ = graceful_shutdown(&mut child, pid, &mut tasks).await;
 
             let partial_stdout = stdout_lines.join("\n");
             let partial_stderr = stderr_lines.join("\n");
@@ -200,31 +200,40 @@ async fn drain_stream_bounded(
     Ok(())
 }
 
-/// Gracefully shutdown subprocess: SIGTERM -> wait -> SIGKILL
-async fn graceful_shutdown(pid: u32, tasks: &mut JoinSet<Result<(), CodexError>>) -> Result<(), CodexError> {
+/// Graceful shutdown: SIGTERM, wait grace period, then SIGKILL
+async fn graceful_shutdown(
+    child: &mut tokio::process::Child,
+    pid: u32,
+    tasks: &mut JoinSet<Result<(), CodexError>>,
+) -> Result<(), CodexError> {
     let nix_pid = Pid::from_raw(pid as i32);
 
-    // Send SIGTERM
-    if let Err(e) = signal::kill(nix_pid, Signal::SIGTERM) {
-        return Err(CodexError::SignalFailed {
-            signal: "SIGTERM".to_string(),
-            pid,
-            source: e,
-        });
-    }
+    // Send SIGTERM for graceful shutdown
+    signal::kill(nix_pid, Signal::SIGTERM).map_err(|e| CodexError::SignalFailed {
+        signal: "SIGTERM".to_string(),
+        pid,
+        source: e,
+    })?;
 
-    // Wait for grace period
-    sleep(GRACE_PERIOD).await;
-
-    // Send SIGKILL
-    if let Err(e) = signal::kill(nix_pid, Signal::SIGKILL) {
-        // If SIGKILL fails, process may have already exited (ESRCH is OK)
-        if e != nix::errno::Errno::ESRCH {
-            return Err(CodexError::SignalFailed {
-                signal: "SIGKILL".to_string(),
-                pid,
+    // Wait for process to exit within grace period
+    match timeout(GRACE_PERIOD, child.wait()).await {
+        Ok(Ok(_status)) => {}
+        Ok(Err(e)) => {
+            return Err(CodexError::SpawnFailed {
+                stage: "graceful_shutdown wait".to_string(),
                 source: e,
             });
+        }
+        Err(_) => {
+            // Grace period expired - force kill
+            child.kill().await.map_err(|e| CodexError::SpawnFailed {
+                stage: "SIGKILL".to_string(),
+                source: e,
+            })?;
+            child.wait().await.map_err(|e| CodexError::SpawnFailed {
+                stage: "post-SIGKILL wait".to_string(),
+                source: e,
+            })?;
         }
     }
 

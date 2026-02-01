@@ -8,7 +8,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
-use tokio::time::{sleep, timeout};
+use tokio::time::timeout;
 
 const CHANNEL_CAPACITY: usize = 100;
 const MAX_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MB
@@ -163,7 +163,7 @@ pub async fn run_opencode(
         Err(_timeout_elapsed) => {
             // Timeout - graceful shutdown with SIGTERM -> SIGKILL
             let elapsed = start_time.elapsed();
-            graceful_shutdown(pid).await;
+            let _ = graceful_shutdown(&mut child, pid).await;
 
             // Drain remaining output after shutdown
             drain_stream_bounded(
@@ -214,23 +214,38 @@ async fn drain_stream_bounded(
     Ok(())
 }
 
-/// Gracefully shutdown subprocess: SIGTERM, wait grace period, then SIGKILL
-async fn graceful_shutdown(pid: u32) {
+/// Graceful shutdown: SIGTERM, wait grace period, then SIGKILL
+async fn graceful_shutdown(
+    child: &mut tokio::process::Child,
+    pid: u32,
+) -> Result<(), OpenCodeError> {
     let nix_pid = Pid::from_raw(pid as i32);
 
-    // Send SIGTERM
-    if let Err(e) = signal::kill(nix_pid, Signal::SIGTERM) {
-        eprintln!("Failed to send SIGTERM to PID {pid}: {e}");
-    }
+    // Send SIGTERM for graceful shutdown
+    signal::kill(nix_pid, Signal::SIGTERM).map_err(|e| OpenCodeError::SignalFailed {
+        signal: "SIGTERM".to_string(),
+        pid,
+        source: e,
+    })?;
 
-    // Wait for grace period
-    sleep(GRACE_PERIOD).await;
-
-    // Send SIGKILL if still alive
-    if let Err(e) = signal::kill(nix_pid, Signal::SIGKILL) {
-        // ESRCH means process already exited, which is fine
-        if e != nix::errno::Errno::ESRCH {
-            eprintln!("Failed to send SIGKILL to PID {pid}: {e}");
+    // Wait for process to exit within grace period
+    match timeout(GRACE_PERIOD, child.wait()).await {
+        Ok(Ok(_status)) => Ok(()),
+        Ok(Err(e)) => Err(OpenCodeError::SpawnFailed {
+            stage: "graceful_shutdown wait".to_string(),
+            source: e,
+        }),
+        Err(_) => {
+            // Grace period expired - force kill
+            child.kill().await.map_err(|e| OpenCodeError::SpawnFailed {
+                stage: "SIGKILL".to_string(),
+                source: e,
+            })?;
+            child.wait().await.map_err(|e| OpenCodeError::SpawnFailed {
+                stage: "post-SIGKILL wait".to_string(),
+                source: e,
+            })?;
+            Ok(())
         }
     }
 }
