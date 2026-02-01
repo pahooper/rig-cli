@@ -9,11 +9,11 @@ Requirements for v1.0 production release. Each maps to roadmap phases.
 
 ### Resource Management
 
-- [ ] **RSRC-01**: All mpsc channels are bounded with configurable capacity and backpressure
-- [ ] **RSRC-02**: All spawned tokio tasks are tracked via JoinHandles and aborted on timeout or drop
-- [ ] **RSRC-03**: Subprocesses are properly killed and awaited (no zombie processes)
-- [ ] **RSRC-04**: Stream readers are fully drained before process exit to prevent data loss
-- [ ] **RSRC-05**: All `.expect()` and `.unwrap()` calls replaced with proper error propagation
+- [x] **RSRC-01**: All mpsc channels are bounded with configurable capacity and backpressure
+- [x] **RSRC-02**: All spawned tokio tasks are tracked via JoinHandles and aborted on timeout or drop
+- [x] **RSRC-03**: Subprocesses are properly killed and awaited (no zombie processes)
+- [x] **RSRC-04**: Stream readers are fully drained before process exit to prevent data loss
+- [x] **RSRC-05**: All `.expect()` and `.unwrap()` calls replaced with proper error propagation
 
 ### Structured Extraction
 
@@ -91,11 +91,11 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RSRC-01 | Phase 1 | Pending |
-| RSRC-02 | Phase 1 | Pending |
-| RSRC-03 | Phase 1 | Pending |
-| RSRC-04 | Phase 1 | Pending |
-| RSRC-05 | Phase 1 | Pending |
+| RSRC-01 | Phase 1 | Complete |
+| RSRC-02 | Phase 1 | Complete |
+| RSRC-03 | Phase 1 | Complete |
+| RSRC-04 | Phase 1 | Complete |
+| RSRC-05 | Phase 1 | Complete |
 | EXTR-01 | Phase 2 | Pending |
 | EXTR-04 | Phase 2 | Pending |
 | EXTR-02 | Phase 3 | Pending |
@@ -127,4 +127,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 after roadmap creation*
+*Last updated: 2026-02-01 after Phase 1 completion*

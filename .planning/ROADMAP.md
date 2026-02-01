@@ -12,7 +12,7 @@ This roadmap transforms rig-cli from functional prototype to production-ready li
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Resource Management Foundation** - Bounded channels, task tracking, subprocess cleanup, error propagation
+- [x] **Phase 1: Resource Management Foundation** - Bounded channels, task tracking, subprocess cleanup, error propagation
 - [ ] **Phase 2: Retry & Validation Loop** - Self-correcting extraction with validation feedback
 - [ ] **Phase 3: Payload & Instruction System** - Context data injection and forced tool workflow
 - [ ] **Phase 4: Agent Containment** - MCP tool boundaries and sandbox enforcement
@@ -39,10 +39,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Rewrite claudecode-adapter with bounded channels, JoinSet, graceful shutdown, rich errors
-- [ ] 01-02-PLAN.md — Rewrite codex-adapter with bounded channels, JoinSet, graceful shutdown, rich errors
-- [ ] 01-03-PLAN.md — Rewrite opencode-adapter with bounded channels, JoinSet, graceful shutdown, rich errors
-- [ ] 01-04-PLAN.md — Update rig-provider callers to bounded channels, workspace-wide RSRC verification
+- [x] 01-01-PLAN.md — Rewrite claudecode-adapter with bounded channels, JoinSet, graceful shutdown, rich errors
+- [x] 01-02-PLAN.md — Rewrite codex-adapter with bounded channels, JoinSet, graceful shutdown, rich errors
+- [x] 01-03-PLAN.md — Rewrite opencode-adapter with bounded channels, JoinSet, graceful shutdown, rich errors
+- [x] 01-04-PLAN.md — Update rig-provider callers to bounded channels, workspace-wide RSRC verification
 
 ### Phase 2: Retry & Validation Loop
 **Goal**: Agent self-corrects on validation errors through bounded retry attempts
@@ -192,7 +192,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Resource Management Foundation | 0/4 | Planned | - |
+| 1. Resource Management Foundation | 4/4 | Complete | 2026-02-01 |
 | 2. Retry & Validation Loop | 0/TBD | Not started | - |
 | 3. Payload & Instruction System | 0/TBD | Not started | - |
 | 4. Agent Containment | 0/TBD | Not started | - |
