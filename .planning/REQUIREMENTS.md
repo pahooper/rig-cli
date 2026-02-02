@@ -17,11 +17,11 @@ Requirements for v1.0 production release. Each maps to roadmap phases.
 
 ### Structured Extraction
 
-- [ ] **EXTR-01**: Retry loop feeds validation errors back to the agent and re-attempts (configurable max, default 3)
-- [ ] **EXTR-02**: Developer can pass payload data (file contents, text blobs) alongside prompts for the agent to process
-- [ ] **EXTR-03**: Built-in instruction template forces agents to use the submit tool workflow, not freeform text
-- [ ] **EXTR-04**: Token cost or attempt count is tracked per extraction to enable cost awareness
-- [ ] **EXTR-05**: The three-tool workflow (example/validate/submit) is the enforced extraction mechanism
+- [x] **EXTR-01**: Retry loop feeds validation errors back to the agent and re-attempts (configurable max, default 3)
+- [x] **EXTR-02**: Developer can pass payload data (file contents, text blobs) alongside prompts for the agent to process
+- [x] **EXTR-03**: Built-in instruction template forces agents to use the submit tool workflow, not freeform text
+- [x] **EXTR-04**: Token cost or attempt count is tracked per extraction to enable cost awareness
+- [x] **EXTR-05**: The three-tool workflow (example/validate/submit) is the enforced extraction mechanism
 
 ### Agent Containment
 
@@ -96,11 +96,11 @@ Deferred to future release. Tracked but not in current roadmap.
 | RSRC-03 | Phase 1 | Complete |
 | RSRC-04 | Phase 1 | Complete |
 | RSRC-05 | Phase 1 | Complete |
-| EXTR-01 | Phase 2 | Pending |
-| EXTR-04 | Phase 2 | Pending |
-| EXTR-02 | Phase 3 | Pending |
-| EXTR-03 | Phase 3 | Pending |
-| EXTR-05 | Phase 3 | Pending |
+| EXTR-01 | Phase 2 | Complete |
+| EXTR-04 | Phase 2 | Complete |
+| EXTR-02 | Phase 3 | Complete |
+| EXTR-03 | Phase 3 | Complete |
+| EXTR-05 | Phase 3 | Complete |
 | CONT-01 | Phase 4 | Pending |
 | CONT-02 | Phase 4 | Pending |
 | CONT-03 | Phase 4 | Pending |
@@ -127,4 +127,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 after Phase 1 completion*
+*Last updated: 2026-02-02 after Phase 3 completion*
