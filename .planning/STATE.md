@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-Phase: 4 of 11 (Agent Containment) — COMPLETE
-Plan: 2 of 2 in current phase (2 complete)
-Status: Phase complete
-Last activity: 2026-02-02 — Documented Phase 4 E2E testing findings and adapter fixes
+Phase: 5 of 11 (Observability Infrastructure) — IN PROGRESS
+Plan: 1 of 2 in current phase (1 complete)
+Status: In progress
+Last activity: 2026-02-02 — Completed 05-01-PLAN.md (Extraction Orchestrator Tracing)
 
-Progress: [███████████] 14/14 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2)
+Progress: [███████████░] 15/16 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 1/2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
-- Average duration: 3.2 min
-- Total execution time: 0.79 hours
+- Total plans completed: 15
+- Average duration: 3.1 min
+- Total execution time: 0.84 hours
 
 **By Phase:**
 
@@ -32,10 +32,11 @@ Progress: [███████████] 14/14 plans complete (Phase 1: 5/5
 | 02.1-transparent-mcp-tool-agent | 3 | 8min | 3min |
 | 03-payload-instruction-system | 2 | 4.5min | 2.25min |
 | 04-agent-containment | 2 | 4.4min | 2.2min |
+| 05-observability-infrastructure | 1 | 2.9min | 2.9min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (2.5min), 03-02 (2min), 04-01 (2.4min), 04-02 (2min)
-- Trend: Phase 4 complete — containment defaults + CLI flag verification complete
+- Last 5 plans: 03-02 (2min), 04-01 (2.4min), 04-02 (2min), 05-01 (2.9min)
+- Trend: Phase 5 started — structured tracing foundation complete
 
 *Updated after each plan completion*
 
@@ -78,6 +79,10 @@ Recent decisions affecting current work:
 - Codex CLI v0.91.0 dropped --ask-for-approval flag; removed ApprovalPolicy enum and ask_for_approval field from codex-adapter (E2E testing)
 - Codex requires --skip-git-repo-check for non-git temp directory containment; added skip_git_repo_check field to CodexConfig (E2E testing)
 - OpenCode adapter now has 6 unit tests for CLI arg generation in cmd.rs (E2E testing)
+- Use #[tracing::instrument] with skip_all to avoid logging closures and prompts (security-first observability) (05-01)
+- Emit flat events with attempt=N field instead of nested per-attempt spans (avoids async Span::enter() pitfalls) (05-01)
+- Log only character counts (prompt_chars, output_chars), never prompt or response content at any level (05-01)
+- Event message strings match event field values for machine-parseable grep/filter (05-01)
 
 ### Pending Todos
 
@@ -103,5 +108,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Phase 4 E2E findings documented — ready for Phase 5 (Observability Infrastructure)
+Stopped at: Completed 05-01-PLAN.md (Extraction Orchestrator Tracing) — 1 of 2 plans in Phase 5
 Resume file: None
