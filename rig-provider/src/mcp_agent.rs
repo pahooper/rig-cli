@@ -8,6 +8,27 @@ use crate::errors::ProviderError;
 use std::io::Write as _;
 use std::time::Duration;
 
+/// Default instruction template enforcing the three-tool workflow.
+///
+/// This template requires agents to follow the example -> validate -> submit
+/// sequence and forbids freeform text responses. The `{allowed_tools}` placeholder
+/// is replaced at runtime with the computed MCP tool names.
+pub const DEFAULT_WORKFLOW_TEMPLATE: &str = r"You are a structured data extraction agent.
+
+MANDATORY WORKFLOW:
+1. Call the 'json_example' tool FIRST to see the expected output format
+2. Draft your extraction based on the example and the provided context
+3. Call 'validate_json' with your draft to check for errors
+4. If validation fails, fix the errors and call 'validate_json' again
+5. Once validation passes, call 'submit' with the validated data
+
+RULES:
+- You MUST complete all steps above in order
+- Do NOT respond with freeform text as your final answer
+- Do NOT output raw JSON in your response text
+- ONLY the 'submit' tool call marks task completion
+- The task is NOT complete until you call 'submit'";
+
 /// Which CLI adapter to use for MCP tool agent execution.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CliAdapter {
@@ -56,6 +77,8 @@ pub struct McpToolAgentBuilder {
     server_name: String,
     system_prompt: Option<String>,
     timeout: Duration,
+    payload: Option<String>,
+    instruction_template: Option<String>,
 }
 
 impl McpToolAgentBuilder {
@@ -67,6 +90,8 @@ impl McpToolAgentBuilder {
             server_name: "rig_mcp".to_string(),
             system_prompt: None,
             timeout: Duration::from_secs(300),
+            payload: None,
+            instruction_template: None,
         }
     }
 
@@ -113,6 +138,30 @@ impl McpToolAgentBuilder {
     #[must_use]
     pub const fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
+        self
+    }
+
+    /// Sets context data (file contents, text blobs) to inject into the prompt.
+    ///
+    /// When set, the user prompt is restructured into a 4-block XML format:
+    /// `<instructions>`, `<context>`, `<task>`, `<output_format>`.
+    /// The payload data is wrapped in `<context>` tags to clearly delimit it
+    /// from instructions, preventing instruction/context confusion.
+    ///
+    /// When not set, the prompt is passed through unchanged (backward compatible).
+    #[must_use]
+    pub fn payload(mut self, data: impl Into<String>) -> Self {
+        self.payload = Some(data.into());
+        self
+    }
+
+    /// Sets a custom instruction template for tool workflow enforcement.
+    ///
+    /// If not set, [`DEFAULT_WORKFLOW_TEMPLATE`] is used, which enforces the
+    /// example -> validate -> submit three-tool pattern.
+    #[must_use]
+    pub fn instruction_template(mut self, template: impl Into<String>) -> Self {
+        self.instruction_template = Some(template.into());
         self
     }
 
