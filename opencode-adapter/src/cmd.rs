@@ -43,3 +43,130 @@ pub fn build_args(message: &str, config: &OpenCodeConfig) -> Vec<OsString> {
 
     args
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::OpenCodeConfig;
+
+    // NOTE: OpenCode has no sandbox, builtin-tool-disable, or strict-MCP flags.
+    // Containment is best-effort through system prompt enforcement and
+    // working directory isolation (set via Command::current_dir, not CLI args).
+    // MCP config is delivered via OPENCODE_CONFIG env var, not CLI args.
+
+    #[test]
+    fn test_default_config_generates_run_subcommand() {
+        let config = OpenCodeConfig::default();
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert_eq!(args_str[0], "run", "First arg must be 'run' subcommand");
+        assert_eq!(
+            args_str.last().unwrap(),
+            &"test prompt",
+            "Last arg must be the prompt"
+        );
+        // Default config should only produce: run <prompt>
+        assert_eq!(args_str.len(), 2, "Default config should produce exactly 2 args: {:?}", args_str);
+    }
+
+    #[test]
+    fn test_model_flag() {
+        let config = OpenCodeConfig {
+            model: Some("opencode/big-pickle".to_string()),
+            ..OpenCodeConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--model" && w[1] == "opencode/big-pickle"),
+            "Expected '--model opencode/big-pickle' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_system_prompt_prepended_to_message() {
+        let config = OpenCodeConfig {
+            prompt: Some("You are a data extractor.".to_string()),
+            ..OpenCodeConfig::default()
+        };
+        let args = build_args("Extract this data.", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        let last = args_str.last().unwrap();
+        assert!(
+            last.starts_with("You are a data extractor."),
+            "System prompt must be prepended: {:?}",
+            last
+        );
+        assert!(
+            last.ends_with("Extract this data."),
+            "User message must follow system prompt: {:?}",
+            last
+        );
+    }
+
+    #[test]
+    fn test_print_logs_flag() {
+        let config = OpenCodeConfig {
+            print_logs: true,
+            ..OpenCodeConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.contains(&"--print-logs"),
+            "Expected '--print-logs' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_log_level_flag() {
+        let config = OpenCodeConfig {
+            log_level: Some("DEBUG".to_string()),
+            ..OpenCodeConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--log-level" && w[1] == "DEBUG"),
+            "Expected '--log-level DEBUG' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_containment_is_prompt_and_process_only() {
+        // OpenCode containment relies on:
+        // 1. System prompt enforcement (no --tools or --strict-mcp-config flags)
+        // 2. Working directory via Command::current_dir() (not a CLI arg)
+        // 3. MCP config via OPENCODE_CONFIG env var (not a CLI arg)
+        //
+        // Verify that cwd and mcp_config_path do NOT appear in CLI args:
+        let config = OpenCodeConfig {
+            cwd: Some(std::path::PathBuf::from("/tmp/isolated")),
+            mcp_config_path: Some(std::path::PathBuf::from("/tmp/mcp.json")),
+            ..OpenCodeConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            !args_str.contains(&"--cd"),
+            "cwd should be set via Command::current_dir, not --cd"
+        );
+        assert!(
+            !args_str.iter().any(|a| a.contains("/tmp/isolated")),
+            "cwd path should not appear in args"
+        );
+        assert!(
+            !args_str.iter().any(|a| a.contains("mcp.json")),
+            "MCP config path should be set via OPENCODE_CONFIG env var, not args"
+        );
+    }
+}

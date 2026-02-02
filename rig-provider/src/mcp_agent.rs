@@ -441,7 +441,7 @@ async fn run_codex(
     let config = codex_adapter::CodexConfig {
         full_auto: false,
         sandbox: Some(sandbox_mode.clone()),
-        ask_for_approval: Some(codex_adapter::ApprovalPolicy::Never),
+        skip_git_repo_check: true,
         cd: Some(cwd.to_path_buf()),
         system_prompt: Some(system_prompt.to_string()),
         overrides,

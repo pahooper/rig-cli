@@ -15,19 +15,6 @@ pub enum SandboxMode {
     DangerFullAccess,
 }
 
-/// Policy controlling when Codex asks the user for approval.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum ApprovalPolicy {
-    /// Always ask for approval (untrusted mode).
-    Untrusted,
-    /// Ask only when a command fails.
-    OnFailure,
-    /// Ask only when the model explicitly requests it.
-    OnRequest,
-    /// Never ask for approval.
-    Never,
-}
-
 /// Configuration for a Codex CLI invocation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodexConfig {
@@ -35,14 +22,14 @@ pub struct CodexConfig {
     pub model: Option<String>,
     /// Sandbox isolation level.
     pub sandbox: Option<SandboxMode>,
-    /// Approval policy for interactive prompts.
-    pub ask_for_approval: Option<ApprovalPolicy>,
     /// Enable full-auto mode (no approval prompts).
     pub full_auto: bool,
     /// Enable web search capability.
     pub search: bool,
     /// Working directory for the subprocess.
     pub cd: Option<PathBuf>,
+    /// Skip git repository check (needed when running in temp dirs).
+    pub skip_git_repo_check: bool,
     /// Additional directories to expose to the subprocess.
     pub add_dirs: Vec<PathBuf>,
     /// Key-value config overrides passed via `--config`.
@@ -62,9 +49,9 @@ impl Default for CodexConfig {
         Self {
             model: None,
             sandbox: None,
-            ask_for_approval: None,
             full_auto: false,
             search: false,
+            skip_git_repo_check: false,
             cd: None,
             add_dirs: Vec::new(),
             overrides: Vec::new(),

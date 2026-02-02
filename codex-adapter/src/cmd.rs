@@ -1,6 +1,6 @@
 //! Command-line argument construction for the Codex CLI.
 
-use crate::types::{ApprovalPolicy, CodexConfig, SandboxMode};
+use crate::types::{CodexConfig, SandboxMode};
 use std::ffi::OsString;
 
 /// Builds the argument list for a Codex CLI invocation.
@@ -24,22 +24,16 @@ pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
         }
     }
 
-    if let Some(ref approval) = config.ask_for_approval {
-        args.push(OsString::from("--ask-for-approval"));
-        match approval {
-            ApprovalPolicy::Untrusted => args.push(OsString::from("untrusted")),
-            ApprovalPolicy::OnFailure => args.push(OsString::from("on-failure")),
-            ApprovalPolicy::OnRequest => args.push(OsString::from("on-request")),
-            ApprovalPolicy::Never => args.push(OsString::from("never")),
-        }
-    }
-
     if config.full_auto {
         args.push(OsString::from("--full-auto"));
     }
 
     if config.search {
         args.push(OsString::from("--search"));
+    }
+
+    if config.skip_git_repo_check {
+        args.push(OsString::from("--skip-git-repo-check"));
     }
 
     if let Some(ref cd) = config.cd {
@@ -70,7 +64,7 @@ pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{ApprovalPolicy, CodexConfig, SandboxMode};
+    use crate::types::{CodexConfig, SandboxMode};
     use std::path::PathBuf;
 
     // NOTE: Codex Issue #4152 -- MCP tools bypass sandbox restrictions.
@@ -113,23 +107,6 @@ mod tests {
     }
 
     #[test]
-    fn test_approval_never_flag() {
-        let config = CodexConfig {
-            ask_for_approval: Some(ApprovalPolicy::Never),
-            ..CodexConfig::default()
-        };
-        let args = build_args("test prompt", &config);
-        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
-
-        // Assert --ask-for-approval never is present (non-interactive)
-        assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "never"),
-            "Expected '--ask-for-approval never' but got: {:?}",
-            args_str
-        );
-    }
-
-    #[test]
     fn test_cd_flag() {
         let config = CodexConfig {
             cd: Some(PathBuf::from("/tmp/sandbox")),
@@ -161,10 +138,27 @@ mod tests {
     }
 
     #[test]
+    fn test_skip_git_repo_check_flag() {
+        let config = CodexConfig {
+            skip_git_repo_check: true,
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Assert --skip-git-repo-check present (needed for temp dir containment)
+        assert!(
+            args_str.contains(&"--skip-git-repo-check"),
+            "Expected '--skip-git-repo-check' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
     fn test_full_containment_config() {
         let config = CodexConfig {
             sandbox: Some(SandboxMode::ReadOnly),
-            ask_for_approval: Some(ApprovalPolicy::Never),
+            skip_git_repo_check: true,
             cd: Some(PathBuf::from("/tmp/isolated")),
             full_auto: false, // explicit false to document containment posture
             ..CodexConfig::default()
@@ -178,12 +172,12 @@ mod tests {
             "Expected '--sandbox read-only'"
         );
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "never"),
-            "Expected '--ask-for-approval never'"
-        );
-        assert!(
             args_str.windows(2).any(|w| w[0] == "--cd" && w[1] == "/tmp/isolated"),
             "Expected '--cd /tmp/isolated'"
+        );
+        assert!(
+            args_str.contains(&"--skip-git-repo-check"),
+            "Expected '--skip-git-repo-check'"
         );
         assert!(
             !args_str.contains(&"--full-auto"),
