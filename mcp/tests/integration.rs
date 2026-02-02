@@ -89,6 +89,6 @@ async fn test_toolkit_validation() {
         json: json!({ "id": "test" }),
     };
     let err_result = validate.call(invalid_args).await.unwrap();
-    assert!(err_result.contains("invalid"));
+    assert!(err_result.contains("validation failed"));
     assert!(err_result.contains("value"));
 }

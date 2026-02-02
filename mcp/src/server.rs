@@ -336,6 +336,31 @@ impl ToolSetExt for ToolSet {
 }
 
 impl ServerHandler for RigMcpHandler {
+    fn get_info(&self) -> rmcp::model::ServerInfo {
+        rmcp::model::ServerInfo {
+            protocol_version: rmcp::model::ProtocolVersion::V_2024_11_05,
+            capabilities: rmcp::model::ServerCapabilities::builder()
+                .enable_tools()
+                .build(),
+            server_info: rmcp::model::Implementation {
+                name: self.name.clone(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
+                title: None,
+                website_url: None,
+                icons: None,
+            },
+            instructions: None,
+        }
+    }
+
+    async fn initialize(
+        &self,
+        _request: rmcp::model::InitializeRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::InitializeResult, ErrorData> {
+        Ok(self.get_info())
+    }
+
     #[tracing::instrument(skip(self, _request, _context), fields(rpc.method = "list_tools"))]
     async fn list_tools(
         &self,
