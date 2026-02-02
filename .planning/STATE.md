@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 4 complete. Ready for Phase 5 - Observability Infrastructure.
+**Current focus:** Phase 4 complete. E2E testing documented. Ready for Phase 5 - Observability Infrastructure.
 
 ## Current Position
 
 Phase: 4 of 11 (Agent Containment) — COMPLETE
 Plan: 2 of 2 in current phase (2 complete)
 Status: Phase complete
-Last activity: 2026-02-02 — Completed 04-02-PLAN.md
+Last activity: 2026-02-02 — Documented Phase 4 E2E testing findings and adapter fixes
 
 Progress: [███████████] 14/14 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2)
 
@@ -75,6 +75,9 @@ Recent decisions affecting current work:
 - Unit tests use windows(2) pattern to find adjacent flag-value pairs in CLI args (04-02)
 - Default config tests verify full_auto absence to ensure containment posture (04-02)
 - Codex MCP sandbox bypass limitation documented inline as known external issue (04-02)
+- Codex CLI v0.91.0 dropped --ask-for-approval flag; removed ApprovalPolicy enum and ask_for_approval field from codex-adapter (E2E testing)
+- Codex requires --skip-git-repo-check for non-git temp directory containment; added skip_git_repo_check field to CodexConfig (E2E testing)
+- OpenCode adapter now has 6 unit tests for CLI arg generation in cmd.rs (E2E testing)
 
 ### Pending Todos
 
@@ -95,9 +98,10 @@ None.
 |---|-------------|------|--------|-----------|
 | 002 | Save Phase 2.1 plan files to GSD planning system | 2026-02-01 | abd49bc | [002-save-phase-2-1-plans-to-gsd](./quick/002-save-phase-2-1-plans-to-gsd/) |
 | 003 | Update planning docs with E2E testing findings | 2026-02-02 | 0616a58 | [003-update-planning-docs-for-e2e-testing-f](./quick/003-update-planning-docs-for-e2e-testing-f/) |
+| 004 | Document E2E testing findings and adapter fixes from Phase 4 | 2026-02-02 | (pending) | [004-document-e2e-testing-findings-and-adapte](./quick/004-document-e2e-testing-findings-and-adapte/) |
 
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Phase 4 complete — ready for Phase 5 (Observability Infrastructure)
+Stopped at: Phase 4 E2E findings documented — ready for Phase 5 (Observability Infrastructure)
 Resume file: None

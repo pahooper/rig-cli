@@ -78,6 +78,8 @@ When a developer passes a struct and data to a CLI agent, they get validated typ
 | Codex/OpenCode: prepend system prompt to user prompt (no --system-prompt flag) | E2E testing revealed flag doesn't exist in either CLI | Applied |
 | Adapter-specific MCP config delivery (file vs -c overrides vs env var) | Each CLI has fundamentally different config mechanisms; one-size-fits-all impossible | Applied |
 | OpenCode uses opencode/big-pickle model | E2E testing identified correct model for MCP agent execution | Applied |
+| Codex: removed ApprovalPolicy/ask_for_approval (v0.91.0 dropped --ask-for-approval) | Codex exec mode is inherently non-interactive; flag no longer exists | Applied |
+| Codex: added skip_git_repo_check for temp dir containment | Temp directory containment creates non-git dirs; Codex requires --skip-git-repo-check | Applied |
 
 ---
-*Last updated: 2026-02-01 after Phase 2.1 E2E testing*
+*Last updated: 2026-02-02 after Phase 4 E2E containment testing*
