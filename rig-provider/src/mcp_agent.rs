@@ -79,6 +79,9 @@ pub struct McpToolAgentBuilder {
     timeout: Duration,
     payload: Option<String>,
     instruction_template: Option<String>,
+    builtin_tools: Option<Vec<String>>,
+    sandbox_mode: Option<codex_adapter::SandboxMode>,
+    working_dir: Option<std::path::PathBuf>,
 }
 
 impl McpToolAgentBuilder {
@@ -92,6 +95,9 @@ impl McpToolAgentBuilder {
             timeout: Duration::from_secs(300),
             payload: None,
             instruction_template: None,
+            builtin_tools: None,
+            sandbox_mode: Some(codex_adapter::SandboxMode::ReadOnly),
+            working_dir: None,
         }
     }
 
@@ -162,6 +168,41 @@ impl McpToolAgentBuilder {
     #[must_use]
     pub fn instruction_template(mut self, template: impl Into<String>) -> Self {
         self.instruction_template = Some(template.into());
+        self
+    }
+
+    /// Opts in to specific builtin tools alongside MCP tools.
+    ///
+    /// By default, ALL builtin tools are disabled (CONT-01). Call this method
+    /// to explicitly allow specific builtins like "Bash" or "Read".
+    ///
+    /// For Claude Code: maps to --tools flag with listed tools.
+    /// For Codex: no direct equivalent (Codex builtins are controlled by sandbox mode).
+    /// For OpenCode: documented as best-effort (no CLI flags for tool restriction).
+    #[must_use]
+    pub fn allow_builtins(mut self, tools: Vec<String>) -> Self {
+        self.builtin_tools = Some(tools);
+        self
+    }
+
+    /// Sets the Codex sandbox isolation level.
+    ///
+    /// Default: SandboxMode::ReadOnly (most restrictive).
+    /// Only affects Codex adapter; Claude Code and OpenCode ignore this setting.
+    #[must_use]
+    pub fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
+        self.sandbox_mode = Some(mode);
+        self
+    }
+
+    /// Overrides the default temp directory with a specific working directory.
+    ///
+    /// By default, agents execute in an auto-created temp directory (CONT-04).
+    /// Call this to use a specific directory instead. The caller is responsible
+    /// for the lifetime of the provided directory.
+    #[must_use]
+    pub fn working_dir(mut self, path: impl Into<std::path::PathBuf>) -> Self {
+        self.working_dir = Some(path.into());
         self
     }
 
