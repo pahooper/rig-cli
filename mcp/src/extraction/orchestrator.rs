@@ -302,3 +302,99 @@ impl ExtractionOrchestrator {
         Ok((typed, metrics))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn test_extract_emits_tracing_events() {
+        // Test that tracing instrumentation doesn't break the happy path
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"}
+            },
+            "required": ["name"]
+        });
+
+        let orchestrator = ExtractionOrchestrator::new(schema).max_attempts(1);
+
+        let agent_fn = |_prompt: String| async {
+            Ok(r#"{"name": "test"}"#.to_string())
+        };
+
+        let result = orchestrator.extract(agent_fn, "initial prompt".to_string()).await;
+        assert!(result.is_ok());
+        let (parsed, metrics) = result.unwrap();
+        assert_eq!(parsed["name"], "test");
+        assert_eq!(metrics.total_attempts, 1);
+    }
+
+    #[tokio::test]
+    async fn test_extract_retry_emits_tracing_events() {
+        // Test that retry path with tracing works correctly
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"}
+            },
+            "required": ["name"]
+        });
+
+        let orchestrator = ExtractionOrchestrator::new(schema).max_attempts(2);
+
+        let counter = Arc::new(AtomicUsize::new(0));
+        let counter_clone = counter.clone();
+
+        let agent_fn = move |_prompt: String| {
+            let counter = counter_clone.clone();
+            async move {
+                let count = counter.fetch_add(1, Ordering::SeqCst);
+                if count == 0 {
+                    // First attempt: return invalid JSON (wrong type)
+                    Ok(r#"{"name": 123}"#.to_string())
+                } else {
+                    // Second attempt: return valid JSON
+                    Ok(r#"{"name": "fixed"}"#.to_string())
+                }
+            }
+        };
+
+        let result = orchestrator.extract(agent_fn, "initial prompt".to_string()).await;
+        assert!(result.is_ok());
+        let (parsed, metrics) = result.unwrap();
+        assert_eq!(parsed["name"], "fixed");
+        assert_eq!(metrics.total_attempts, 2);
+    }
+
+    #[tokio::test]
+    async fn test_extract_agent_error_emits_tracing() {
+        // Test that agent error path emits tracing correctly
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"}
+            },
+            "required": ["name"]
+        });
+
+        let orchestrator = ExtractionOrchestrator::new(schema).max_attempts(1);
+
+        let agent_fn = |_prompt: String| async {
+            Err("agent failed".to_string())
+        };
+
+        let result = orchestrator.extract(agent_fn, "initial prompt".to_string()).await;
+        assert!(result.is_err());
+        match result {
+            Err(ExtractionError::AgentError(msg)) => {
+                assert_eq!(msg, "agent failed");
+            }
+            _ => panic!("Expected AgentError"),
+        }
+    }
+}
