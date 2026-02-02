@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 1 complete. Ready for Phase 2 - Streaming Architecture.
+**Current focus:** Phase 2.1 complete. Ready for Phase 3 - Payload & Instruction System.
 
 ## Current Position
 
-Phase: 2 of 11 (Retry & Validation Loop) - IN PROGRESS
-Plan: 2 of 3 in current phase (02-01, 02-02 complete)
-Status: In progress
-Last activity: 2026-02-01 — Phase 2.1 planning complete (3 plans created)
+Phase: 2.1 of 11 (Transparent MCP Tool Agent) - COMPLETE
+Plan: 3 of 3 in current phase (02.1-01, 02.1-02, 02.1-03 complete)
+Status: Complete
+Last activity: 2026-02-01 — Phase 2.1 executed (3 plans in 3 waves, all verified)
 
-Progress: [██████░░░░] 2/6 plans complete (Phase 1: 5/5, Phase 2: 2/3)
+Progress: [████████░░] 10/10 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 10
 - Average duration: 4 min
-- Total execution time: 0.5 hours
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [██████░░░░] 2/6 plans complete (Phase 1: 5/5, Pha
 |-------|-------|-------|----------|
 | 01-resource-management-foundation | 5 | 23min | 5min |
 | 02-retry-validation-loop | 2 | 6min | 3min |
+| 02.1-transparent-mcp-tool-agent | 3 | 8min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (6min), 01-04 (7min), 01-05 (3min), 02-01 (3min), 02-02 (3min)
-- Trend: Phase 2 progressing - retry orchestration complete
+- Last 5 plans: 02-01 (3min), 02-02 (3min), 02.1-01 (3min), 02.1-02 (3min), 02.1-03 (2min)
+- Trend: Phase 2.1 complete — McpToolAgent builder shipped
 
 *Updated after each plan completion*
 
@@ -59,6 +60,8 @@ Recent decisions affecting current work:
 - Orchestrator not generic over T - works with serde_json::Value, caller deserializes (02-02)
 - Conversation continuation strategy: append feedback to prompt for retry context (02-02)
 - Parse failures count against same retry budget as validation failures (02-02)
+- McpToolAgent uses free functions (not &self methods) for per-adapter execution to avoid partial-move issues (02.1-02)
+- Env var detection (RIG_MCP_SERVER=1) for server mode instead of --server CLI flag (02.1-03)
 
 ### Pending Todos
 
@@ -66,7 +69,7 @@ None.
 
 ### Roadmap Evolution
 
-- Phase 2.1 added (INSERTED): Transparent MCP Tool Agent — McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI. Inserted between Phase 2 and Phase 3. Planning complete: 3 plans in 3 waves (sequential).
+- Phase 2.1 added (INSERTED): Transparent MCP Tool Agent — McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI. Inserted between Phase 2 and Phase 3. COMPLETE: 3 plans executed, verified 6/6 must-haves.
 
 ### Blockers/Concerns
 
@@ -81,5 +84,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Phase 2.1 plans saved to GSD system (3 plans ready for execution)
+Stopped at: Phase 2.1 complete — McpToolAgent builder shipped with all 3 adapters
 Resume file: None

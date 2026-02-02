@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Resource Management Foundation** - Bounded channels, task tracking, subprocess cleanup, error propagation
 - [ ] **Phase 2: Retry & Validation Loop** - Self-correcting extraction with validation feedback
-- [ ] **Phase 2.1: Transparent MCP Tool Agent** - INSERTED: McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI
+- [x] **Phase 2.1: Transparent MCP Tool Agent** - INSERTED: McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI
 - [ ] **Phase 3: Payload & Instruction System** - Context data injection and forced tool workflow
 - [ ] **Phase 4: Agent Containment** - MCP tool boundaries and sandbox enforcement
 - [ ] **Phase 5: Observability Infrastructure** - Structured tracing and CLI version detection
@@ -75,9 +75,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02.1-01-PLAN.md — Add MCP config fields to Codex and OpenCode adapters
-- [ ] 02.1-02-PLAN.md — McpToolAgent builder, CliAdapter enum, and config generation
-- [ ] 02.1-03-PLAN.md — Simplified mcp_tool_agent_e2e example and workspace verification
+- [x] 02.1-01-PLAN.md — Add MCP config fields to Codex and OpenCode adapters
+- [x] 02.1-02-PLAN.md — McpToolAgent builder, CliAdapter enum, and config generation
+- [x] 02.1-03-PLAN.md — Simplified mcp_tool_agent_e2e example and workspace verification
 
 ### Phase 3: Payload & Instruction System
 **Goal**: Developer can pass context data to agents and force tool workflow
@@ -215,7 +215,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 |-------|----------------|--------|-----------|
 | 1. Resource Management Foundation | 5/5 | Complete | 2026-02-01 |
 | 2. Retry & Validation Loop | 0/2 | Not started | - |
-| 2.1 Transparent MCP Tool Agent | 0/3 | Not started | - |
+| 2.1 Transparent MCP Tool Agent | 3/3 | Complete | 2026-02-01 |
 | 3. Payload & Instruction System | 0/TBD | Not started | - |
 | 4. Agent Containment | 0/TBD | Not started | - |
 | 5. Observability Infrastructure | 0/TBD | Not started | - |
