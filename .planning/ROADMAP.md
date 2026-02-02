@@ -88,10 +88,11 @@ Plans:
   2. Built-in instruction template forces agents to use example → validate → submit workflow
   3. Agents cannot respond with freeform text instead of tool calls
   4. Three-tool pattern (example/validate/submit) is the enforced extraction mechanism
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md — Builder extensions (.payload(), .instruction_template()) and enhanced prompt construction with workflow enforcement
+- [ ] 03-02-PLAN.md — Payload extraction E2E example and workspace verification
 
 ### Phase 4: Agent Containment
 **Goal**: Agents are locked to MCP tools only, no builtin tool escape
@@ -216,7 +217,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 1. Resource Management Foundation | 5/5 | Complete | 2026-02-01 |
 | 2. Retry & Validation Loop | 2/2 | Complete | 2026-02-01 |
 | 2.1 Transparent MCP Tool Agent | 3/3 | Complete | 2026-02-01 |
-| 3. Payload & Instruction System | 0/TBD | Not started | - |
+| 3. Payload & Instruction System | 0/2 | Not started | - |
 | 4. Agent Containment | 0/TBD | Not started | - |
 | 5. Observability Infrastructure | 0/TBD | Not started | - |
 | 6. Platform Hardening | 0/TBD | Not started | - |
