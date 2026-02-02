@@ -190,39 +190,7 @@ impl McpToolAgentBuilder {
             .map(|def| format!("mcp__{}__{}",  self.server_name, def.name))
             .collect();
 
-        // 5. Write MCP config to temp file (adapter-specific format)
-        let mut config_file = tempfile::NamedTempFile::new()
-            .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp file: {e}")))?;
-
-        let config_path = config_file.path().to_path_buf();
-
-        match adapter {
-            CliAdapter::ClaudeCode => {
-                let json = serde_json::to_string_pretty(&mcp_config.to_claude_json())
-                    .map_err(|e| ProviderError::McpToolAgent(format!("Failed to serialize config: {e}")))?;
-                config_file
-                    .write_all(json.as_bytes())
-                    .map_err(|e| ProviderError::McpToolAgent(format!("Failed to write config: {e}")))?;
-            }
-            CliAdapter::Codex => {
-                let toml = mcp_config.to_codex_toml();
-                config_file
-                    .write_all(toml.as_bytes())
-                    .map_err(|e| ProviderError::McpToolAgent(format!("Failed to write config: {e}")))?;
-            }
-            CliAdapter::OpenCode => {
-                let json = serde_json::to_string_pretty(&mcp_config.to_opencode_json())
-                    .map_err(|e| ProviderError::McpToolAgent(format!("Failed to serialize config: {e}")))?;
-                config_file
-                    .write_all(json.as_bytes())
-                    .map_err(|e| ProviderError::McpToolAgent(format!("Failed to write config: {e}")))?;
-            }
-        }
-
-        // Keep the temp file alive until after CLI run completes (RAII guard)
-        let _config_guard = config_file.into_temp_path();
-
-        // 6. Build system prompt
+        // 5. Build system prompt
         let mcp_instruction = format!(
             "You MUST use the MCP tools to complete this task. \
              Available tools: {}. \
@@ -237,14 +205,14 @@ impl McpToolAgentBuilder {
         // 7. Execute per adapter
         match adapter {
             CliAdapter::ClaudeCode => {
-                run_claude_code(&prompt, &config_path, &allowed_tools, &full_system_prompt, timeout)
+                run_claude_code(&prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout)
                     .await
             }
             CliAdapter::Codex => {
-                run_codex(&prompt, &config_path, &full_system_prompt, timeout).await
+                run_codex(&prompt, &mcp_config, &full_system_prompt, timeout).await
             }
             CliAdapter::OpenCode => {
-                run_opencode(&prompt, &config_path, &full_system_prompt, timeout).await
+                run_opencode(&prompt, &mcp_config, &full_system_prompt, timeout).await
             }
         }
     }
@@ -252,11 +220,22 @@ impl McpToolAgentBuilder {
 
 async fn run_claude_code(
     prompt: &str,
-    config_path: &std::path::Path,
+    mcp_config: &rig_mcp_server::server::McpConfig,
     allowed_tools: &[String],
     system_prompt: &str,
     timeout: Duration,
 ) -> Result<McpToolAgentResult, ProviderError> {
+    // Write Claude Code MCP config JSON to temp file
+    let mut config_file = tempfile::NamedTempFile::new()
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp file: {e}")))?;
+    let json = serde_json::to_string_pretty(&mcp_config.to_claude_json())
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to serialize config: {e}")))?;
+    config_file
+        .write_all(json.as_bytes())
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to write config: {e}")))?;
+    let config_path = config_file.path().to_path_buf();
+    let _config_guard = config_file.into_temp_path();
+
     let report = claudecode_adapter::init(None)
         .await
         .map_err(|e| ProviderError::McpToolAgent(format!("Claude init failed: {e}")))?;
@@ -291,7 +270,7 @@ async fn run_claude_code(
 
 async fn run_codex(
     prompt: &str,
-    config_path: &std::path::Path,
+    mcp_config: &rig_mcp_server::server::McpConfig,
     system_prompt: &str,
     timeout: Duration,
 ) -> Result<McpToolAgentResult, ProviderError> {
@@ -299,10 +278,29 @@ async fn run_codex(
         .map_err(|e| ProviderError::McpToolAgent(format!("Codex discovery failed: {e}")))?;
     let cli = codex_adapter::CodexCli::new(path);
 
+    // Codex reads MCP server config from its config.toml. Inject via -c overrides.
+    let server_name = &mcp_config.name;
+    let mut overrides = vec![
+        (
+            format!("mcp_servers.{server_name}.command"),
+            format!("\"{}\"", mcp_config.command),
+        ),
+        (
+            format!("mcp_servers.{server_name}.args"),
+            format!("{:?}", mcp_config.args),
+        ),
+    ];
+    for (k, v) in &mcp_config.env {
+        overrides.push((
+            format!("mcp_servers.{server_name}.env.{k}"),
+            format!("\"{v}\""),
+        ));
+    }
+
     let config = codex_adapter::CodexConfig {
         full_auto: true,
         system_prompt: Some(system_prompt.to_string()),
-        mcp_config_path: Some(config_path.to_path_buf()),
+        overrides,
         timeout,
         ..codex_adapter::CodexConfig::default()
     };
@@ -319,7 +317,7 @@ async fn run_codex(
 
 async fn run_opencode(
     prompt: &str,
-    config_path: &std::path::Path,
+    mcp_config: &rig_mcp_server::server::McpConfig,
     system_prompt: &str,
     timeout: Duration,
 ) -> Result<McpToolAgentResult, ProviderError> {
@@ -327,9 +325,36 @@ async fn run_opencode(
         .map_err(|e| ProviderError::McpToolAgent(format!("OpenCode discovery failed: {e}")))?;
     let cli = opencode_adapter::OpenCodeCli::new(path);
 
+    // OpenCode config format: {"mcp": {"name": {"type":"local","command":[...],"environment":{...}}}}
+    let mut command = vec![mcp_config.command.clone()];
+    command.extend(mcp_config.args.iter().cloned());
+
+    let opencode_cfg = serde_json::json!({
+        "$schema": "https://opencode.ai/config.json",
+        "mcp": {
+            &mcp_config.name: {
+                "type": "local",
+                "command": command,
+                "environment": &mcp_config.env,
+            }
+        }
+    });
+
+    let mut config_file = tempfile::NamedTempFile::new()
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp file: {e}")))?;
+    let json = serde_json::to_string_pretty(&opencode_cfg)
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to serialize config: {e}")))?;
+    config_file
+        .write_all(json.as_bytes())
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to write config: {e}")))?;
+
+    let config_path = config_file.path().to_path_buf();
+    let _config_guard = config_file.into_temp_path();
+
     let config = opencode_adapter::OpenCodeConfig {
+        model: Some("opencode/big-pickle".to_string()),
         prompt: Some(system_prompt.to_string()),
-        mcp_config_path: Some(config_path.to_path_buf()),
+        mcp_config_path: Some(config_path),
         timeout,
         ..opencode_adapter::OpenCodeConfig::default()
     };

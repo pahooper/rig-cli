@@ -7,7 +7,7 @@
 //! - **Server mode** (`RIG_MCP_SERVER=1`): Serves MCP tools over stdio
 //! - **Client mode** (default): Uses `McpToolAgent` to orchestrate the CLI
 //!
-//! Run with: `cargo run --example mcp_tool_agent_e2e`
+//! Run with: `cargo run --example mcp_tool_agent_e2e -- [claude|codex|opencode]`
 
 use rig::tool::ToolSet;
 use rig_mcp_server::prelude::ToolSetExt;
@@ -15,6 +15,7 @@ use rig_mcp_server::tools::JsonSchemaToolkit;
 use rig_provider::{CliAdapter, McpToolAgent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 /// A structured movie review for extraction.
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -53,6 +54,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(build_toolset().into_handler().await?.serve_stdio().await?);
     }
 
+    // Parse adapter from CLI args (default: claude)
+    let adapter = match std::env::args().nth(1).as_deref() {
+        Some("codex") => CliAdapter::Codex,
+        Some("opencode") => CliAdapter::OpenCode,
+        Some("claude") | None => CliAdapter::ClaudeCode,
+        Some(other) => {
+            eprintln!("Unknown adapter: {other}. Use: claude, codex, or opencode");
+            std::process::exit(1);
+        }
+    };
+
+    println!("Using adapter: {adapter:?}");
+
     // Client mode: McpToolAgent handles everything
     let result = McpToolAgent::builder()
         .toolset(build_toolset())
@@ -61,13 +75,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
              Use the json_example tool to see the format, validate_json to check, \
              then submit your review.",
         )
-        .adapter(CliAdapter::ClaudeCode)
+        .adapter(adapter)
         .server_name("rig_extraction")
+        .timeout(Duration::from_secs(120))
         .run()
         .await?;
 
     println!("Exit code: {}", result.exit_code);
+    println!("Duration: {}ms", result.duration_ms);
     println!("Output:\n{}", result.stdout);
+    if !result.stderr.is_empty() {
+        eprintln!("Stderr:\n{}", result.stderr);
+    }
 
     Ok(())
 }

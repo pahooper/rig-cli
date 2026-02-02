@@ -34,12 +34,12 @@ pub fn build_args(message: &str, config: &OpenCodeConfig) -> Vec<OsString> {
         args.push(OsString::from(host));
     }
 
-    if let Some(ref sp) = config.prompt {
-        args.push(OsString::from("--system-prompt"));
-        args.push(OsString::from(sp));
-    }
-
-    args.push(OsString::from(message));
+    // OpenCode has no --system-prompt flag; prepend to the user message.
+    let effective_message = config
+        .prompt
+        .as_ref()
+        .map_or_else(|| message.to_string(), |sp| format!("{sp}\n\n{message}"));
+    args.push(OsString::from(effective_message));
 
     args
 }

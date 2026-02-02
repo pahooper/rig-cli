@@ -57,12 +57,12 @@ pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
         args.push(OsString::from(format!("{k}={v}")));
     }
 
-    if let Some(ref sp) = config.system_prompt {
-        args.push(OsString::from("--system-prompt"));
-        args.push(OsString::from(sp));
-    }
-
-    args.push(OsString::from(prompt));
+    // Codex has no --system-prompt flag; prepend to the user prompt.
+    let effective_prompt = config
+        .system_prompt
+        .as_ref()
+        .map_or_else(|| prompt.to_string(), |sp| format!("{sp}\n\n{prompt}"));
+    args.push(OsString::from(effective_prompt));
 
     args
 }
