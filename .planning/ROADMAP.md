@@ -14,6 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Resource Management Foundation** - Bounded channels, task tracking, subprocess cleanup, error propagation
 - [ ] **Phase 2: Retry & Validation Loop** - Self-correcting extraction with validation feedback
+- [ ] **Phase 2.1: Transparent MCP Tool Agent** - INSERTED: McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI
 - [ ] **Phase 3: Payload & Instruction System** - Context data injection and forced tool workflow
 - [ ] **Phase 4: Agent Containment** - MCP tool boundaries and sandbox enforcement
 - [ ] **Phase 5: Observability Infrastructure** - Structured tracing and CLI version detection
@@ -60,9 +61,27 @@ Plans:
 - [ ] 02-01-PLAN.md — Foundation types: ExtractionError, ExtractionMetrics, AttemptRecord, ExtractionConfig, validation feedback builder
 - [ ] 02-02-PLAN.md — ExtractionOrchestrator retry loop, enhanced ValidateJsonTool feedback, module wiring
 
+### Phase 2.1: Transparent MCP Tool Agent (INSERTED)
+**Goal**: User provides ToolSet + prompt, system handles all MCP plumbing transparently — no manual config, no dual-mode boilerplate, no RunConfig construction
+**Depends on**: Phase 2
+**Requirements**: Core value — agent forced through MCP tool constraints to submit conforming JSON
+**Success Criteria** (what must be TRUE):
+  1. McpToolAgent builder accepts a ToolSet and prompt, auto-spawns the current binary as MCP server via env var detection
+  2. MCP config JSON is auto-generated with correct server name, tool names, and env vars
+  3. Tool names are auto-computed as `mcp__<server_name>__<tool_name>` from ToolSet definitions
+  4. Claude CLI is discovered and launched with correct --mcp-config, --allowed-tools flags
+  5. Temp files are auto-cleaned via RAII guards
+  6. Existing mcp_extraction_e2e example reduces from ~300 lines to ~50 lines using new API
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02.1-01-PLAN.md — Add MCP config fields to Codex and OpenCode adapters
+- [ ] 02.1-02-PLAN.md — McpToolAgent builder, CliAdapter enum, and config generation
+- [ ] 02.1-03-PLAN.md — Simplified mcp_tool_agent_e2e example and workspace verification
+
 ### Phase 3: Payload & Instruction System
 **Goal**: Developer can pass context data to agents and force tool workflow
-**Depends on**: Phase 2
+**Depends on**: Phase 2.1
 **Requirements**: EXTR-02, EXTR-03, EXTR-05
 **Success Criteria** (what must be TRUE):
   1. Developer can attach file contents or text blobs to extraction request
@@ -190,12 +209,13 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11
+Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Resource Management Foundation | 5/5 | Complete | 2026-02-01 |
 | 2. Retry & Validation Loop | 0/2 | Not started | - |
+| 2.1 Transparent MCP Tool Agent | 0/3 | Not started | - |
 | 3. Payload & Instruction System | 0/TBD | Not started | - |
 | 4. Agent Containment | 0/TBD | Not started | - |
 | 5. Observability Infrastructure | 0/TBD | Not started | - |
