@@ -7,6 +7,8 @@
 //! - **Server mode** (`RIG_MCP_SERVER=1`): Serves MCP tools over stdio
 //! - **Client mode** (default): Uses `McpToolAgent` to orchestrate the CLI
 //!
+//! See also `payload_extraction_e2e.rs` for payload injection demo.
+//!
 //! Run with: `cargo run --example mcp_tool_agent_e2e -- [claude|codex|opencode]`
 
 use rig::tool::ToolSet;
