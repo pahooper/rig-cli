@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-Phase: 4 of 11 (Agent Containment) — IN PROGRESS
-Plan: 1 of 1 in current phase (1 complete)
+Phase: 4 of 11 (Agent Containment) — COMPLETE
+Plan: 2 of 2 in current phase (2 complete)
 Status: Phase complete
-Last activity: 2026-02-02 — Completed 04-01-PLAN.md
+Last activity: 2026-02-02 — Completed 04-02-PLAN.md
 
-Progress: [███████████] 13/13 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 1/1)
+Progress: [███████████] 14/14 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
-- Average duration: 3.3 min
-- Total execution time: 0.75 hours
+- Total plans completed: 14
+- Average duration: 3.2 min
+- Total execution time: 0.79 hours
 
 **By Phase:**
 
@@ -31,11 +31,11 @@ Progress: [███████████] 13/13 plans complete (Phase 1: 5/5
 | 02-retry-validation-loop | 2 | 6min | 3min |
 | 02.1-transparent-mcp-tool-agent | 3 | 8min | 3min |
 | 03-payload-instruction-system | 2 | 4.5min | 2.25min |
-| 04-agent-containment | 1 | 2.4min | 2.4min |
+| 04-agent-containment | 2 | 4.4min | 2.2min |
 
 **Recent Trend:**
-- Last 5 plans: 02.1-03 (2min), 03-01 (2.5min), 03-02 (2min), 04-01 (2.4min)
-- Trend: Phase 4 complete — containment defaults implemented
+- Last 5 plans: 03-01 (2.5min), 03-02 (2min), 04-01 (2.4min), 04-02 (2min)
+- Trend: Phase 4 complete — containment defaults + CLI flag verification complete
 
 *Updated after each plan completion*
 
@@ -72,6 +72,9 @@ Recent decisions affecting current work:
 - Codex full_auto: false preserves sandbox and approval safety layers (04-01)
 - Claude Code strict: true forces MCP-only config, ignores global MCP configs (04-01)
 - Best-effort per-CLI containment: use each CLI's native flags to full extent, document limitations (04-01)
+- Unit tests use windows(2) pattern to find adjacent flag-value pairs in CLI args (04-02)
+- Default config tests verify full_auto absence to ensure containment posture (04-02)
+- Codex MCP sandbox bypass limitation documented inline as known external issue (04-02)
 
 ### Pending Todos
 
@@ -84,6 +87,7 @@ None.
 ### Blockers/Concerns
 
 - Pre-existing ~265 missing-docs clippy warnings across adapter crates (not blocking, future documentation pass)
+- Codex Issue #4152: MCP tools bypass Landlock sandbox restrictions (known external limitation, documented inline)
 
 ### Quick Tasks Completed
 
@@ -95,5 +99,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 04-01-PLAN.md — Phase 4 (Agent Containment) complete
+Stopped at: Completed 04-02-PLAN.md — Phase 4 (Agent Containment) complete with CLI flag verification
 Resume file: None
