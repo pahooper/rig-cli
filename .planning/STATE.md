@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-Phase: 5 of 11 (Observability Infrastructure) — IN PROGRESS
-Plan: 1 of 2 in current phase (1 complete)
-Status: In progress
-Last activity: 2026-02-02 — Completed 05-01-PLAN.md (Extraction Orchestrator Tracing)
+Phase: 5 of 11 (Observability Infrastructure) — COMPLETE
+Plan: 2 of 2 in current phase (2 complete)
+Status: Phase complete
+Last activity: 2026-02-02 — Completed 05-02-PLAN.md (CLI Version Detection)
 
-Progress: [███████████░] 15/16 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 1/2)
+Progress: [███████████░] 16/16 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
-- Average duration: 3.1 min
-- Total execution time: 0.84 hours
+- Total plans completed: 16
+- Average duration: 3.0 min
+- Total execution time: 0.89 hours
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: [███████████░] 15/16 plans complete (Phase 1: 
 | 02.1-transparent-mcp-tool-agent | 3 | 8min | 3min |
 | 03-payload-instruction-system | 2 | 4.5min | 2.25min |
 | 04-agent-containment | 2 | 4.4min | 2.2min |
-| 05-observability-infrastructure | 1 | 2.9min | 2.9min |
+| 05-observability-infrastructure | 2 | 5.5min | 2.75min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (2min), 04-01 (2.4min), 04-02 (2min), 05-01 (2.9min)
-- Trend: Phase 5 started — structured tracing foundation complete
+- Last 5 plans: 04-01 (2.4min), 04-02 (2min), 05-01 (2.9min), 05-02 (2.6min)
+- Trend: Phase 5 complete — structured tracing and version detection established
 
 *Updated after each plan completion*
 
@@ -83,6 +83,10 @@ Recent decisions affecting current work:
 - Emit flat events with attempt=N field instead of nested per-attempt spans (avoids async Span::enter() pitfalls) (05-01)
 - Log only character counts (prompt_chars, output_chars), never prompt or response content at any level (05-01)
 - Event message strings match event field values for machine-parseable grep/filter (05-01)
+- Version requirements are hardcoded const functions per adapter, not developer-configurable (05-02)
+- Version detection warns and continues on mismatch, never blocks execution (fail-open policy) (05-02)
+- Distinct warning events: version_unsupported (below min) vs version_untested (above max_tested) (05-02)
+- Version detection is stateless, runs once per agent execution (no caching) (05-02)
 
 ### Pending Todos
 
@@ -108,5 +112,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 05-01-PLAN.md (Extraction Orchestrator Tracing) — 1 of 2 plans in Phase 5
+Stopped at: Completed 05-02-PLAN.md (CLI Version Detection) — Phase 5 complete
 Resume file: None
