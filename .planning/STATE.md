@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 Phase: 2.1 of 11 (Transparent MCP Tool Agent) - COMPLETE
 Plan: 3 of 3 in current phase (02.1-01, 02.1-02, 02.1-03 complete)
 Status: Complete
-Last activity: 2026-02-01 — Phase 2.1 executed (3 plans in 3 waves, all verified)
+Last activity: 2026-02-01 — Phase 2.1 E2E tested, all 3 adapters passing (Claude Code, Codex, OpenCode)
 
 Progress: [████████░░] 10/10 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3)
 
@@ -62,6 +62,9 @@ Recent decisions affecting current work:
 - Parse failures count against same retry budget as validation failures (02-02)
 - McpToolAgent uses free functions (not &self methods) for per-adapter execution to avoid partial-move issues (02.1-02)
 - Env var detection (RIG_MCP_SERVER=1) for server mode instead of --server CLI flag (02.1-03)
+- Codex and OpenCode lack --system-prompt flag; prepend system prompt to user prompt instead (E2E testing)
+- Each adapter manages its own MCP config delivery: Claude uses file path, Codex uses -c overrides (CodexConfig.overrides), OpenCode uses env var + file with different JSON format (E2E testing)
+- OpenCode uses opencode/big-pickle model for MCP agent execution (E2E testing)
 
 ### Pending Todos
 
@@ -84,5 +87,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Phase 2.1 complete — McpToolAgent builder shipped with all 3 adapters
+Stopped at: Phase 2.1 complete and E2E verified — all 3 CLI adapters passing live tests
 Resume file: None

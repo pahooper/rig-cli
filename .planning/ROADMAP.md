@@ -13,7 +13,7 @@ This roadmap transforms rig-cli from functional prototype to production-ready li
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Resource Management Foundation** - Bounded channels, task tracking, subprocess cleanup, error propagation
-- [ ] **Phase 2: Retry & Validation Loop** - Self-correcting extraction with validation feedback
+- [x] **Phase 2: Retry & Validation Loop** - Self-correcting extraction with validation feedback
 - [x] **Phase 2.1: Transparent MCP Tool Agent** - INSERTED: McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI
 - [ ] **Phase 3: Payload & Instruction System** - Context data injection and forced tool workflow
 - [ ] **Phase 4: Agent Containment** - MCP tool boundaries and sandbox enforcement
@@ -58,8 +58,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Foundation types: ExtractionError, ExtractionMetrics, AttemptRecord, ExtractionConfig, validation feedback builder
-- [ ] 02-02-PLAN.md — ExtractionOrchestrator retry loop, enhanced ValidateJsonTool feedback, module wiring
+- [x] 02-01-PLAN.md — Foundation types: ExtractionError, ExtractionMetrics, AttemptRecord, ExtractionConfig, validation feedback builder
+- [x] 02-02-PLAN.md — ExtractionOrchestrator retry loop, enhanced ValidateJsonTool feedback, module wiring
 
 ### Phase 2.1: Transparent MCP Tool Agent (INSERTED)
 **Goal**: User provides ToolSet + prompt, system handles all MCP plumbing transparently — no manual config, no dual-mode boilerplate, no RunConfig construction
@@ -214,7 +214,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Resource Management Foundation | 5/5 | Complete | 2026-02-01 |
-| 2. Retry & Validation Loop | 0/2 | Not started | - |
+| 2. Retry & Validation Loop | 2/2 | Complete | 2026-02-01 |
 | 2.1 Transparent MCP Tool Agent | 3/3 | Complete | 2026-02-01 |
 | 3. Payload & Instruction System | 0/TBD | Not started | - |
 | 4. Agent Containment | 0/TBD | Not started | - |

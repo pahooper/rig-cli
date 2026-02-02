@@ -75,6 +75,9 @@ When a developer passes a struct and data to a CLI agent, they get validated typ
 | Adapter-per-CLI crate structure | Clean separation of concerns, each CLI has different flags/behavior | ✓ Good |
 | Best-effort containment per CLI | Each CLI has different sandbox mechanisms; document limitations rather than refuse to support | — Pending |
 | Deprioritize OpenCode for v1.0 | Focus on getting two adapters rock solid rather than three mediocre | — Pending |
+| Codex/OpenCode: prepend system prompt to user prompt (no --system-prompt flag) | E2E testing revealed flag doesn't exist in either CLI | Applied |
+| Adapter-specific MCP config delivery (file vs -c overrides vs env var) | Each CLI has fundamentally different config mechanisms; one-size-fits-all impossible | Applied |
+| OpenCode uses opencode/big-pickle model | E2E testing identified correct model for MCP agent execution | Applied |
 
 ---
-*Last updated: 2026-02-01 after initialization*
+*Last updated: 2026-02-01 after Phase 2.1 E2E testing*
