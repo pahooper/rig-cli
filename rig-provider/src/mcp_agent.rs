@@ -212,6 +212,9 @@ impl McpToolAgentBuilder {
             .adapter
             .ok_or_else(|| ProviderError::McpToolAgent("adapter is required".to_string()))?;
         let timeout = self.timeout;
+        let payload = self.payload;
+        let instruction_template = self.instruction_template;
+        let system_prompt = self.system_prompt;
 
         // 2. Get tool definitions
         let definitions = toolset
@@ -239,29 +242,53 @@ impl McpToolAgentBuilder {
             .map(|def| format!("mcp__{}__{}",  self.server_name, def.name))
             .collect();
 
-        // 5. Build system prompt
+        // 5. Build workflow template (custom or default)
+        let workflow_instructions = instruction_template.as_deref()
+            .unwrap_or(DEFAULT_WORKFLOW_TEMPLATE);
+
+        // 6. Build MCP instruction with workflow enforcement
         let mcp_instruction = format!(
-            "You MUST use the MCP tools to complete this task. \
-             Available tools: {}. \
-             Do NOT output raw JSON text as your response -- use the tools.",
+            "{workflow_instructions}\n\nAvailable MCP tools: {}\n\n\
+             You MUST use ONLY these MCP tools. Do NOT output raw JSON text as your response.",
             allowed_tools.join(", ")
         );
-        let full_system_prompt = match self.system_prompt {
+
+        // 7. Build full system prompt
+        let full_system_prompt = match system_prompt {
             Some(sp) => format!("{sp}\n\n{mcp_instruction}"),
             None => mcp_instruction,
         };
 
-        // 7. Execute per adapter
+        // 8. Build final user prompt (4-block XML if payload present)
+        let final_prompt = if let Some(data) = payload {
+            format!(
+                r"<context>
+{data}
+</context>
+
+<task>
+{prompt}
+</task>
+
+<output_format>
+Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via the 'submit' tool.
+</output_format>"
+            )
+        } else {
+            prompt
+        };
+
+        // 9. Execute per adapter
         match adapter {
             CliAdapter::ClaudeCode => {
-                run_claude_code(&prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout)
+                run_claude_code(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout)
                     .await
             }
             CliAdapter::Codex => {
-                run_codex(&prompt, &mcp_config, &full_system_prompt, timeout).await
+                run_codex(&final_prompt, &mcp_config, &full_system_prompt, timeout).await
             }
             CliAdapter::OpenCode => {
-                run_opencode(&prompt, &mcp_config, &full_system_prompt, timeout).await
+                run_opencode(&final_prompt, &mcp_config, &full_system_prompt, timeout).await
             }
         }
     }

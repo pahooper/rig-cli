@@ -22,4 +22,4 @@ pub mod utils;
 /// MCP tool agent builder for transparent CLI orchestration.
 pub mod mcp_agent;
 
-pub use mcp_agent::{CliAdapter, McpToolAgent, McpToolAgentBuilder, McpToolAgentResult};
+pub use mcp_agent::{CliAdapter, McpToolAgent, McpToolAgentBuilder, McpToolAgentResult, DEFAULT_WORKFLOW_TEMPLATE};
