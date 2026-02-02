@@ -119,10 +119,11 @@ Plans:
   2. CLI tool versions are detected and validated at startup
   3. Clear warnings are shown when CLI tool version is unsupported
   4. Trace output enables debugging retry loops and agent behavior
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md — Instrument ExtractionOrchestrator with structured tracing spans and events at every extraction stage
+- [ ] 05-02-PLAN.md — CLI version detection and validation with semver parsing and structured warnings
 
 ### Phase 6: Platform Hardening
 **Goal**: Full functionality works on Linux and Windows
@@ -220,7 +221,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 2.1 Transparent MCP Tool Agent | 3/3 | Complete | 2026-02-01 |
 | 3. Payload & Instruction System | 2/2 | Complete | 2026-02-02 |
 | 4. Agent Containment | 2/2 | Complete | 2026-02-02 |
-| 5. Observability Infrastructure | 0/TBD | Not started | - |
+| 5. Observability Infrastructure | 0/2 | Not started | - |
 | 6. Platform Hardening | 0/TBD | Not started | - |
 | 7. Rig Integration Polish | 0/TBD | Not started | - |
 | 8. Claude Code Adapter | 0/TBD | Not started | - |
