@@ -256,6 +256,19 @@ impl McpToolAgentBuilder {
         let payload = self.payload;
         let instruction_template = self.instruction_template;
         let system_prompt = self.system_prompt;
+        let builtin_tools = self.builtin_tools;
+        let sandbox_mode = self.sandbox_mode.unwrap_or(codex_adapter::SandboxMode::ReadOnly);
+
+        // Create temp dir if working_dir not provided (CONT-04)
+        let (_temp_dir, effective_cwd) = match self.working_dir {
+            Some(dir) => (None, dir),
+            None => {
+                let td = tempfile::TempDir::new()
+                    .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp dir: {e}")))?;
+                let path = td.path().to_path_buf();
+                (Some(td), path)
+            }
+        };
 
         // 2. Get tool definitions
         let definitions = toolset
@@ -322,14 +335,14 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
         // 9. Execute per adapter
         match adapter {
             CliAdapter::ClaudeCode => {
-                run_claude_code(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout)
+                run_claude_code(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, &builtin_tools, &effective_cwd)
                     .await
             }
             CliAdapter::Codex => {
-                run_codex(&final_prompt, &mcp_config, &full_system_prompt, timeout).await
+                run_codex(&final_prompt, &mcp_config, &full_system_prompt, timeout, &sandbox_mode, &effective_cwd).await
             }
             CliAdapter::OpenCode => {
-                run_opencode(&final_prompt, &mcp_config, &full_system_prompt, timeout).await
+                run_opencode(&final_prompt, &mcp_config, &full_system_prompt, timeout, &effective_cwd).await
             }
         }
     }
@@ -341,6 +354,8 @@ async fn run_claude_code(
     allowed_tools: &[String],
     system_prompt: &str,
     timeout: Duration,
+    builtin_tools: &Option<Vec<String>>,
+    cwd: &std::path::Path,
 ) -> Result<McpToolAgentResult, ProviderError> {
     // Write Claude Code MCP config JSON to temp file
     let mut config_file = tempfile::NamedTempFile::new()
@@ -358,20 +373,27 @@ async fn run_claude_code(
         .map_err(|e| ProviderError::McpToolAgent(format!("Claude init failed: {e}")))?;
     let cli = claudecode_adapter::ClaudeCli::new(report.claude_path, report.capabilities);
 
+    // Apply containment: disable all builtins by default, opt-in via builtin_tools
+    let builtin_set = match builtin_tools {
+        None => claudecode_adapter::BuiltinToolSet::None,
+        Some(tools) => claudecode_adapter::BuiltinToolSet::Explicit(tools.clone()),
+    };
+
     let config = claudecode_adapter::RunConfig {
         output_format: Some(claudecode_adapter::OutputFormat::Text),
         system_prompt: claudecode_adapter::SystemPromptMode::Append(system_prompt.to_string()),
         mcp: Some(claudecode_adapter::McpPolicy {
             configs: vec![config_path.to_string_lossy().to_string()],
-            strict: false,
+            strict: true,
         }),
         tools: claudecode_adapter::ToolPolicy {
-            builtin: claudecode_adapter::BuiltinToolSet::Default,
+            builtin: builtin_set,
             allowed: Some(allowed_tools.to_vec()),
             disallowed: None,
             disable_slash_commands: true,
         },
         timeout,
+        cwd: Some(cwd.to_path_buf()),
         ..claudecode_adapter::RunConfig::default()
     };
 
@@ -390,6 +412,8 @@ async fn run_codex(
     mcp_config: &rig_mcp_server::server::McpConfig,
     system_prompt: &str,
     timeout: Duration,
+    sandbox_mode: &codex_adapter::SandboxMode,
+    cwd: &std::path::Path,
 ) -> Result<McpToolAgentResult, ProviderError> {
     let path = codex_adapter::discover_codex()
         .map_err(|e| ProviderError::McpToolAgent(format!("Codex discovery failed: {e}")))?;
@@ -415,7 +439,10 @@ async fn run_codex(
     }
 
     let config = codex_adapter::CodexConfig {
-        full_auto: true,
+        full_auto: false,
+        sandbox: Some(sandbox_mode.clone()),
+        ask_for_approval: Some(codex_adapter::ApprovalPolicy::Never),
+        cd: Some(cwd.to_path_buf()),
         system_prompt: Some(system_prompt.to_string()),
         overrides,
         timeout,
@@ -437,6 +464,7 @@ async fn run_opencode(
     mcp_config: &rig_mcp_server::server::McpConfig,
     system_prompt: &str,
     timeout: Duration,
+    cwd: &std::path::Path,
 ) -> Result<McpToolAgentResult, ProviderError> {
     let path = opencode_adapter::discover_opencode()
         .map_err(|e| ProviderError::McpToolAgent(format!("OpenCode discovery failed: {e}")))?;
@@ -472,6 +500,7 @@ async fn run_opencode(
         model: Some("opencode/big-pickle".to_string()),
         prompt: Some(system_prompt.to_string()),
         mcp_config_path: Some(config_path),
+        cwd: Some(cwd.to_path_buf()),
         timeout,
         ..opencode_adapter::OpenCodeConfig::default()
     };
