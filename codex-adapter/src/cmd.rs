@@ -66,3 +66,128 @@ pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
 
     args
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{ApprovalPolicy, CodexConfig, SandboxMode};
+    use std::path::PathBuf;
+
+    // NOTE: Codex Issue #4152 -- MCP tools bypass sandbox restrictions.
+    // This means our MCP tools (submit/validate/example) are NOT subject to
+    // Codex's Landlock sandbox enforcement. For strong isolation, use
+    // Docker Sandboxes externally. This is a known Codex bug, not a rig-cli issue.
+
+    #[test]
+    fn test_sandbox_readonly_flag() {
+        let config = CodexConfig {
+            sandbox: Some(SandboxMode::ReadOnly),
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Assert --sandbox read-only is present (CONT-04)
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            "Expected '--sandbox read-only' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_sandbox_workspace_write_flag() {
+        let config = CodexConfig {
+            sandbox: Some(SandboxMode::WorkspaceWrite),
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Assert --sandbox workspace-write is present
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "workspace-write"),
+            "Expected '--sandbox workspace-write' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_approval_never_flag() {
+        let config = CodexConfig {
+            ask_for_approval: Some(ApprovalPolicy::Never),
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Assert --ask-for-approval never is present (non-interactive)
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "never"),
+            "Expected '--ask-for-approval never' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_cd_flag() {
+        let config = CodexConfig {
+            cd: Some(PathBuf::from("/tmp/sandbox")),
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Assert --cd is present (working directory isolation)
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--cd" && w[1] == "/tmp/sandbox"),
+            "Expected '--cd /tmp/sandbox' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_full_auto_not_set_by_default() {
+        let config = CodexConfig::default();
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Assert --full-auto is NOT present (CONT-03 audit: full_auto bypasses containment)
+        assert!(
+            !args_str.contains(&"--full-auto"),
+            "Expected --full-auto to be absent by default, but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_full_containment_config() {
+        let config = CodexConfig {
+            sandbox: Some(SandboxMode::ReadOnly),
+            ask_for_approval: Some(ApprovalPolicy::Never),
+            cd: Some(PathBuf::from("/tmp/isolated")),
+            full_auto: false, // explicit false to document containment posture
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Assert all containment flags present and --full-auto absent
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            "Expected '--sandbox read-only'"
+        );
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "never"),
+            "Expected '--ask-for-approval never'"
+        );
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--cd" && w[1] == "/tmp/isolated"),
+            "Expected '--cd /tmp/isolated'"
+        );
+        assert!(
+            !args_str.contains(&"--full-auto"),
+            "Expected --full-auto to be absent"
+        );
+    }
+}
