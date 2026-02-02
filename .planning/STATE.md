@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-Phase: 3 of 11 (Payload & Instruction System) — COMPLETE
-Plan: 2 of 2 in current phase (all complete)
-Status: Complete
-Last activity: 2026-02-02 — Phase 3 verified and complete
+Phase: 4 of 11 (Agent Containment) — IN PROGRESS
+Plan: 1 of 1 in current phase (1 complete)
+Status: Phase complete
+Last activity: 2026-02-02 — Completed 04-01-PLAN.md
 
-Progress: [██████████] 12/12 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2)
+Progress: [███████████] 13/13 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 1/1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 3.4 min
-- Total execution time: 0.7 hours
+- Total plans completed: 13
+- Average duration: 3.3 min
+- Total execution time: 0.75 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [██████████] 12/12 plans complete (Phase 1: 5/5, P
 | 02-retry-validation-loop | 2 | 6min | 3min |
 | 02.1-transparent-mcp-tool-agent | 3 | 8min | 3min |
 | 03-payload-instruction-system | 2 | 4.5min | 2.25min |
+| 04-agent-containment | 1 | 2.4min | 2.4min |
 
 **Recent Trend:**
-- Last 5 plans: 02.1-01 (3min), 02.1-02 (3min), 02.1-03 (2min), 03-01 (2.5min), 03-02 (2min)
-- Trend: Phase 3 complete — all plans executed and verified
+- Last 5 plans: 02.1-03 (2min), 03-01 (2.5min), 03-02 (2min), 04-01 (2.4min)
+- Trend: Phase 4 complete — containment defaults implemented
 
 *Updated after each plan completion*
 
@@ -66,6 +67,11 @@ Recent decisions affecting current work:
 - Codex and OpenCode lack --system-prompt flag; prepend system prompt to user prompt instead (E2E testing)
 - Each adapter manages its own MCP config delivery: Claude uses file path, Codex uses -c overrides (CodexConfig.overrides), OpenCode uses env var + file with different JSON format (E2E testing)
 - OpenCode uses opencode/big-pickle model for MCP agent execution (E2E testing)
+- Default to MCP-only mode: disable all builtin tools unless developer explicitly opts in (04-01)
+- Temp directory by default: agents execute in isolated temp dir with RAII cleanup (04-01)
+- Codex full_auto: false preserves sandbox and approval safety layers (04-01)
+- Claude Code strict: true forces MCP-only config, ignores global MCP configs (04-01)
+- Best-effort per-CLI containment: use each CLI's native flags to full extent, document limitations (04-01)
 
 ### Pending Todos
 
@@ -89,5 +95,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Phase 3 complete — ready for Phase 4 (Agent Containment)
+Stopped at: Completed 04-01-PLAN.md — Phase 4 (Agent Containment) complete
 Resume file: None
