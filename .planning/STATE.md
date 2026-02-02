@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 4 complete. E2E testing documented. Ready for Phase 5 - Observability Infrastructure.
+**Current focus:** Phase 5 complete. Structured tracing and CLI version detection established. Ready for Phase 6 - Platform Hardening.
 
 ## Current Position
 

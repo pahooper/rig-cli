@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2.1: Transparent MCP Tool Agent** - INSERTED: McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI
 - [x] **Phase 3: Payload & Instruction System** - Context data injection and forced tool workflow
 - [x] **Phase 4: Agent Containment** - MCP tool boundaries and sandbox enforcement
-- [ ] **Phase 5: Observability Infrastructure** - Structured tracing and CLI version detection
+- [x] **Phase 5: Observability Infrastructure** - Structured tracing and CLI version detection
 - [ ] **Phase 6: Platform Hardening** - Cross-platform reliability for Linux and Windows
 - [ ] **Phase 7: Rig Integration Polish** - Native Rig ecosystem feel
 - [ ] **Phase 8: Claude Code Adapter** - Production hardening for primary adapter
@@ -122,8 +122,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Instrument ExtractionOrchestrator with structured tracing spans and events at every extraction stage
-- [ ] 05-02-PLAN.md — CLI version detection and validation with semver parsing and structured warnings
+- [x] 05-01-PLAN.md — Instrument ExtractionOrchestrator with structured tracing spans and events at every extraction stage
+- [x] 05-02-PLAN.md — CLI version detection and validation with semver parsing and structured warnings
 
 ### Phase 6: Platform Hardening
 **Goal**: Full functionality works on Linux and Windows
@@ -221,7 +221,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 2.1 Transparent MCP Tool Agent | 3/3 | Complete | 2026-02-01 |
 | 3. Payload & Instruction System | 2/2 | Complete | 2026-02-02 |
 | 4. Agent Containment | 2/2 | Complete | 2026-02-02 |
-| 5. Observability Infrastructure | 0/2 | Not started | - |
+| 5. Observability Infrastructure | 2/2 | Complete | 2026-02-02 |
 | 6. Platform Hardening | 0/TBD | Not started | - |
 | 7. Rig Integration Polish | 0/TBD | Not started | - |
 | 8. Claude Code Adapter | 0/TBD | Not started | - |

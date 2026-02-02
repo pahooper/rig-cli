@@ -32,8 +32,8 @@ Requirements for v1.0 production release. Each maps to roadmap phases.
 
 ### Observability
 
-- [ ] **OBSV-01**: Structured tracing logs: prompt sent, agent response, validation result, retry decisions
-- [ ] **OBSV-02**: CLI tool version detected and validated at startup with clear warning on unsupported versions
+- [x] **OBSV-01**: Structured tracing logs: prompt sent, agent response, validation result, retry decisions
+- [x] **OBSV-02**: CLI tool version detected and validated at startup with clear warning on unsupported versions
 
 ### Platform & Compatibility
 
@@ -105,8 +105,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | CONT-02 | Phase 4 | Complete |
 | CONT-03 | Phase 4 | Complete |
 | CONT-04 | Phase 4 | Complete |
-| OBSV-01 | Phase 5 | Pending |
-| OBSV-02 | Phase 5 | Pending |
+| OBSV-01 | Phase 5 | Complete |
+| OBSV-02 | Phase 5 | Complete |
 | PLAT-01 | Phase 6 | Pending |
 | PLAT-02 | Phase 6 | Pending |
 | PLAT-05 | Phase 6 | Pending |
@@ -127,4 +127,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-02 after Phase 4 completion*
+*Last updated: 2026-02-02 after Phase 5 completion*
