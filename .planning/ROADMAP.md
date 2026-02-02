@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Retry & Validation Loop** - Self-correcting extraction with validation feedback
 - [x] **Phase 2.1: Transparent MCP Tool Agent** - INSERTED: McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI
 - [x] **Phase 3: Payload & Instruction System** - Context data injection and forced tool workflow
-- [ ] **Phase 4: Agent Containment** - MCP tool boundaries and sandbox enforcement
+- [x] **Phase 4: Agent Containment** - MCP tool boundaries and sandbox enforcement
 - [ ] **Phase 5: Observability Infrastructure** - Structured tracing and CLI version detection
 - [ ] **Phase 6: Platform Hardening** - Cross-platform reliability for Linux and Windows
 - [ ] **Phase 7: Rig Integration Polish** - Native Rig ecosystem feel
@@ -107,8 +107,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Containment-first defaults and opt-in escape hatches on McpToolAgentBuilder
-- [ ] 04-02-PLAN.md — CLI flag audit tests for Claude Code and Codex containment flags
+- [x] 04-01-PLAN.md — Containment-first defaults and opt-in escape hatches on McpToolAgentBuilder
+- [x] 04-02-PLAN.md — CLI flag audit tests for Claude Code and Codex containment flags
 
 ### Phase 5: Observability Infrastructure
 **Goal**: Extraction workflow is fully traceable with version awareness
@@ -219,7 +219,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 2. Retry & Validation Loop | 2/2 | Complete | 2026-02-01 |
 | 2.1 Transparent MCP Tool Agent | 3/3 | Complete | 2026-02-01 |
 | 3. Payload & Instruction System | 2/2 | Complete | 2026-02-02 |
-| 4. Agent Containment | 0/2 | Not started | - |
+| 4. Agent Containment | 2/2 | Complete | 2026-02-02 |
 | 5. Observability Infrastructure | 0/TBD | Not started | - |
 | 6. Platform Hardening | 0/TBD | Not started | - |
 | 7. Rig Integration Polish | 0/TBD | Not started | - |

@@ -25,10 +25,10 @@ Requirements for v1.0 production release. Each maps to roadmap phases.
 
 ### Agent Containment
 
-- [ ] **CONT-01**: Default posture disables agent builtin tools (no file editing, bash, etc.) — only provided MCP tools
-- [ ] **CONT-02**: Developer can explicitly opt-in to allow specific builtin tools or filesystem access when needed
-- [ ] **CONT-03**: Per-CLI flags audited and applied for Claude Code and Codex to lock down agent behavior
-- [ ] **CONT-04**: Agent execution is sandboxed to session temp directory by default, not host filesystem
+- [x] **CONT-01**: Default posture disables agent builtin tools (no file editing, bash, etc.) — only provided MCP tools
+- [x] **CONT-02**: Developer can explicitly opt-in to allow specific builtin tools or filesystem access when needed
+- [x] **CONT-03**: Per-CLI flags audited and applied for Claude Code and Codex to lock down agent behavior
+- [x] **CONT-04**: Agent execution is sandboxed to session temp directory by default, not host filesystem
 
 ### Observability
 
@@ -101,10 +101,10 @@ Deferred to future release. Tracked but not in current roadmap.
 | EXTR-02 | Phase 3 | Complete |
 | EXTR-03 | Phase 3 | Complete |
 | EXTR-05 | Phase 3 | Complete |
-| CONT-01 | Phase 4 | Pending |
-| CONT-02 | Phase 4 | Pending |
-| CONT-03 | Phase 4 | Pending |
-| CONT-04 | Phase 4 | Pending |
+| CONT-01 | Phase 4 | Complete |
+| CONT-02 | Phase 4 | Complete |
+| CONT-03 | Phase 4 | Complete |
+| CONT-04 | Phase 4 | Complete |
 | OBSV-01 | Phase 5 | Pending |
 | OBSV-02 | Phase 5 | Pending |
 | PLAT-01 | Phase 6 | Pending |
@@ -127,4 +127,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-02 after Phase 3 completion*
+*Last updated: 2026-02-02 after Phase 4 completion*

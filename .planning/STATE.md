@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 3 complete. Ready for Phase 4 - Agent Containment.
+**Current focus:** Phase 4 complete. Ready for Phase 5 - Observability Infrastructure.
 
 ## Current Position
 
@@ -99,5 +99,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-02
-Stopped at: Completed 04-02-PLAN.md — Phase 4 (Agent Containment) complete with CLI flag verification
+Stopped at: Phase 4 complete — ready for Phase 5 (Observability Infrastructure)
 Resume file: None
