@@ -19,3 +19,7 @@ pub use adapters::codex::CodexModel;
 pub use adapters::opencode::OpenCodeModel;
 /// Utility functions.
 pub mod utils;
+/// MCP tool agent builder for transparent CLI orchestration.
+pub mod mcp_agent;
+
+pub use mcp_agent::{CliAdapter, McpToolAgent, McpToolAgentBuilder, McpToolAgentResult};

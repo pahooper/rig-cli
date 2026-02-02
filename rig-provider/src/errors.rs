@@ -34,4 +34,8 @@ pub enum ProviderError {
     /// Anyhow error.
     #[error("Anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
+
+    /// Error from the MCP tool agent builder.
+    #[error("MCP tool agent error: {0}")]
+    McpToolAgent(String),
 }

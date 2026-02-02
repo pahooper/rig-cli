@@ -21,7 +21,7 @@ pub struct OpenCodeConfig {
     pub hostname: Option<String>,
     /// Extra environment variables passed to the subprocess.
     pub env_vars: Vec<(String, String)>,
-    /// Path to an MCP configuration JSON file (OpenCode format).
+    /// Path to an MCP configuration JSON file (`OpenCode` format).
     pub mcp_config_path: Option<PathBuf>,
     /// Maximum wall-clock time before the process is killed.
     pub timeout: Duration,
