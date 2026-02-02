@@ -52,6 +52,11 @@ impl ExtractionOrchestrator {
     /// Returns `ExtractionError::MaxRetriesExceeded` if all retry attempts are exhausted.
     /// Returns `ExtractionError::SchemaError` if the schema is invalid.
     /// Returns `ExtractionError::AgentError` if the agent function returns an error.
+    #[tracing::instrument(
+        name = "extraction_orchestrator_extract",
+        skip_all,
+        fields(max_attempts = self.config.max_attempts)
+    )]
     pub async fn extract<F, Fut>(
         &self,
         agent_fn: F,
@@ -75,13 +80,40 @@ impl ExtractionOrchestrator {
             // Track input chars for this attempt
             total_input_chars += current_prompt.chars().count();
 
+            // Event 1: prompt_sent_to_agent
+            tracing::debug!(
+                event = "prompt_sent_to_agent",
+                attempt = attempt,
+                prompt_chars = current_prompt.chars().count(),
+                "prompt_sent_to_agent"
+            );
+
             // Call agent with current prompt
-            let agent_output = agent_fn(current_prompt.clone())
-                .await
-                .map_err(ExtractionError::AgentError)?;
+            let agent_output = match agent_fn(current_prompt.clone()).await {
+                Ok(output) => output,
+                Err(e) => {
+                    tracing::warn!(
+                        event = "extraction_outcome",
+                        success = false,
+                        total_attempts = attempt,
+                        total_duration_ms = start.elapsed().as_millis() as u64,
+                        error_kind = "agent_error",
+                        "extraction_outcome"
+                    );
+                    return Err(ExtractionError::AgentError(e));
+                }
+            };
 
             // Track output chars for this attempt
             total_output_chars += agent_output.chars().count();
+
+            // Event 2: agent_response_received
+            tracing::debug!(
+                event = "agent_response_received",
+                attempt = attempt,
+                output_chars = agent_output.chars().count(),
+                "agent_response_received"
+            );
 
             // Try to parse JSON from agent output
             let parsed = match serde_json::from_str::<Value>(&agent_output) {
@@ -89,6 +121,17 @@ impl ExtractionOrchestrator {
                 Err(e) => {
                     // Parse failure - record attempt with empty submitted_json
                     let error_msg = e.to_string();
+
+                    // Event 3: validation_result (parse failure)
+                    tracing::debug!(
+                        event = "validation_result",
+                        attempt = attempt,
+                        valid = false,
+                        parse_failure = true,
+                        error_count = 1,
+                        "validation_result"
+                    );
+
                     attempt_history.push(AttemptRecord {
                         attempt_number: attempt,
                         submitted_json: Value::Null,
@@ -99,6 +142,15 @@ impl ExtractionOrchestrator {
 
                     // If not the last attempt, build parse error feedback and continue
                     if attempt < self.config.max_attempts {
+                        // Event 4: retry_decision
+                        tracing::debug!(
+                            event = "retry_decision",
+                            attempt = attempt,
+                            remaining_attempts = self.config.max_attempts - attempt,
+                            will_retry = true,
+                            "retry_decision"
+                        );
+
                         let feedback = build_parse_error_feedback(
                             &agent_output,
                             &error_msg,
@@ -119,6 +171,24 @@ impl ExtractionOrchestrator {
             let errors = collect_validation_errors(&self.schema, &parsed);
 
             if errors.is_empty() {
+                // Event 3: validation_result (success)
+                tracing::debug!(
+                    event = "validation_result",
+                    attempt = attempt,
+                    valid = true,
+                    error_count = 0,
+                    "validation_result"
+                );
+
+                // Event 5: extraction_outcome (success)
+                tracing::info!(
+                    event = "extraction_outcome",
+                    success = true,
+                    total_attempts = attempt,
+                    total_duration_ms = start.elapsed().as_millis() as u64,
+                    "extraction_outcome"
+                );
+
                 // SUCCESS - build metrics and return
                 let metrics = ExtractionMetrics {
                     total_attempts: attempt,
@@ -128,6 +198,15 @@ impl ExtractionOrchestrator {
                 };
                 return Ok((parsed, metrics));
             }
+
+            // Event 3: validation_result (failure)
+            tracing::debug!(
+                event = "validation_result",
+                attempt = attempt,
+                valid = false,
+                error_count = errors.len(),
+                "validation_result"
+            );
 
             // Validation failed - record attempt
             attempt_history.push(AttemptRecord {
@@ -140,6 +219,15 @@ impl ExtractionOrchestrator {
 
             // If not the last attempt, build validation feedback and continue
             if attempt < self.config.max_attempts {
+                // Event 4: retry_decision
+                tracing::debug!(
+                    event = "retry_decision",
+                    attempt = attempt,
+                    remaining_attempts = self.config.max_attempts - attempt,
+                    will_retry = true,
+                    "retry_decision"
+                );
+
                 let feedback = build_validation_feedback(
                     &self.schema,
                     &parsed,
@@ -151,6 +239,15 @@ impl ExtractionOrchestrator {
                 current_prompt = format!("{current_prompt}\n\n{feedback}");
             }
         }
+
+        // Event 5: extraction_outcome (max retries exceeded)
+        tracing::warn!(
+            event = "extraction_outcome",
+            success = false,
+            total_attempts = self.config.max_attempts,
+            total_duration_ms = start.elapsed().as_millis() as u64,
+            "extraction_outcome"
+        );
 
         // Max attempts exhausted - build final metrics and return error
         let metrics = ExtractionMetrics {
@@ -177,6 +274,11 @@ impl ExtractionOrchestrator {
     ///
     /// Returns `ExtractionError::ParseError` if deserialization to `T` fails after
     /// successful schema validation.
+    #[tracing::instrument(
+        name = "extraction_orchestrator_extract_typed",
+        skip_all,
+        fields(max_attempts = self.config.max_attempts)
+    )]
     pub async fn extract_typed<T, F, Fut>(
         &self,
         agent_fn: F,
