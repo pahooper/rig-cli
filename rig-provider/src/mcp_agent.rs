@@ -660,3 +660,63 @@ async fn run_opencode(
         duration_ms: result.duration_ms,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_version_string_simple() {
+        assert_eq!(extract_version_string("1.2.3"), "1.2.3");
+    }
+
+    #[test]
+    fn test_extract_version_string_with_v_prefix() {
+        assert_eq!(extract_version_string("v1.2.3"), "1.2.3");
+    }
+
+    #[test]
+    fn test_extract_version_string_with_cli_name() {
+        assert_eq!(extract_version_string("claude 1.2.3"), "1.2.3");
+        assert_eq!(extract_version_string("codex v0.91.0"), "0.91.0");
+    }
+
+    #[test]
+    fn test_extract_version_string_with_prerelease() {
+        assert_eq!(extract_version_string("v0.91.0-beta.1"), "0.91.0-beta.1");
+    }
+
+    #[test]
+    fn test_extract_version_string_unparseable_fallback() {
+        // Returns best-effort string even if not valid semver
+        let result = extract_version_string("not-a-version");
+        assert_eq!(result, "not-a-version");
+    }
+
+    #[test]
+    fn test_version_requirement_constants() {
+        let claude_req = claude_code_version_req();
+        assert!(claude_req.min_version < claude_req.max_tested);
+        assert_eq!(claude_req.cli_name, "Claude Code");
+
+        let codex_req = codex_version_req();
+        assert!(codex_req.min_version < codex_req.max_tested);
+        assert_eq!(codex_req.cli_name, "Codex");
+
+        let opencode_req = opencode_version_req();
+        assert!(opencode_req.min_version < opencode_req.max_tested);
+        assert_eq!(opencode_req.cli_name, "OpenCode");
+    }
+
+    #[test]
+    fn test_version_comparison_logic() {
+        let req = claude_code_version_req();
+        let below_min = semver::Version::new(0, 0, 1);
+        let in_range = semver::Version::new(1, 5, 0);
+        let above_max = semver::Version::new(2, 0, 0);
+
+        assert!(below_min < req.min_version);
+        assert!(in_range >= req.min_version && in_range <= req.max_tested);
+        assert!(above_max > req.max_tested);
+    }
+}
