@@ -47,6 +47,12 @@ pub struct CodexConfig {
     pub add_dirs: Vec<PathBuf>,
     /// Key-value config overrides passed via `--config`.
     pub overrides: Vec<(String, String)>,
+    /// System prompt to append to the agent's instructions.
+    pub system_prompt: Option<String>,
+    /// Extra environment variables passed to the subprocess.
+    pub env_vars: Vec<(String, String)>,
+    /// Path to an MCP configuration file (TOML format for Codex).
+    pub mcp_config_path: Option<std::path::PathBuf>,
     /// Maximum wall-clock time before the subprocess is killed.
     pub timeout: Duration,
 }
@@ -62,6 +68,9 @@ impl Default for CodexConfig {
             cd: None,
             add_dirs: Vec::new(),
             overrides: Vec::new(),
+            system_prompt: None,
+            env_vars: Vec::new(),
+            mcp_config_path: None,
             timeout: Duration::from_secs(300),
         }
     }

@@ -34,6 +34,11 @@ pub fn build_args(message: &str, config: &OpenCodeConfig) -> Vec<OsString> {
         args.push(OsString::from(host));
     }
 
+    if let Some(ref sp) = config.prompt {
+        args.push(OsString::from("--system-prompt"));
+        args.push(OsString::from(sp));
+    }
+
     args.push(OsString::from(message));
 
     args

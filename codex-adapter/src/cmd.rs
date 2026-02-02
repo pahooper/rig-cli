@@ -57,6 +57,11 @@ pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
         args.push(OsString::from(format!("{k}={v}")));
     }
 
+    if let Some(ref sp) = config.system_prompt {
+        args.push(OsString::from("--system-prompt"));
+        args.push(OsString::from(sp));
+    }
+
     args.push(OsString::from(prompt));
 
     args

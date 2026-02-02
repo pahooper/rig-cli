@@ -19,6 +19,10 @@ pub struct OpenCodeConfig {
     pub port: Option<u16>,
     /// Optional hostname for the `OpenCode` server.
     pub hostname: Option<String>,
+    /// Extra environment variables passed to the subprocess.
+    pub env_vars: Vec<(String, String)>,
+    /// Path to an MCP configuration JSON file (OpenCode format).
+    pub mcp_config_path: Option<PathBuf>,
     /// Maximum wall-clock time before the process is killed.
     pub timeout: Duration,
     /// Working directory for the child process.
@@ -34,6 +38,8 @@ impl Default for OpenCodeConfig {
             log_level: None,
             port: None,
             hostname: None,
+            env_vars: Vec::new(),
+            mcp_config_path: None,
             timeout: Duration::from_secs(300),
             cwd: None,
         }

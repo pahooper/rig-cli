@@ -39,7 +39,7 @@ pub async fn run_codex(
     let args = crate::cmd::build_args(prompt, config);
     let start_time = Instant::now();
 
-    let mut child = spawn_child(path, &args, config.cd.as_deref())?;
+    let mut child = spawn_child(path, &args, config)?;
 
     let stdout = child.stdout.take().ok_or(CodexError::NoStdout)?;
     let stderr = child.stderr.take().ok_or(CodexError::NoStderr)?;
@@ -67,13 +67,17 @@ pub async fn run_codex(
 fn spawn_child(
     path: &std::path::Path,
     args: &[std::ffi::OsString],
-    cwd: Option<&std::path::Path>,
+    config: &CodexConfig,
 ) -> Result<tokio::process::Child, CodexError> {
     let mut cmd = Command::new(path);
     cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
 
-    if let Some(dir) = cwd {
+    if let Some(ref dir) = config.cd {
         cmd.current_dir(dir);
+    }
+
+    for (k, v) in &config.env_vars {
+        cmd.env(k, v);
     }
 
     cmd.spawn().map_err(|e| CodexError::SpawnFailed {

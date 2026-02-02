@@ -86,6 +86,14 @@ fn spawn_child(
         cmd.current_dir(cwd);
     }
 
+    for (k, v) in &config.env_vars {
+        cmd.env(k, v);
+    }
+
+    if let Some(ref mcp_path) = config.mcp_config_path {
+        cmd.env("OPENCODE_CONFIG", mcp_path);
+    }
+
     let child = cmd.spawn().map_err(|e| OpenCodeError::SpawnFailed {
         stage: "spawn subprocess".to_string(),
         source: e,
