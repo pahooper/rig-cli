@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 Phase: 2 of 11 (Retry & Validation Loop) - IN PROGRESS
 Plan: 2 of 3 in current phase (02-01, 02-02 complete)
 Status: In progress
-Last activity: 2026-02-01 — Completed 02-02-PLAN.md (extraction orchestrator and enhanced validation)
+Last activity: 2026-02-01 — Phase 2.1 planning complete (3 plans created)
 
 Progress: [██████░░░░] 2/6 plans complete (Phase 1: 5/5, Phase 2: 2/3)
 
@@ -63,6 +63,10 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 None.
+
+### Roadmap Evolution
+
+- Phase 2.1 added (INSERTED): Transparent MCP Tool Agent — McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI. Inserted between Phase 2 and Phase 3. Planning complete: 3 plans in 3 waves (sequential).
 
 ### Blockers/Concerns
 
