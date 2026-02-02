@@ -8,6 +8,140 @@ use crate::errors::ProviderError;
 use std::io::Write as _;
 use std::time::Duration;
 
+/// Version requirements for CLI adapters. Hardcoded per adapter, not configurable.
+struct VersionRequirement {
+    /// Minimum supported version (below this = unsupported, warn).
+    min_version: semver::Version,
+    /// Maximum tested version (above this = untested, warn with different message).
+    max_tested: semver::Version,
+    /// CLI name for log messages.
+    cli_name: &'static str,
+}
+
+/// Version requirement for Claude Code CLI.
+const fn claude_code_version_req() -> VersionRequirement {
+    VersionRequirement {
+        min_version: semver::Version::new(1, 0, 0),
+        max_tested: semver::Version::new(1, 99, 0),
+        cli_name: "Claude Code",
+    }
+}
+
+/// Version requirement for Codex CLI.
+const fn codex_version_req() -> VersionRequirement {
+    VersionRequirement {
+        min_version: semver::Version::new(0, 1, 0),
+        max_tested: semver::Version::new(0, 99, 0),
+        cli_name: "Codex",
+    }
+}
+
+/// Version requirement for `OpenCode` CLI.
+const fn opencode_version_req() -> VersionRequirement {
+    VersionRequirement {
+        min_version: semver::Version::new(0, 1, 0),
+        max_tested: semver::Version::new(0, 99, 0),
+        cli_name: "OpenCode",
+    }
+}
+
+/// Detects CLI version and validates against requirements.
+///
+/// Runs `<binary> --version`, parses the version string with semver,
+/// and emits structured tracing warnings for unsupported or untested versions.
+/// Always returns Ok — version issues are warnings, never blockers.
+async fn detect_and_validate_version(
+    binary_path: &std::path::Path,
+    requirement: &VersionRequirement,
+) {
+    let output = match tokio::process::Command::new(binary_path)
+        .arg("--version")
+        .output()
+        .await
+    {
+        Ok(output) => output,
+        Err(e) => {
+            tracing::warn!(
+                event = "version_detection_failed",
+                cli = requirement.cli_name,
+                error = %e,
+                "version_detection_failed"
+            );
+            return;
+        }
+    };
+
+    let version_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    // Extract version substring: strip common prefixes like "v", split on whitespace
+    // to handle formats like "claude 1.2.3" or "codex v0.91.0"
+    let cleaned = extract_version_string(&version_str);
+
+    let version = match semver::Version::parse(&cleaned) {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::warn!(
+                event = "version_parse_failed",
+                cli = requirement.cli_name,
+                raw_version = %version_str,
+                error = %e,
+                "version_parse_failed"
+            );
+            return;
+        }
+    };
+
+    tracing::debug!(
+        event = "version_detected",
+        cli = requirement.cli_name,
+        version = %version,
+        "version_detected"
+    );
+
+    if version < requirement.min_version {
+        tracing::warn!(
+            event = "version_unsupported",
+            cli = requirement.cli_name,
+            detected = %version,
+            minimum = %requirement.min_version,
+            "version_unsupported: {} {} is below minimum supported version {}",
+            requirement.cli_name,
+            version,
+            requirement.min_version,
+        );
+    } else if version > requirement.max_tested {
+        tracing::warn!(
+            event = "version_untested",
+            cli = requirement.cli_name,
+            detected = %version,
+            max_tested = %requirement.max_tested,
+            "version_untested: {} {} is newer than maximum tested version {}",
+            requirement.cli_name,
+            version,
+            requirement.max_tested,
+        );
+    }
+}
+
+/// Extracts a semver-parseable version string from CLI version output.
+///
+/// Handles common formats:
+/// - "1.2.3" -> "1.2.3"
+/// - "v1.2.3" -> "1.2.3"
+/// - "claude 1.2.3" -> "1.2.3"
+/// - "codex v0.91.0-beta" -> "0.91.0-beta"
+fn extract_version_string(raw: &str) -> String {
+    // Split on whitespace and find the token that looks like a version
+    for token in raw.split_whitespace() {
+        let stripped = token.strip_prefix('v').unwrap_or(token);
+        if semver::Version::parse(stripped).is_ok() {
+            return stripped.to_string();
+        }
+    }
+    // Fallback: try stripping 'v' from the whole string
+    raw.strip_prefix('v').unwrap_or(raw).to_string()
+}
+
 /// Default instruction template enforcing the three-tool workflow.
 ///
 /// This template requires agents to follow the example -> validate -> submit
@@ -371,6 +505,10 @@ async fn run_claude_code(
     let report = claudecode_adapter::init(None)
         .await
         .map_err(|e| ProviderError::McpToolAgent(format!("Claude init failed: {e}")))?;
+
+    // Detect and validate CLI version
+    detect_and_validate_version(&report.claude_path, &claude_code_version_req()).await;
+
     let cli = claudecode_adapter::ClaudeCli::new(report.claude_path, report.capabilities);
 
     // Apply containment: disable all builtins by default, opt-in via builtin_tools
@@ -417,6 +555,10 @@ async fn run_codex(
 ) -> Result<McpToolAgentResult, ProviderError> {
     let path = codex_adapter::discover_codex()
         .map_err(|e| ProviderError::McpToolAgent(format!("Codex discovery failed: {e}")))?;
+
+    // Detect and validate CLI version
+    detect_and_validate_version(&path, &codex_version_req()).await;
+
     let cli = codex_adapter::CodexCli::new(path);
 
     // Codex reads MCP server config from its config.toml. Inject via -c overrides.
@@ -468,6 +610,10 @@ async fn run_opencode(
 ) -> Result<McpToolAgentResult, ProviderError> {
     let path = opencode_adapter::discover_opencode()
         .map_err(|e| ProviderError::McpToolAgent(format!("OpenCode discovery failed: {e}")))?;
+
+    // Detect and validate CLI version
+    detect_and_validate_version(&path, &opencode_version_req()).await;
+
     let cli = opencode_adapter::OpenCodeCli::new(path);
 
     // OpenCode config format: {"mcp": {"name": {"type":"local","command":[...],"environment":{...}}}}
