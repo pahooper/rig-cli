@@ -98,7 +98,7 @@ None.
 |---|-------------|------|--------|-----------|
 | 002 | Save Phase 2.1 plan files to GSD planning system | 2026-02-01 | abd49bc | [002-save-phase-2-1-plans-to-gsd](./quick/002-save-phase-2-1-plans-to-gsd/) |
 | 003 | Update planning docs with E2E testing findings | 2026-02-02 | 0616a58 | [003-update-planning-docs-for-e2e-testing-f](./quick/003-update-planning-docs-for-e2e-testing-f/) |
-| 004 | Document E2E testing findings and adapter fixes from Phase 4 | 2026-02-02 | (pending) | [004-document-e2e-testing-findings-and-adapte](./quick/004-document-e2e-testing-findings-and-adapte/) |
+| 004 | Document E2E testing findings and adapter fixes from Phase 4 | 2026-02-02 | d9198b2 | [004-document-e2e-testing-findings-and-adapte](./quick/004-document-e2e-testing-findings-and-adapte/) |
 
 ## Session Continuity
 
