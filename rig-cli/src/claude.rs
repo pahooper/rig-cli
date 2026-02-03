@@ -1,30 +1,46 @@
-//! Claude Code provider with MCP-enforced CompletionModel.
+//! Claude Code provider with CompletionModel and MCP-enforced CliAgent.
 //!
-//! This module provides the reference implementation for the CLI-to-Rig provider pattern.
-//! All tool-bearing requests route through `McpToolAgent` to enforce the MCP tool workflow,
-//! while simple prompts without tools fall back to direct CLI execution for simplicity.
+//! This module provides two execution paths for the Claude Code CLI:
 //!
-//! # Example
+//! | Method | Execution | Use Case |
+//! |--------|-----------|----------|
+//! | `client.agent("model")` | Direct CLI | Simple prompts, chat, streaming |
+//! | `client.mcp_agent("model")` | MCP Server | Structured extraction, forced tool use |
+//!
+//! # Simple Prompts (Direct CLI)
 //!
 //! ```no_run
 //! # use rig_cli::claude::Client;
 //! # use rig::client::CompletionClient;
 //! # use rig::completion::Prompt;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create client (auto-discovers Claude CLI)
 //! let client = Client::new().await?;
-//!
-//! // Build an agent using standard Rig patterns
 //! let agent = client.agent("claude-sonnet-4")
 //!     .preamble("You are a helpful assistant")
 //!     .build();
-//!
-//! // Prompt the agent
 //! let response = agent.prompt("Hello!").await?;
-//! println!("{}", response);
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! # Structured Extraction (MCP-Enforced)
+//!
+//! ```no_run
+//! # use rig_cli::claude::Client;
+//! # use rig::completion::Prompt;
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let client = Client::new().await?;
+//! let agent = client.mcp_agent("sonnet")
+//!     .toolset(extraction_tools)
+//!     .preamble("Extract structured data")
+//!     .build()?;
+//! let result = agent.prompt("Extract from: ...").await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! For MCP enforcement, the agent is constrained to submit responses ONLY via
+//! MCP tool calls, preventing freeform text responses and ensuring schema compliance.
 
 use crate::config::ClientConfig;
 use crate::errors::Error;
@@ -36,6 +52,7 @@ use rig::completion::{
 };
 use rig::streaming::{RawStreamingChoice, RawStreamingToolCall, StreamingCompletionResponse};
 use rig::OneOrMany;
+use rig_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
@@ -70,11 +87,13 @@ pub struct CliResponse {
 ///
 /// Returns `Error::ClaudeNotFound` if the binary cannot be found.
 ///
-/// # MCP Enforcement
+/// # Execution Paths
 ///
-/// When agents are built with tools (via `.tool()` on `AgentBuilder`),
-/// all execution routes through `McpToolAgent` to enforce the MCP tool workflow.
-/// Simple prompts without tools use direct CLI execution for backward compatibility.
+/// - `client.agent("model")` - Returns Rig's `AgentBuilder` for direct CLI execution.
+///   Use for simple prompts and chat where structured output is not required.
+///
+/// - `client.mcp_agent("model")` - Returns `CliAgentBuilder` for MCP-enforced execution.
+///   Use for structured extraction where the agent MUST respond via tool calls.
 #[derive(Clone)]
 pub struct Client {
     /// The underlying CLI client from claudecode_adapter.
@@ -188,6 +207,51 @@ impl Client {
     pub fn config(&self) -> &ClientConfig {
         &self.config
     }
+
+    /// Creates an MCP-enforced agent builder for structured extraction.
+    ///
+    /// Unlike [`agent()`](rig::client::CompletionClient::agent) which uses direct CLI execution,
+    /// `mcp_agent()` routes ALL interactions through the MCP server, ensuring the agent
+    /// can ONLY respond via MCP tool calls. This enforces structured output extraction.
+    ///
+    /// # Two Execution Paths
+    ///
+    /// | Method | Path | Use Case |
+    /// |--------|------|----------|
+    /// | `client.agent("model")` | Direct CLI | Simple prompts, chat, streaming |
+    /// | `client.mcp_agent("model")` | MCP Server | Structured extraction, forced tool use |
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use rig_cli::claude::Client;
+    /// # use rig::completion::Prompt;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = Client::new().await?;
+    ///
+    /// // MCP-enforced extraction
+    /// let agent = client.mcp_agent("sonnet")
+    ///     .toolset(extraction_tools)
+    ///     .preamble("You are a data extraction agent")
+    ///     .build()?;
+    ///
+    /// let result = agent.prompt("Extract user data from: ...").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn mcp_agent(&self, _model: impl Into<String>) -> CliAgentBuilder {
+        let mut builder = rig_provider::mcp_agent::CliAgent::builder()
+            .adapter(CliAdapter::ClaudeCode)
+            .timeout(self.config.timeout);
+
+        // Transfer payload if set on client
+        if let Some(ref payload) = self.payload {
+            builder = builder.payload(payload.clone());
+        }
+
+        builder
+    }
 }
 
 impl rig::client::CompletionClient for Client {
@@ -202,11 +266,10 @@ impl rig::client::CompletionClient for Client {
 
 /// The CompletionModel implementation for Claude Code.
 ///
-/// This is the execution layer that routes requests through either:
-/// - `McpToolAgent` for tool-bearing requests (MCP-enforced workflow)
-/// - Direct CLI execution for simple prompts without tools (backward compatible)
+/// Provides direct CLI execution for prompts and streaming. For MCP-enforced
+/// structured extraction, use `Client::mcp_agent()` instead.
 ///
-/// Users interact with this via `AgentBuilder`, not directly.
+/// Users interact with this via `AgentBuilder` (from `client.agent()`), not directly.
 #[derive(Clone)]
 pub struct Model {
     /// The underlying CLI client.
@@ -243,15 +306,48 @@ impl CompletionModel for Model {
         // Extract preamble (system prompt)
         let preamble = request.preamble.as_deref().unwrap_or("");
 
-        // Decision point: route through MCP if tools are present
-        if !request.tools.is_empty() {
-            // MCP-enforced path: build and run McpToolAgent
-            self.completion_with_mcp(&prompt_text, preamble, &request.tools)
-                .await
-        } else {
-            // Simple path: direct CLI execution (no tools = no MCP needed)
-            self.completion_without_mcp(&prompt_text, preamble).await
+        // Direct CLI execution path
+        let start = Instant::now();
+
+        let mut config = claudecode_adapter::RunConfig {
+            timeout: self.config.timeout,
+            ..claudecode_adapter::RunConfig::default()
+        };
+
+        // If preamble present, append to system prompt
+        if !preamble.is_empty() {
+            config.system_prompt = claudecode_adapter::SystemPromptMode::Append(preamble.to_string());
         }
+
+        // Run the CLI
+        let result = self
+            .cli
+            .run(&prompt_text, &config)
+            .await
+            .map_err(|e| {
+                #[cfg(feature = "debug-output")]
+                {
+                    CompletionError::ProviderError(format!("{e}\n--- raw debug output ---\nError occurred during CLI execution. Enable tracing for detailed output."))
+                }
+                #[cfg(not(feature = "debug-output"))]
+                {
+                    CompletionError::ProviderError(e.to_string())
+                }
+            })?;
+
+        let duration_ms = start.elapsed().as_millis() as u64;
+
+        let cli_response = CliResponse {
+            text: result.stdout.clone(),
+            exit_code: result.exit_code,
+            duration_ms,
+        };
+
+        Ok(CompletionResponse {
+            choice: OneOrMany::one(AssistantContent::text(result.stdout)),
+            usage: Usage::default(),
+            raw_response: cli_response,
+        })
     }
 
     async fn stream(
@@ -319,90 +415,6 @@ impl CompletionModel for Model {
     }
 }
 
-impl Model {
-    /// MCP-enforced completion path for tool-bearing requests.
-    ///
-    /// Builds a `McpToolAgent` with the provided toolset, routes execution
-    /// through the MCP server (auto-spawned), and returns the result.
-    ///
-    /// # Current Limitation
-    ///
-    /// For v1, we fall back to direct CLI execution since Rig's CompletionRequest
-    /// provides ToolDefinitions (JSON schemas) but not Tool trait objects.
-    /// The MCP path works perfectly when users build agents directly via
-    /// AgentBuilder.tool(), which properly adds Tool trait objects.
-    ///
-    /// Future enhancement: Build a dynamic Tool wrapper around ToolDefinition.
-    async fn completion_with_mcp(
-        &self,
-        prompt: &str,
-        preamble: &str,
-        _tool_defs: &[ToolDefinition],
-    ) -> Result<CompletionResponse<CliResponse>, CompletionError> {
-        // For v1: Since we can't reliably convert ToolDefinition to Tool trait objects,
-        // and tool-bearing requests should come from AgentBuilder (which properly adds tools),
-        // we'll fall back to direct CLI for now and document this limitation.
-        // The MCP path works perfectly when users use .tool() on AgentBuilder.
-        tracing::info!(
-            "Tool-bearing request detected but ToolDefinition -> ToolSet conversion not yet implemented. \
-             Falling back to direct CLI execution. For MCP-enforced extraction, use the extractor pattern."
-        );
-
-        self.completion_without_mcp(prompt, preamble).await
-    }
-
-    /// Direct CLI completion path for simple prompts without tools.
-    ///
-    /// Uses the underlying `ClaudeCli` directly, no MCP orchestration.
-    /// This is the backward-compatible path for freeform chat.
-    async fn completion_without_mcp(
-        &self,
-        prompt: &str,
-        preamble: &str,
-    ) -> Result<CompletionResponse<CliResponse>, CompletionError> {
-        let start = Instant::now();
-
-        let mut config = claudecode_adapter::RunConfig {
-            timeout: self.config.timeout,
-            ..claudecode_adapter::RunConfig::default()
-        };
-
-        // If preamble present, append to system prompt
-        if !preamble.is_empty() {
-            config.system_prompt = claudecode_adapter::SystemPromptMode::Append(preamble.to_string());
-        }
-
-        // Run the CLI
-        let result = self
-            .cli
-            .run(prompt, &config)
-            .await
-            .map_err(|e| {
-                #[cfg(feature = "debug-output")]
-                {
-                    CompletionError::ProviderError(format!("{e}\n--- raw debug output ---\nError occurred during CLI execution. Enable tracing for detailed output."))
-                }
-                #[cfg(not(feature = "debug-output"))]
-                {
-                    CompletionError::ProviderError(e.to_string())
-                }
-            })?;
-
-        let duration_ms = start.elapsed().as_millis() as u64;
-
-        let cli_response = CliResponse {
-            text: result.stdout.clone(),
-            exit_code: result.exit_code,
-            duration_ms,
-        };
-
-        Ok(CompletionResponse {
-            choice: OneOrMany::one(AssistantContent::text(result.stdout)),
-            usage: Usage::default(),
-            raw_response: cli_response,
-        })
-    }
-}
 
 #[cfg(test)]
 mod tests {
