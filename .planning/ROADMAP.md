@@ -205,10 +205,11 @@ Plans:
   3. OpenCode-specific CLI flags are audited and documented
   4. Passes clippy pedantic with zero warnings
   5. E2E containment tests pass with real OpenCode CLI
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 10-01: TBD
+- [ ] 10-01-PLAN.md — Add comprehensive module-level documentation to cmd.rs and lib.rs, clippy pedantic pass
+- [ ] 10-02-PLAN.md — Add E2E containment tests with real OpenCode CLI (tests/e2e_containment.rs)
 
 ### Phase 11: Documentation & Examples
 **Goal**: Developer can understand and use library end-to-end from documentation
@@ -241,5 +242,5 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 7. Rig Integration Polish | 7/7 | Complete | 2026-02-03 |
 | 8. Claude Code Adapter | 4/4 | Complete | 2026-02-03 |
 | 9. Codex Adapter | 2/2 | Complete | 2026-02-03 |
-| 10. OpenCode Maintenance | 0/TBD | Not started | - |
+| 10. OpenCode Adapter | 0/2 | Not started | - |
 | 11. Documentation & Examples | 0/TBD | Not started | - |
