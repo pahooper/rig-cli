@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 8 complete. Claude Code adapter production-hardened with clippy pedantic compliance, CLI flag documentation, E2E containment tests, and extraction failure tests.
+**Current focus:** Phase 9 in progress. Codex adapter production hardening with ApprovalPolicy enum, CLI flag documentation, and containment tests.
 
 ## Current Position
 
-Phase: 8 of 11 (Claude Code Adapter) - PHASE COMPLETE
-Plan: 4 of 4 in current phase - PHASE COMPLETE
-Status: Phase 8 complete (Complete: 08-01, 08-02, 08-03, 08-04)
-Last activity: 2026-02-03 — Completed 08-04-PLAN.md (Extraction Failure Tests) - Phase verified
+Phase: 9 of 11 (Codex Adapter)
+Plan: 1 of 3 in current phase - COMPLETE
+Status: In progress (Complete: 09-01)
+Last activity: 2026-02-03 — Completed 09-01-PLAN.md (ApprovalPolicy and CLI Flag Documentation)
 
-Progress: [████████████████████] 31/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4)
+Progress: [████████████████████░] 32/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 1/3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 31
+- Total plans completed: 32
 - Average duration: 2.9 min
-- Total execution time: 2.02 hours
+- Total execution time: 2.07 hours
 
 **By Phase:**
 
@@ -36,10 +36,11 @@ Progress: [████████████████████] 31/34 p
 | 06-platform-hardening | 4 | 8.7min | 2.2min |
 | 07-rig-integration-polish | 7 | 31.5min | 4.5min |
 | 08-claude-code-adapter | 4 | 24min | 6min |
+| 09-codex-adapter | 1 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 08-04 (2min), 08-03 (12min), 08-02 (2min), 08-01 (8min), 07-07 (3.2min)
-- Trend: Phase 8 COMPLETE - Claude Code adapter production-hardened
+- Last 5 plans: 09-01 (3min), 08-04 (2min), 08-03 (12min), 08-02 (2min), 08-01 (8min)
+- Trend: Phase 9 started - Codex adapter hardening in progress
 
 *Updated after each plan completion*
 
@@ -145,6 +146,9 @@ Recent decisions affecting current work:
 - Accept timeout/error as valid containment test outcome (agent may loop without tools) (08-03)
 - E2E test pattern: marked #[ignore], module docstring with requirements, helper function for CLI discovery (08-03)
 - Allow jsonschema library permissiveness on invalid types (not all versions reject them) (08-04)
+- ApprovalPolicy::default() returns Untrusted for containment-first operation (09-01)
+- ask_for_approval field is Option<ApprovalPolicy> - None means no flag, Some passes explicit policy (09-01)
+- Document full-auto override behavior in tests (full-auto overrides sandbox and approval at CLI level) (09-01)
 
 ### Pending Todos
 
@@ -170,5 +174,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed Phase 8 (Claude Code Adapter) - all 4 plans, verified 17/17 must-haves
+Stopped at: Completed 09-01-PLAN.md (ApprovalPolicy and CLI Flag Documentation)
 Resume file: None
