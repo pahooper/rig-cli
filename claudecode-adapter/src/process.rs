@@ -2,8 +2,6 @@
 
 use crate::error::ClaudeError;
 use crate::types::{OutputFormat, RunConfig, RunResult};
-use nix::sys::signal::{self, Signal};
-use nix::unistd::Pid;
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -262,15 +260,19 @@ async fn drain_stderr_bounded(
 }
 
 /// Sends SIGTERM, waits up to `GRACE_PERIOD`, then force-kills with SIGKILL.
+#[cfg(unix)]
 async fn graceful_shutdown(
     child: &mut tokio::process::Child,
     pid: u32,
 ) -> Result<std::process::ExitStatus, ClaudeError> {
+    use nix::sys::signal::{self, Signal};
+    use nix::unistd::Pid;
+
     let nix_pid = Pid::from_raw(pid.cast_signed());
     signal::kill(nix_pid, Signal::SIGTERM).map_err(|e| ClaudeError::SignalFailed {
         signal: "SIGTERM".to_string(),
         pid,
-        source: e,
+        reason: e.to_string(),
     })?;
 
     match timeout(GRACE_PERIOD, child.wait()).await {
@@ -290,6 +292,23 @@ async fn graceful_shutdown(
             })
         }
     }
+}
+
+/// Windows: no graceful shutdown mechanism for console processes.
+/// Uses immediate TerminateProcess via Child::kill().
+#[cfg(windows)]
+async fn graceful_shutdown(
+    child: &mut tokio::process::Child,
+    _pid: u32,
+) -> Result<std::process::ExitStatus, ClaudeError> {
+    child.kill().await.map_err(|e| ClaudeError::SpawnFailed {
+        stage: "TerminateProcess".to_string(),
+        source: e,
+    })?;
+    child.wait().await.map_err(|e| ClaudeError::SpawnFailed {
+        stage: "post-kill wait".to_string(),
+        source: e,
+    })
 }
 
 /// Collects any remaining buffered lines from a channel without blocking.

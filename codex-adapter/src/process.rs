@@ -2,8 +2,6 @@
 
 use crate::error::CodexError;
 use crate::types::{CodexConfig, RunResult};
-use nix::sys::signal::{self, Signal};
-use nix::unistd::Pid;
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -202,26 +200,28 @@ async fn drain_stream_bounded(
 }
 
 /// Graceful shutdown: `SIGTERM`, wait grace period, then `SIGKILL`.
+#[cfg(unix)]
 async fn graceful_shutdown(
     child: &mut tokio::process::Child,
     pid: u32,
     tasks: &mut JoinSet<StreamOutput>,
 ) -> Result<(), CodexError> {
+    use nix::sys::signal::{self, Signal};
+    use nix::unistd::Pid;
+
     let raw_pid = i32::try_from(pid).map_err(|_| CodexError::SignalFailed {
         signal: "SIGTERM".to_string(),
         pid,
-        source: nix::errno::Errno::EINVAL,
+        reason: "PID value exceeds i32::MAX".to_string(),
     })?;
     let nix_pid = Pid::from_raw(raw_pid);
 
-    // Send SIGTERM for graceful shutdown.
     signal::kill(nix_pid, Signal::SIGTERM).map_err(|e| CodexError::SignalFailed {
         signal: "SIGTERM".to_string(),
         pid,
-        source: e,
+        reason: e.to_string(),
     })?;
 
-    // Wait for process to exit within grace period.
     match timeout(GRACE_PERIOD, child.wait()).await {
         Ok(Ok(_status)) => {}
         Ok(Err(e)) => {
@@ -231,7 +231,6 @@ async fn graceful_shutdown(
             });
         }
         Err(_) => {
-            // Grace period expired -- force kill.
             child.kill().await.map_err(|e| CodexError::SpawnFailed {
                 stage: "SIGKILL".to_string(),
                 source: e,
@@ -243,8 +242,25 @@ async fn graceful_shutdown(
         }
     }
 
-    // Abort all reader tasks.
     tasks.abort_all();
+    Ok(())
+}
 
+/// Windows: immediate termination, no graceful shutdown for console processes.
+#[cfg(windows)]
+async fn graceful_shutdown(
+    child: &mut tokio::process::Child,
+    _pid: u32,
+    tasks: &mut JoinSet<StreamOutput>,
+) -> Result<(), CodexError> {
+    child.kill().await.map_err(|e| CodexError::SpawnFailed {
+        stage: "TerminateProcess".to_string(),
+        source: e,
+    })?;
+    child.wait().await.map_err(|e| CodexError::SpawnFailed {
+        stage: "post-kill wait".to_string(),
+        source: e,
+    })?;
+    tasks.abort_all();
     Ok(())
 }

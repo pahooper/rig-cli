@@ -2,8 +2,6 @@
 
 use crate::error::OpenCodeError;
 use crate::types::{OpenCodeConfig, RunResult};
-use nix::sys::signal::{self, Signal};
-use nix::unistd::Pid;
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -272,16 +270,24 @@ fn drain_channel(
 }
 
 /// Graceful shutdown: `SIGTERM`, wait grace period, then `SIGKILL`.
+#[cfg(unix)]
 async fn graceful_shutdown(
     child: &mut tokio::process::Child,
     pid: u32,
 ) -> Result<(), OpenCodeError> {
-    let nix_pid = pid_to_nix(pid)?;
+    use nix::sys::signal::{self, Signal};
+    use nix::unistd::Pid;
+
+    let raw = i32::try_from(pid).map_err(|_| OpenCodeError::SpawnFailed {
+        stage: "PID conversion overflow".to_string(),
+        source: std::io::Error::other("PID value exceeds i32::MAX"),
+    })?;
+    let nix_pid = Pid::from_raw(raw);
 
     signal::kill(nix_pid, Signal::SIGTERM).map_err(|e| OpenCodeError::SignalFailed {
         signal: "SIGTERM".to_string(),
         pid,
-        source: e,
+        reason: e.to_string(),
     })?;
 
     match timeout(GRACE_PERIOD, child.wait()).await {
@@ -304,13 +310,21 @@ async fn graceful_shutdown(
     }
 }
 
-/// Converts a `u32` PID to a nix `Pid`, returning an error on overflow.
-fn pid_to_nix(pid: u32) -> Result<Pid, OpenCodeError> {
-    let raw = i32::try_from(pid).map_err(|_| OpenCodeError::SpawnFailed {
-        stage: "PID conversion overflow".to_string(),
-        source: std::io::Error::other("PID value exceeds i32::MAX"),
+/// Windows: immediate termination, no graceful shutdown for console processes.
+#[cfg(windows)]
+async fn graceful_shutdown(
+    child: &mut tokio::process::Child,
+    _pid: u32,
+) -> Result<(), OpenCodeError> {
+    child.kill().await.map_err(|e| OpenCodeError::SpawnFailed {
+        stage: "TerminateProcess".to_string(),
+        source: e,
     })?;
-    Ok(Pid::from_raw(raw))
+    child.wait().await.map_err(|e| OpenCodeError::SpawnFailed {
+        stage: "post-kill wait".to_string(),
+        source: e,
+    })?;
+    Ok(())
 }
 
 /// Converts a `Duration` to milliseconds as `u64`, saturating on overflow.
