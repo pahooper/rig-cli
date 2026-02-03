@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Platform Hardening** - Cross-platform reliability for Linux and Windows
 - [x] **Phase 7: Rig Integration Polish** - Native Rig ecosystem feel
 - [x] **Phase 8: Claude Code Adapter** - Production hardening for primary adapter
-- [ ] **Phase 9: Codex Adapter** - Production hardening for secondary adapter
+- [x] **Phase 9: Codex Adapter** - Production hardening for secondary adapter
 - [ ] **Phase 10: OpenCode Maintenance** - Functional baseline without production hardening
 - [ ] **Phase 11: Documentation & Examples** - End-to-end examples and comprehensive doc comments
 
@@ -192,8 +192,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — Add ApprovalPolicy enum, CLI flag documentation, and flag combination tests
-- [ ] 09-02-PLAN.md — Add E2E containment tests with real Codex CLI (tests/e2e_containment.rs)
+- [x] 09-01-PLAN.md — Add ApprovalPolicy enum, CLI flag documentation, and flag combination tests
+- [x] 09-02-PLAN.md — Add E2E containment tests with real Codex CLI (tests/e2e_containment.rs)
 
 ### Phase 10: OpenCode Maintenance
 **Goal**: OpenCode adapter is functional but not production-hardened
@@ -239,6 +239,6 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 6. Platform Hardening | 4/4 | Complete | 2026-02-03 |
 | 7. Rig Integration Polish | 7/7 | Complete | 2026-02-03 |
 | 8. Claude Code Adapter | 4/4 | Complete | 2026-02-03 |
-| 9. Codex Adapter | 0/2 | Not started | - |
+| 9. Codex Adapter | 2/2 | Complete | 2026-02-03 |
 | 10. OpenCode Maintenance | 0/TBD | Not started | - |
 | 11. Documentation & Examples | 0/TBD | Not started | - |

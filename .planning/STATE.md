@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 9 in progress. Codex adapter production hardening with ApprovalPolicy enum, CLI flag documentation, and containment tests.
+**Current focus:** Phase 9 complete. Codex adapter production-hardened with ApprovalPolicy enum, CLI flag documentation, flag combination tests, and E2E containment tests.
 
 ## Current Position
 
-Phase: 9 of 11 (Codex Adapter)
-Plan: 2 of 3 in current phase - COMPLETE
-Status: In progress (Complete: 09-01, 09-02)
-Last activity: 2026-02-03 — Completed 09-02-PLAN.md (E2E Containment Tests)
+Phase: 9 of 11 (Codex Adapter) - PHASE COMPLETE
+Plan: 2 of 2 in current phase - PHASE COMPLETE
+Status: Phase 9 complete (Complete: 09-01, 09-02)
+Last activity: 2026-02-03 — Completed 09-02-PLAN.md (E2E Containment Tests) - Phase verified
 
-Progress: [█████████████████████] 33/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/3)
+Progress: [█████████████████████] 33/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2)
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Progress: [█████████████████████] 33/3
 
 **Recent Trend:**
 - Last 5 plans: 09-02 (1.5min), 09-01 (3min), 08-04 (2min), 08-03 (12min), 08-02 (2min)
-- Trend: Phase 9 in progress - E2E containment tests complete
+- Trend: Phase 9 COMPLETE - Codex adapter production-hardened
 
 *Updated after each plan completion*
 
@@ -177,5 +177,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 09-02-PLAN.md (E2E Containment Tests)
+Stopped at: Completed Phase 9 (Codex Adapter) - all 2 plans, verified 4/4 must-haves
 Resume file: None
