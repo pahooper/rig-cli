@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 10 in progress. OpenCode adapter Plan 01 complete with comprehensive documentation and flag combination tests matching Claude/Codex quality.
+**Current focus:** Phase 10 COMPLETE. OpenCode adapter fully implemented with documentation, flag combination tests, and E2E containment tests matching Claude/Codex quality.
 
 ## Current Position
 
 Phase: 10 of 11 (OpenCode Adapter)
-Plan: 1 of 1 in current phase - IN PROGRESS
-Status: Phase 10 Plan 01 complete (Documentation and Tests)
-Last activity: 2026-02-03 — Completed 10-01-PLAN.md (Documentation and Tests)
+Plan: 2 of 2 in current phase - PHASE COMPLETE
+Status: Phase 10 complete (OpenCode Adapter)
+Last activity: 2026-02-03 — Completed 10-02-PLAN.md (E2E Containment Tests)
 
-Progress: [██████████████████████] 34/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 1/1)
+Progress: [██████████████████████] 35/35 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 34
-- Average duration: 2.7 min
-- Total execution time: 2.15 hours
+- Total plans completed: 35
+- Average duration: 2.6 min
+- Total execution time: 2.23 hours
 
 **By Phase:**
 
@@ -37,11 +37,11 @@ Progress: [██████████████████████] 3
 | 07-rig-integration-polish | 7 | 31.5min | 4.5min |
 | 08-claude-code-adapter | 4 | 24min | 6min |
 | 09-codex-adapter | 2 | 4.5min | 2.25min |
-| 10-opencode-adapter | 1 | 3min | 3min |
+| 10-opencode-adapter | 2 | 5min | 2.5min |
 
 **Recent Trend:**
-- Last 5 plans: 10-01 (3min), 09-02 (1.5min), 09-01 (3min), 08-04 (2min), 08-03 (12min)
-- Trend: Phase 10 Plan 01 COMPLETE - OpenCode adapter documentation and tests
+- Last 5 plans: 10-02 (2min), 10-01 (3min), 09-02 (1.5min), 09-01 (3min), 08-04 (2min)
+- Trend: Phase 10 COMPLETE - OpenCode adapter with E2E containment tests
 
 *Updated after each plan completion*
 
@@ -155,6 +155,9 @@ Recent decisions affecting current work:
 - Accept timeout/error as valid containment test outcome due to LLM non-determinism (09-02)
 - OpenCode adapter module documentation matches Claude/Codex pattern with Containment Comparison table (10-01)
 - Flag combination tests document OpenCode containment model via test_containment_flags_absent test (10-01)
+- E2E tests marked #[ignore] for CI safety with helper function pattern for CLI discovery (10-02)
+- Accept timeout/error as valid containment test outcome due to LLM non-determinism (10-02)
+- Test containment behavior (working directory, timeout, MCP config, system prompt) not just flag generation (10-02)
 
 ### Pending Todos
 
@@ -179,6 +182,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-03T23:35:37Z
-Stopped at: Completed Phase 10 Plan 01 (Documentation and Tests) - 4 tasks committed, SUMMARY created
+Last session: 2026-02-03T23:40:24Z
+Stopped at: Completed Phase 10 Plan 02 (E2E Containment Tests) - 2 tasks committed, SUMMARY created, Phase 10 COMPLETE
 Resume file: None
