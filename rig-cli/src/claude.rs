@@ -42,11 +42,12 @@
 
 use crate::config::ClientConfig;
 use crate::errors::Error;
+use crate::response::CliResponse;
 use claudecode_adapter;
 use futures::StreamExt;
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
-    CompletionResponse, ToolDefinition, Usage,
+    CompletionResponse, Usage,
 };
 use rig::streaming::{RawStreamingChoice, RawStreamingToolCall, StreamingCompletionResponse};
 use rig::OneOrMany;
@@ -55,21 +56,6 @@ use serde::{Deserialize, Serialize};
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
 use uuid::Uuid;
-
-/// Response from a Claude Code CLI agent execution.
-///
-/// This is rig-cli's owned response type, not an adapter-internal type.
-/// It provides the essential information users need from CLI execution
-/// in a clean, serializable format.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CliResponse {
-    /// The text content of the agent's response.
-    pub text: String,
-    /// Process exit code.
-    pub exit_code: i32,
-    /// Wall-clock duration in milliseconds.
-    pub duration_ms: u64,
-}
 
 /// Claude Code provider client.
 ///
@@ -274,7 +260,8 @@ pub struct Model {
     config: ClientConfig,
     /// Optional payload for context injection.
     payload: Option<String>,
-    /// Model identifier (stored but currently unused by CLI).
+    /// Model identifier (stored for API consistency, CLI agents don't use per-request model selection).
+    #[allow(dead_code)]
     model_name: String,
 }
 
@@ -299,6 +286,21 @@ impl CompletionModel for Model {
         // Extract prompt from chat history using the utility function
         let prompt_text = rig_provider::utils::format_chat_history(&request);
 
+        // If payload is set, wrap prompt in XML context structure
+        let final_prompt = if let Some(ref payload) = self.payload {
+            format!(
+                r#"<context>
+{payload}
+</context>
+
+<task>
+{prompt_text}
+</task>"#
+            )
+        } else {
+            prompt_text
+        };
+
         // Extract preamble (system prompt)
         let preamble = request.preamble.as_deref().unwrap_or("");
 
@@ -318,7 +320,7 @@ impl CompletionModel for Model {
         // Run the CLI
         let result = self
             .cli
-            .run(&prompt_text, &config)
+            .run(&final_prompt, &config)
             .await
             .map_err(|e| {
                 #[cfg(feature = "debug-output")]
@@ -333,11 +335,11 @@ impl CompletionModel for Model {
 
         let duration_ms = start.elapsed().as_millis() as u64;
 
-        let cli_response = CliResponse {
-            text: result.stdout.clone(),
-            exit_code: result.exit_code,
+        let cli_response = CliResponse::from_run_result(
+            result.stdout.clone(),
+            result.exit_code,
             duration_ms,
-        };
+        );
 
         Ok(CompletionResponse {
             choice: OneOrMany::one(AssistantContent::text(result.stdout)),
@@ -352,6 +354,21 @@ impl CompletionModel for Model {
     ) -> Result<StreamingCompletionResponse<Self::StreamingResponse>, CompletionError> {
         // Streaming always uses direct CLI (MCP enforcement only on completion path)
         let prompt_text = rig_provider::utils::format_chat_history(&request);
+
+        // If payload is set, wrap prompt in XML context structure
+        let final_prompt = if let Some(ref payload) = self.payload {
+            format!(
+                r#"<context>
+{payload}
+</context>
+
+<task>
+{prompt_text}
+</task>"#
+            )
+        } else {
+            prompt_text
+        };
 
         let (tx, rx) = tokio::sync::mpsc::channel(self.config.channel_capacity);
         let cli = self.cli.clone();
@@ -378,7 +395,7 @@ impl CompletionModel for Model {
         tokio::spawn(async move {
             // Error from CLI stream is intentionally dropped;
             // the receiver will see the channel close and handle accordingly
-            let _ = cli.stream(&prompt_text, &config, tx).await;
+            let _ = cli.stream(&final_prompt, &config, tx).await;
         });
 
         // Convert the receiver into a stream
