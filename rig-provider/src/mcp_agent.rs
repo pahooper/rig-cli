@@ -553,7 +553,7 @@ async fn run_codex(
     sandbox_mode: &codex_adapter::SandboxMode,
     cwd: &std::path::Path,
 ) -> Result<McpToolAgentResult, ProviderError> {
-    let path = codex_adapter::discover_codex()
+    let path = codex_adapter::discover_codex(None)
         .map_err(|e| ProviderError::McpToolAgent(format!("Codex discovery failed: {e}")))?;
 
     // Detect and validate CLI version
@@ -608,7 +608,7 @@ async fn run_opencode(
     timeout: Duration,
     cwd: &std::path::Path,
 ) -> Result<McpToolAgentResult, ProviderError> {
-    let path = opencode_adapter::discover_opencode()
+    let path = opencode_adapter::discover_opencode(None)
         .map_err(|e| ProviderError::McpToolAgent(format!("OpenCode discovery failed: {e}")))?;
 
     // Detect and validate CLI version

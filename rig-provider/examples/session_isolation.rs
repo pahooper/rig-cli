@@ -6,7 +6,7 @@ use rig_provider::CodexModel;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // 1. Initialize Codex adapter
-    let path = discover_codex()?;
+    let path = discover_codex(None)?;
     let cli = CodexCli::new(path);
     let model = CodexModel { cli };
 

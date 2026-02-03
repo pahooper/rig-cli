@@ -6,7 +6,7 @@ use rig_provider::OpenCodeModel;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // 1. Initialize OpenCode adapter
-    let path = discover_opencode()?;
+    let path = discover_opencode(None)?;
     let cli = OpenCodeCli::new(path);
     let model = OpenCodeModel { cli };
 

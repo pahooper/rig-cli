@@ -20,7 +20,7 @@ async fn main() -> anyhow::Result<()> {
 
     if model_type == "codex" {
         println!("Initializing Codex adapter...");
-        let path = discover_codex()?;
+        let path = discover_codex(None)?;
         let cli = CodexCli::new(path);
         let model = CodexModel { cli };
         let agent = AgentBuilder::new(model).build();
@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
         stream_to_stdout(&mut stream).await?;
     } else if model_type == "opencode" {
         println!("Initializing OpenCode adapter...");
-        let path = discover_opencode()?;
+        let path = discover_opencode(None)?;
         let cli = OpenCodeCli::new(path);
         let model = OpenCodeModel { cli };
         let agent = AgentBuilder::new(model).build();

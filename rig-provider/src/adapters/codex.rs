@@ -115,7 +115,7 @@ impl CodexTool {
     /// # Errors
     /// Returns a `CodexError` if discovery or health check fails.
     pub async fn new() -> Result<Self, codex_adapter::CodexError> {
-        let path = discover_codex()?;
+        let path = discover_codex(None)?;
         let cli = CodexCli::new(path);
         cli.check_health().await?;
         Ok(Self {

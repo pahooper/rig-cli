@@ -120,7 +120,7 @@ impl OpenCodeTool {
     /// # Errors
     /// Returns an `OpenCodeError` if discovery or health check fails.
     pub async fn new() -> Result<Self, opencode_adapter::OpenCodeError> {
-        let path = discover_opencode()?;
+        let path = discover_opencode(None)?;
         let cli = OpenCodeCli::new(path);
         cli.check_health().await?;
         Ok(Self { 

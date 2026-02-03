@@ -125,7 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     register_self_as_mcp()?;
 
     // 2. Initialize OpenCode
-    let path = discover_opencode()?;
+    let path = discover_opencode(None)?;
     println!("Discovered OpenCode binary at: {:?}", path);
     let cli = OpenCodeCli::new(path.clone());
     let model = OpenCodeModel { cli: cli.clone() };
