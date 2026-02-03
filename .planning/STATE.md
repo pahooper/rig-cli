@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 7 of 11 (Rig Integration Polish)
-Plan: 2 of 4 in current phase (2 complete: 07-01, 07-02)
+Plan: 3 of 4 in current phase (3 complete: 07-01, 07-02, 07-03)
 Status: In progress
-Last activity: 2026-02-03 — Completed 07-02-PLAN.md (Claude Client Implementation)
+Last activity: 2026-02-03 — Completed 07-03-PLAN.md (Codex and OpenCode Clients)
 
-Progress: [█████████████] 22/24 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 2/4)
+Progress: [█████████████▌] 23/24 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 3/4)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 22
-- Average duration: 2.5 min
-- Total execution time: 1.1 hours
+- Total plans completed: 23
+- Average duration: 2.6 min
+- Total execution time: 1.18 hours
 
 **By Phase:**
 
@@ -34,11 +34,11 @@ Progress: [█████████████] 22/24 plans complete (Phase 
 | 04-agent-containment | 2 | 4.4min | 2.2min |
 | 05-observability-infrastructure | 2 | 5.5min | 2.75min |
 | 06-platform-hardening | 4 | 8.7min | 2.2min |
-| 07-rig-integration-polish | 2 | 5.7min | 2.85min |
+| 07-rig-integration-polish | 3 | 10.9min | 3.6min |
 
 **Recent Trend:**
-- Last 5 plans: 07-02 (4min), 07-01 (1.7min), 06-03 (3.7min), 06-04 (1min), 06-01 (3min)
-- Trend: Claude client implemented with CompletionClient trait, CliResponse owned type, and tool routing
+- Last 5 plans: 07-03 (5.2min), 07-02 (4min), 07-01 (1.7min), 06-04 (1min), 06-03 (3.7min)
+- Trend: All three CLI providers now have identical CompletionClient implementation pattern
 
 *Updated after each plan completion*
 
@@ -107,11 +107,14 @@ Recent decisions affecting current work:
 - Error enum wraps ProviderError with #[from] for automatic conversion while providing actionable Display messages (07-01)
 - ClientConfig defaults: 300s timeout, 100 message channel capacity, auto-discovery for binary path (07-01)
 - Workspace facade pattern preserves existing adapter separation and provides clean public API (07-01)
-- CliResponse is rig-cli-owned type, not adapter-internal RunResult (07-02)
+- CliResponse is rig-cli-owned type, not adapter-internal RunResult - shared across all providers (07-02, 07-03)
 - Tool routing: direct CLI for simple prompts (backward compatible), MCP path prepared for extractor pattern (07-02)
 - For v1, completion_with_mcp falls back to direct CLI since ToolDefinition -> Tool trait object conversion is complex (07-02)
 - MCP enforcement via extractor pattern (Plan 07-04) rather than completion() interception (07-02)
 - Client wraps ClaudeCli directly, not ClaudeModel (facade, not delegation) (07-02)
+- All three providers (Claude, Codex, OpenCode) follow identical implementation pattern for API consistency (07-03)
+- Codex and OpenCode StreamEvent enums have fewer variants (Text/Error/Unknown only, no ToolCall/ToolResult) (07-03)
+- Payload field stored but unused in Model pending future MCP integration (07-03)
 
 ### Pending Todos
 
@@ -137,5 +140,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07-02-PLAN.md (Claude Client Implementation)
+Stopped at: Completed 07-03-PLAN.md (Codex and OpenCode Clients)
 Resume file: None
