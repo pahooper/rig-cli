@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 Phase: 8 of 11 (Claude Code Adapter)
 Plan: 2 of 7 in current phase
 Status: In progress (Complete: 08-01, 08-02)
-Last activity: 2026-02-03 — Completed 08-02-PLAN.md (CLI Flag Documentation and Tests)
+Last activity: 2026-02-03 — Completed 08-01-PLAN.md (Clippy Pedantic Fixes)
 
 Progress: [██████████████████] 29/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 2/7)
 
@@ -20,8 +20,8 @@ Progress: [██████████████████] 29/34 plans c
 
 **Velocity:**
 - Total plans completed: 29
-- Average duration: 2.6 min
-- Total execution time: 1.64 hours
+- Average duration: 2.7 min
+- Total execution time: 1.77 hours
 
 **By Phase:**
 
@@ -35,11 +35,11 @@ Progress: [██████████████████] 29/34 plans c
 | 05-observability-infrastructure | 2 | 5.5min | 2.75min |
 | 06-platform-hardening | 4 | 8.7min | 2.2min |
 | 07-rig-integration-polish | 7 | 31.5min | 4.5min |
-| 08-claude-code-adapter | 2 | 4.3min | 2.15min |
+| 08-claude-code-adapter | 2 | 12.3min | 6.15min |
 
 **Recent Trend:**
-- Last 5 plans: 08-02 (2min), 08-01 (2.3min), 07-07 (3.2min), 07-06 (6min), 07-05 (8min)
-- Trend: Phase 8 in progress - Claude Code adapter production-hardening
+- Last 5 plans: 08-01 (8min), 08-02 (2min), 07-07 (3.2min), 07-06 (6min), 07-05 (8min)
+- Trend: Phase 8 in progress - Claude Code adapter production-hardening (08-01 took longer due to workspace-wide clippy pedantic fixes)
 
 *Updated after each plan completion*
 
@@ -133,6 +133,10 @@ Recent decisions affecting current work:
 - Codex uses system_prompt field, OpenCode uses prompt field for preamble (adapter-specific naming) (07-07)
 - Remove duplicate CliResponse from claude.rs, use shared type from response.rs (07-07)
 - model_name field allowed as dead_code with justification (API consistency, CLI agents don't use per-request model selection) (07-07)
+- Use saturating cast pattern u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX) for safe u128→u64 duration conversion (08-01)
+- Mark simple getters/builders as const fn for compile-time evaluation optimization (08-01)
+- Use Option<&T> instead of &Option<T> for idiomatic Rust and better borrow checker integration (08-01)
+- All #[allow(clippy::...)] attributes require inline justification comments (08-01)
 - Module-level CLI flag documentation includes Flag Reference, Combinations, Version Notes, and Known Limitations sections (08-02)
 - Flag combination tests verify complete arg structure using windows(2) pattern, not just presence (08-02)
 - Document both valid and invalid flag combinations for production awareness (08-02)
@@ -161,5 +165,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 08-02-PLAN.md (CLI Flag Documentation and Tests)
+Stopped at: Completed 08-01-PLAN.md (Clippy Pedantic Fixes)
 Resume file: None
