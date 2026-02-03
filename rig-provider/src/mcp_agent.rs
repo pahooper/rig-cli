@@ -163,6 +163,29 @@ RULES:
 - ONLY the 'submit' tool call marks task completion
 - The task is NOT complete until you call 'submit'";
 
+/// Stream event from MCP-enforced CLI execution.
+#[derive(Debug, Clone)]
+pub enum McpStreamEvent {
+    /// Text content from the agent.
+    Text(String),
+    /// Tool call initiated by the agent.
+    ToolCall {
+        /// The tool name.
+        name: String,
+        /// The tool input as a JSON string.
+        input: String
+    },
+    /// Result from a tool execution.
+    ToolResult {
+        /// The tool use ID or name.
+        tool_use_id: String,
+        /// The tool output content.
+        content: String
+    },
+    /// Error during execution.
+    Error(String),
+}
+
 /// Which CLI adapter to use for MCP tool agent execution.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CliAdapter {
@@ -359,6 +382,125 @@ impl McpToolAgentBuilder {
             .iter()
             .map(|def| format!("mcp__{}__{}",  self.server_name, def.name))
             .collect())
+    }
+
+    /// Executes the MCP tool agent with streaming output.
+    ///
+    /// Similar to run(), but returns a receiver that yields `McpStreamEvent`
+    /// as the CLI produces output. The agent spawns in a background task.
+    ///
+    /// # Errors
+    /// Returns error if validation fails before spawning.
+    pub async fn stream(self) -> Result<tokio::sync::mpsc::Receiver<McpStreamEvent>, ProviderError> {
+        // 1. Validate required fields
+        let toolset = self
+            .toolset
+            .ok_or_else(|| ProviderError::McpToolAgent("toolset is required".to_string()))?;
+        let prompt = self
+            .prompt
+            .ok_or_else(|| ProviderError::McpToolAgent("prompt is required".to_string()))?;
+        let adapter = self
+            .adapter
+            .ok_or_else(|| ProviderError::McpToolAgent("adapter is required".to_string()))?;
+        let timeout = self.timeout;
+        let payload = self.payload;
+        let instruction_template = self.instruction_template;
+        let system_prompt = self.system_prompt;
+        let builtin_tools = self.builtin_tools;
+        let sandbox_mode = self.sandbox_mode.unwrap_or(codex_adapter::SandboxMode::ReadOnly);
+        let server_name = self.server_name.clone();
+
+        // Create temp dir if working_dir not provided (CONT-04)
+        let (_temp_dir, effective_cwd) = match self.working_dir {
+            Some(dir) => (None, dir),
+            None => {
+                let td = tempfile::TempDir::new()
+                    .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp dir: {e}")))?;
+                let path = td.path().to_path_buf();
+                (Some(td), path)
+            }
+        };
+
+        // 2. Get tool definitions
+        let definitions = toolset
+            .get_tool_definitions()
+            .await
+            .map_err(|e| ProviderError::McpToolAgent(format!("Failed to get tool definitions: {e}")))?;
+
+        // 3. Build McpConfig
+        let exe = std::env::current_exe()
+            .map_err(|e| ProviderError::McpToolAgent(format!("Failed to get current exe: {e}")))?;
+        let mcp_config = rig_mcp_server::server::McpConfig {
+            name: server_name.clone(),
+            command: exe.to_string_lossy().to_string(),
+            args: vec![],
+            env: {
+                let mut env = std::collections::HashMap::new();
+                env.insert("RIG_MCP_SERVER".to_string(), "1".to_string());
+                env
+            },
+        };
+
+        // 4. Compute allowed tool names
+        let allowed_tools: Vec<String> = definitions
+            .iter()
+            .map(|def| format!("mcp__{}__{}",  server_name, def.name))
+            .collect();
+
+        // 5. Build workflow template (custom or default)
+        let workflow_instructions = instruction_template.as_deref()
+            .unwrap_or(DEFAULT_WORKFLOW_TEMPLATE);
+
+        // 6. Build MCP instruction with workflow enforcement
+        let mcp_instruction = format!(
+            "{workflow_instructions}\n\nAvailable MCP tools: {}\n\n\
+             You MUST use ONLY these MCP tools. Do NOT output raw JSON text as your response.",
+            allowed_tools.join(", ")
+        );
+
+        // 7. Build full system prompt
+        let full_system_prompt = match system_prompt {
+            Some(sp) => format!("{sp}\n\n{mcp_instruction}"),
+            None => mcp_instruction,
+        };
+
+        // 8. Build final user prompt (4-block XML if payload present)
+        let final_prompt = if let Some(data) = payload {
+            format!(
+                r"<context>
+{data}
+</context>
+
+<task>
+{prompt}
+</task>
+
+<output_format>
+Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via the 'submit' tool.
+</output_format>"
+            )
+        } else {
+            prompt
+        };
+
+        // 9. Create channel for streaming events
+        let (tx, rx) = tokio::sync::mpsc::channel::<McpStreamEvent>(100);
+
+        // 10. Execute per adapter
+        match adapter {
+            CliAdapter::ClaudeCode => {
+                run_claude_code_stream(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, &builtin_tools, &effective_cwd, tx)
+                    .await?;
+            }
+            CliAdapter::Codex => {
+                run_codex_stream(&final_prompt, &mcp_config, &full_system_prompt, timeout, &sandbox_mode, &effective_cwd, tx).await?;
+            }
+            CliAdapter::OpenCode => {
+                run_opencode_stream(&final_prompt, &mcp_config, &full_system_prompt, timeout, &effective_cwd, tx).await?;
+            }
+        }
+
+        Ok(rx)
     }
 
     /// Executes the MCP tool agent, returning the CLI output.
@@ -662,6 +804,251 @@ async fn run_opencode(
         exit_code: result.exit_code,
         duration_ms: result.duration_ms,
     })
+}
+
+async fn run_claude_code_stream(
+    prompt: &str,
+    mcp_config: &rig_mcp_server::server::McpConfig,
+    allowed_tools: &[String],
+    system_prompt: &str,
+    timeout: Duration,
+    builtin_tools: &Option<Vec<String>>,
+    cwd: &std::path::Path,
+    tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
+) -> Result<(), ProviderError> {
+    // Write Claude Code MCP config JSON to temp file
+    let mut config_file = tempfile::NamedTempFile::new()
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp file: {e}")))?;
+    let json = serde_json::to_string_pretty(&mcp_config.to_claude_json())
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to serialize config: {e}")))?;
+    config_file
+        .write_all(json.as_bytes())
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to write config: {e}")))?;
+    let config_path = config_file.path().to_path_buf();
+    let _config_guard = config_file.into_temp_path();
+
+    let report = claudecode_adapter::init(None)
+        .await
+        .map_err(|e| ProviderError::McpToolAgent(format!("Claude init failed: {e}")))?;
+
+    // Detect and validate CLI version
+    detect_and_validate_version(&report.claude_path, &claude_code_version_req()).await;
+
+    let cli = claudecode_adapter::ClaudeCli::new(report.claude_path, report.capabilities);
+
+    // Apply containment: disable all builtins by default, opt-in via builtin_tools
+    let builtin_set = match builtin_tools {
+        None => claudecode_adapter::BuiltinToolSet::None,
+        Some(tools) => claudecode_adapter::BuiltinToolSet::Explicit(tools.clone()),
+    };
+
+    let config = claudecode_adapter::RunConfig {
+        output_format: Some(claudecode_adapter::OutputFormat::StreamJson),
+        system_prompt: claudecode_adapter::SystemPromptMode::Append(system_prompt.to_string()),
+        mcp: Some(claudecode_adapter::McpPolicy {
+            configs: vec![config_path.to_string_lossy().to_string()],
+            strict: true,
+        }),
+        tools: claudecode_adapter::ToolPolicy {
+            builtin: builtin_set,
+            allowed: Some(allowed_tools.to_vec()),
+            disallowed: None,
+            disable_slash_commands: true,
+        },
+        timeout,
+        cwd: Some(cwd.to_path_buf()),
+        ..claudecode_adapter::RunConfig::default()
+    };
+
+    // Create internal channel for adapter's native StreamEvent
+    let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<claudecode_adapter::StreamEvent>(100);
+
+    // Clone prompt for 'static lifetime in spawned task
+    let prompt_owned = prompt.to_string();
+
+    // Spawn task to run CLI and convert events
+    tokio::spawn(async move {
+        // Run the CLI with streaming
+        let _result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
+
+        // Convert adapter events to McpStreamEvent
+        while let Some(event) = adapter_rx.recv().await {
+            let mcp_event = match event {
+                claudecode_adapter::StreamEvent::Text { text } => McpStreamEvent::Text(text),
+                claudecode_adapter::StreamEvent::ToolCall { name, input } => {
+                    McpStreamEvent::ToolCall {
+                        name,
+                        input: input.to_string()
+                    }
+                },
+                claudecode_adapter::StreamEvent::ToolResult { name, output } => {
+                    McpStreamEvent::ToolResult {
+                        tool_use_id: name,
+                        content: output
+                    }
+                },
+                claudecode_adapter::StreamEvent::Error { message } => McpStreamEvent::Error(message),
+                claudecode_adapter::StreamEvent::Unknown(_) => continue, // skip unknowns
+            };
+
+            // Send converted event (ignore if receiver dropped)
+            let _ = tx.send(mcp_event).await;
+        }
+    });
+
+    Ok(())
+}
+
+async fn run_codex_stream(
+    prompt: &str,
+    mcp_config: &rig_mcp_server::server::McpConfig,
+    system_prompt: &str,
+    timeout: Duration,
+    sandbox_mode: &codex_adapter::SandboxMode,
+    cwd: &std::path::Path,
+    tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
+) -> Result<(), ProviderError> {
+    let path = codex_adapter::discover_codex(None)
+        .map_err(|e| ProviderError::McpToolAgent(format!("Codex discovery failed: {e}")))?;
+
+    // Detect and validate CLI version
+    detect_and_validate_version(&path, &codex_version_req()).await;
+
+    let cli = codex_adapter::CodexCli::new(path);
+
+    // Codex reads MCP server config from its config.toml. Inject via -c overrides.
+    let server_name = &mcp_config.name;
+    let mut overrides = vec![
+        (
+            format!("mcp_servers.{server_name}.command"),
+            format!("\"{}\"", mcp_config.command),
+        ),
+        (
+            format!("mcp_servers.{server_name}.args"),
+            format!("{:?}", mcp_config.args),
+        ),
+    ];
+    for (k, v) in &mcp_config.env {
+        overrides.push((
+            format!("mcp_servers.{server_name}.env.{k}"),
+            format!("\"{v}\""),
+        ));
+    }
+
+    let config = codex_adapter::CodexConfig {
+        full_auto: false,
+        sandbox: Some(sandbox_mode.clone()),
+        skip_git_repo_check: true,
+        cd: Some(cwd.to_path_buf()),
+        system_prompt: Some(system_prompt.to_string()),
+        overrides,
+        timeout,
+        ..codex_adapter::CodexConfig::default()
+    };
+
+    // Create internal channel for adapter's native StreamEvent
+    let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<codex_adapter::StreamEvent>(100);
+
+    // Clone prompt for 'static lifetime in spawned task
+    let prompt_owned = prompt.to_string();
+
+    // Spawn task to run CLI and convert events
+    tokio::spawn(async move {
+        // Run the CLI with streaming
+        let _result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
+
+        // Convert adapter events to McpStreamEvent
+        while let Some(event) = adapter_rx.recv().await {
+            let mcp_event = match event {
+                codex_adapter::StreamEvent::Text { text } => McpStreamEvent::Text(text),
+                codex_adapter::StreamEvent::Error { message } => McpStreamEvent::Error(message),
+                codex_adapter::StreamEvent::Unknown(_) => continue, // skip unknowns
+            };
+
+            // Send converted event (ignore if receiver dropped)
+            let _ = tx.send(mcp_event).await;
+        }
+    });
+
+    Ok(())
+}
+
+async fn run_opencode_stream(
+    prompt: &str,
+    mcp_config: &rig_mcp_server::server::McpConfig,
+    system_prompt: &str,
+    timeout: Duration,
+    cwd: &std::path::Path,
+    tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
+) -> Result<(), ProviderError> {
+    let path = opencode_adapter::discover_opencode(None)
+        .map_err(|e| ProviderError::McpToolAgent(format!("OpenCode discovery failed: {e}")))?;
+
+    // Detect and validate CLI version
+    detect_and_validate_version(&path, &opencode_version_req()).await;
+
+    let cli = opencode_adapter::OpenCodeCli::new(path);
+
+    // OpenCode config format: {"mcp": {"name": {"type":"local","command":[...],"environment":{...}}}}
+    let mut command = vec![mcp_config.command.clone()];
+    command.extend(mcp_config.args.iter().cloned());
+
+    let opencode_cfg = serde_json::json!({
+        "$schema": "https://opencode.ai/config.json",
+        "mcp": {
+            &mcp_config.name: {
+                "type": "local",
+                "command": command,
+                "environment": &mcp_config.env,
+            }
+        }
+    });
+
+    let mut config_file = tempfile::NamedTempFile::new()
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp file: {e}")))?;
+    let json = serde_json::to_string_pretty(&opencode_cfg)
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to serialize config: {e}")))?;
+    config_file
+        .write_all(json.as_bytes())
+        .map_err(|e| ProviderError::McpToolAgent(format!("Failed to write config: {e}")))?;
+
+    let config_path = config_file.path().to_path_buf();
+    let _config_guard = config_file.into_temp_path();
+
+    let config = opencode_adapter::OpenCodeConfig {
+        model: Some("opencode/big-pickle".to_string()),
+        prompt: Some(system_prompt.to_string()),
+        mcp_config_path: Some(config_path),
+        cwd: Some(cwd.to_path_buf()),
+        timeout,
+        ..opencode_adapter::OpenCodeConfig::default()
+    };
+
+    // Create internal channel for adapter's native StreamEvent
+    let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<opencode_adapter::StreamEvent>(100);
+
+    // Clone prompt for 'static lifetime in spawned task
+    let prompt_owned = prompt.to_string();
+
+    // Spawn task to run CLI and convert events
+    tokio::spawn(async move {
+        // Run the CLI with streaming
+        let _result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
+
+        // Convert adapter events to McpStreamEvent
+        while let Some(event) = adapter_rx.recv().await {
+            let mcp_event = match event {
+                opencode_adapter::StreamEvent::Text { text } => McpStreamEvent::Text(text),
+                opencode_adapter::StreamEvent::Error { message } => McpStreamEvent::Error(message),
+                opencode_adapter::StreamEvent::Unknown(_) => continue, // skip unknowns
+            };
+
+            // Send converted event (ignore if receiver dropped)
+            let _ = tx.send(mcp_event).await;
+        }
+    });
+
+    Ok(())
 }
 
 #[cfg(test)]
