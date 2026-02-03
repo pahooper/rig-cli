@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-Phase: 6 of 11 (Platform Hardening) — IN PROGRESS
-Plan: 3 of 4 in current phase (3 complete: 06-01, 06-02, 06-04)
-Status: In progress
-Last activity: 2026-02-03 — Completed 06-04-PLAN.md (Dependency Audit Infrastructure)
+Phase: 6 of 11 (Platform Hardening) — COMPLETE
+Plan: 4 of 4 in current phase (4 complete: 06-01, 06-02, 06-03, 06-04)
+Status: Phase complete
+Last activity: 2026-02-03 — Completed 06-03-PLAN.md (Cross-Platform Path Handling)
 
-Progress: [███████████░] 19/20 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 3/4)
+Progress: [████████████] 20/20 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
-- Average duration: 2.7 min
-- Total execution time: 0.98 hours
+- Total plans completed: 20
+- Average duration: 2.6 min
+- Total execution time: 1.03 hours
 
 **By Phase:**
 
@@ -33,11 +33,11 @@ Progress: [███████████░] 19/20 plans complete (Phase 1: 
 | 03-payload-instruction-system | 2 | 4.5min | 2.25min |
 | 04-agent-containment | 2 | 4.4min | 2.2min |
 | 05-observability-infrastructure | 2 | 5.5min | 2.75min |
-| 06-platform-hardening | 3 | 5min | 1.7min |
+| 06-platform-hardening | 4 | 8.7min | 2.2min |
 
 **Recent Trend:**
-- Last 5 plans: 06-04 (1min), 06-01 (3min), 06-02 (3min), 05-02 (2.6min), 05-01 (2.9min)
-- Trend: Phase 6 progressing — dependency audit infrastructure in place, binary discovery standardized, cross-platform process management complete
+- Last 5 plans: 06-03 (3.7min), 06-04 (1min), 06-01 (3min), 06-02 (3min), 05-02 (2.6min)
+- Trend: Phase 6 COMPLETE — cross-platform path handling, dependency audit infrastructure, binary discovery standardization, platform-specific process management all in place
 
 *Updated after each plan completion*
 
@@ -96,9 +96,12 @@ Recent decisions affecting current work:
 - Provide standalone audit, audit-update, and outdated targets for developer convenience (06-04)
 - cargo-outdated is optional tooling, target defined but installation not required (06-04)
 - All adapters follow 5-step discovery: explicit path, env var, PATH, fallback locations, helpful error (06-02)
-- Use dirs::home_dir() for cross-platform home directory resolution instead of HOME env var (06-02)
+- Use dirs::home_dir() for cross-platform home directory resolution instead of HOME env var (06-02, 06-03)
 - Platform-specific fallback locations use cfg(unix)/cfg(windows) compilation flags (06-02)
 - Windows npm installs use .cmd wrappers, Go binaries use .exe extension in fallback paths (06-02)
+- Keep paths as PathBuf/&Path as long as possible, convert to String only at serialization boundaries (06-03)
+- Use display().to_string() over to_string_lossy() for idiomatic path-to-string conversion (06-03)
+- Document all to_string_lossy() usage with inline comments explaining why conversion is acceptable (06-03)
 
 ### Pending Todos
 
@@ -124,5 +127,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 06-02-PLAN.md (Standardized Binary Discovery)
+Stopped at: Completed 06-03-PLAN.md (Cross-Platform Path Handling) - Phase 6 COMPLETE
 Resume file: None
