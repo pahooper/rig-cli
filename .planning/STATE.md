@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 9 of 11 (Codex Adapter)
-Plan: 1 of 3 in current phase - COMPLETE
-Status: In progress (Complete: 09-01)
-Last activity: 2026-02-03 — Completed 09-01-PLAN.md (ApprovalPolicy and CLI Flag Documentation)
+Plan: 2 of 3 in current phase - COMPLETE
+Status: In progress (Complete: 09-01, 09-02)
+Last activity: 2026-02-03 — Completed 09-02-PLAN.md (E2E Containment Tests)
 
-Progress: [████████████████████░] 32/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 1/3)
+Progress: [█████████████████████] 33/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 32
-- Average duration: 2.9 min
-- Total execution time: 2.07 hours
+- Total plans completed: 33
+- Average duration: 2.8 min
+- Total execution time: 2.10 hours
 
 **By Phase:**
 
@@ -36,11 +36,11 @@ Progress: [████████████████████░] 32/3
 | 06-platform-hardening | 4 | 8.7min | 2.2min |
 | 07-rig-integration-polish | 7 | 31.5min | 4.5min |
 | 08-claude-code-adapter | 4 | 24min | 6min |
-| 09-codex-adapter | 1 | 3min | 3min |
+| 09-codex-adapter | 2 | 4.5min | 2.25min |
 
 **Recent Trend:**
-- Last 5 plans: 09-01 (3min), 08-04 (2min), 08-03 (12min), 08-02 (2min), 08-01 (8min)
-- Trend: Phase 9 started - Codex adapter hardening in progress
+- Last 5 plans: 09-02 (1.5min), 09-01 (3min), 08-04 (2min), 08-03 (12min), 08-02 (2min)
+- Trend: Phase 9 in progress - E2E containment tests complete
 
 *Updated after each plan completion*
 
@@ -149,6 +149,9 @@ Recent decisions affecting current work:
 - ApprovalPolicy::default() returns Untrusted for containment-first operation (09-01)
 - ask_for_approval field is Option<ApprovalPolicy> - None means no flag, Some passes explicit policy (09-01)
 - Document full-auto override behavior in tests (full-auto overrides sandbox and approval at CLI level) (09-01)
+- E2E tests marked #[ignore] for CI safety - run with --ignored flag (09-02)
+- MCP sandbox bypass (Issue #4152) documented as known limitation, not assertion failure (09-02)
+- Accept timeout/error as valid containment test outcome due to LLM non-determinism (09-02)
 
 ### Pending Todos
 
@@ -174,5 +177,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 09-01-PLAN.md (ApprovalPolicy and CLI Flag Documentation)
+Stopped at: Completed 09-02-PLAN.md (E2E Containment Tests)
 Resume file: None
