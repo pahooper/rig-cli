@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 7 of 11 (Rig Integration Polish)
-Plan: 4 of 4 in current phase (Phase complete: 07-01, 07-02, 07-03, 07-04)
+Plan: 5 of 5 in current phase (Phase complete: 07-01, 07-02, 07-03, 07-04, 07-05)
 Status: Phase complete
-Last activity: 2026-02-03 — Completed 07-04-PLAN.md (API Polish & Ergonomics)
+Last activity: 2026-02-03 — Completed 07-05-PLAN.md (MCP Streaming & CliAgent)
 
-Progress: [██████████████] 24/24 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 4/4)
+Progress: [██████████████] 25/25 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 5/5)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 24
-- Average duration: 2.6 min
-- Total execution time: 1.25 hours
+- Total plans completed: 25
+- Average duration: 2.7 min
+- Total execution time: 1.4 hours
 
 **By Phase:**
 
@@ -34,11 +34,11 @@ Progress: [██████████████] 24/24 plans complete (Pha
 | 04-agent-containment | 2 | 4.4min | 2.2min |
 | 05-observability-infrastructure | 2 | 5.5min | 2.75min |
 | 06-platform-hardening | 4 | 8.7min | 2.2min |
-| 07-rig-integration-polish | 4 | 14.3min | 3.6min |
+| 07-rig-integration-polish | 5 | 22.3min | 4.5min |
 
 **Recent Trend:**
-- Last 5 plans: 07-04 (3.4min), 07-03 (5.2min), 07-02 (4min), 07-01 (1.7min), 06-04 (1min)
-- Trend: Phase 7 complete - rig-cli facade provides clean API with prelude, escape hatches, and MCP re-exports
+- Last 5 plans: 07-05 (8min), 07-04 (3.4min), 07-03 (5.2min), 07-02 (4min), 07-01 (1.7min)
+- Trend: Phase 7 complete - streaming infrastructure, CliAgent abstraction, and gap closure complete
 
 *Updated after each plan completion*
 
@@ -120,6 +120,10 @@ Recent decisions affecting current work:
 - debug-output feature is opt-in only, not in default features (production safety) (07-04)
 - Re-export rig crate at lib root for user access to Rig types via rig_cli::rig::... (07-04)
 - MCP types re-exported through extraction and tools modules for discoverability (07-04)
+- McpStreamEvent enum unified across all adapters (Claude has ToolCall/ToolResult, Codex/OpenCode have Text/Error only) (07-05)
+- Streaming helpers spawn tokio tasks for background execution with channel-based event forwarding (07-05)
+- CliAgent prompt() and chat() methods consume self since ToolSet lacks Clone (07-05)
+- CliAgent provides methods, not Rig Prompt/Chat trait implementations (trait signatures incompatible) (07-05)
 
 ### Pending Todos
 
@@ -145,5 +149,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07-04-PLAN.md (API Polish & Ergonomics) - Phase 7 complete
+Stopped at: Completed 07-05-PLAN.md (MCP Streaming & CliAgent) - Phase 7 complete
 Resume file: None
