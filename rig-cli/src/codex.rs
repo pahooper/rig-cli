@@ -165,10 +165,34 @@ impl CompletionModel for Model {
     ) -> Result<CompletionResponse<Self::Response>, CompletionError> {
         let prompt_text = format_chat_history(&request);
 
-        let config = CodexConfig::default();
+        // If payload is set, wrap prompt in XML context structure
+        let final_prompt = if let Some(ref payload) = self.payload {
+            format!(
+                r#"<context>
+{payload}
+</context>
+
+<task>
+{prompt_text}
+</task>"#
+            )
+        } else {
+            prompt_text
+        };
+
+        let mut config = CodexConfig {
+            timeout: self.config.timeout,
+            ..CodexConfig::default()
+        };
+
+        // Wire preamble into system_prompt if present
+        if let Some(ref preamble) = request.preamble {
+            config.system_prompt = Some(preamble.clone());
+        }
+
         let result = self
             .cli
-            .run(&prompt_text, &config)
+            .run(&final_prompt, &config)
             .await
             .map_err(|e| {
                 #[cfg(feature = "debug-output")]
@@ -197,16 +221,39 @@ impl CompletionModel for Model {
     ) -> Result<StreamingCompletionResponse<Self::StreamingResponse>, CompletionError> {
         let prompt_text = format_chat_history(&request);
 
+        // If payload is set, wrap prompt in XML context structure
+        let final_prompt = if let Some(ref payload) = self.payload {
+            format!(
+                r#"<context>
+{payload}
+</context>
+
+<task>
+{prompt_text}
+</task>"#
+            )
+        } else {
+            prompt_text
+        };
+
         let (tx, rx) = tokio::sync::mpsc::channel(self.config.channel_capacity);
         let cli = self.cli.clone();
 
         // Spawn the CLI process in the background
-        let config = CodexConfig::default();
+        let mut config = CodexConfig {
+            timeout: self.config.timeout,
+            ..CodexConfig::default()
+        };
+
+        // Wire preamble into system_prompt if present
+        if let Some(preamble) = request.preamble {
+            config.system_prompt = Some(preamble);
+        }
 
         tokio::spawn(async move {
             // Error from CLI stream is intentionally dropped here;
             // the receiver will see the channel close and handle accordingly
-            let _ = cli.stream(&prompt_text, &config, tx).await;
+            let _ = cli.stream(&final_prompt, &config, tx).await;
         });
 
         // Convert the receiver into a stream

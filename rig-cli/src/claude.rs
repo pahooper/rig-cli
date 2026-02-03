@@ -52,7 +52,6 @@ use rig::completion::{
 use rig::streaming::{RawStreamingChoice, RawStreamingToolCall, StreamingCompletionResponse};
 use rig::OneOrMany;
 use rig_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
-use serde::{Deserialize, Serialize};
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
 use uuid::Uuid;
