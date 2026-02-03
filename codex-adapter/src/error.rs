@@ -62,15 +62,14 @@ pub enum CodexError {
     },
 
     /// Sending a signal to the subprocess failed.
-    #[error("Failed to send signal {signal} to PID {pid}: {source}")]
+    #[error("Failed to send signal {signal} to PID {pid}: {reason}")]
     SignalFailed {
         /// The signal name (e.g. `"SIGTERM"`).
         signal: String,
         /// OS process identifier.
         pid: u32,
-        /// The underlying errno.
-        #[source]
-        source: nix::errno::Errno,
+        /// Platform-specific error description.
+        reason: String,
     },
 
     /// Subprocess stdout handle was `None`.

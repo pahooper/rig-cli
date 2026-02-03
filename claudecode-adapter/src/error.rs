@@ -82,15 +82,14 @@ pub enum ClaudeError {
     },
 
     /// Sending a POSIX signal to the subprocess failed.
-    #[error("Failed to send {signal} signal to PID {pid}: {source}")]
+    #[error("Failed to send {signal} signal to PID {pid}: {reason}")]
     SignalFailed {
         /// Signal name (e.g. `SIGTERM`).
         signal: String,
         /// Target PID.
         pid: u32,
-        /// Underlying errno.
-        #[source]
-        source: nix::errno::Errno,
+        /// Platform-specific error description.
+        reason: String,
     },
 
     /// The subprocess stdout pipe was unexpectedly `None`.

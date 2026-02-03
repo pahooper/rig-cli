@@ -65,15 +65,14 @@ pub enum OpenCodeError {
     },
 
     /// Sending a signal to the child process failed.
-    #[error("Failed to send signal {signal} to PID {pid}: {source}")]
+    #[error("Failed to send signal {signal} to PID {pid}: {reason}")]
     SignalFailed {
         /// Signal name (e.g. `SIGTERM`).
         signal: String,
         /// OS process identifier.
         pid: u32,
-        /// The errno returned by the signal call.
-        #[source]
-        source: nix::errno::Errno,
+        /// Platform-specific error description.
+        reason: String,
     },
 
     /// Child stdout pipe was not captured.
