@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 7 of 11 (Rig Integration Polish)
-Plan: 5 of 5 in current phase (Phase complete: 07-01, 07-02, 07-03, 07-04, 07-05)
-Status: Phase complete
-Last activity: 2026-02-03 — Completed 07-05-PLAN.md (MCP Streaming & CliAgent)
+Plan: 6 of 7 in current phase (Complete: 07-01, 07-02, 07-03, 07-04, 07-05, 07-06)
+Status: In progress
+Last activity: 2026-02-02 — Completed 07-06-PLAN.md (Client mcp_agent() Method)
 
-Progress: [██████████████] 25/25 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 5/5)
+Progress: [████████████████] 26/27 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 6/7)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 25
+- Total plans completed: 26
 - Average duration: 2.7 min
-- Total execution time: 1.4 hours
+- Total execution time: 1.5 hours
 
 **By Phase:**
 
@@ -34,11 +34,11 @@ Progress: [██████████████] 25/25 plans complete (Pha
 | 04-agent-containment | 2 | 4.4min | 2.2min |
 | 05-observability-infrastructure | 2 | 5.5min | 2.75min |
 | 06-platform-hardening | 4 | 8.7min | 2.2min |
-| 07-rig-integration-polish | 5 | 22.3min | 4.5min |
+| 07-rig-integration-polish | 6 | 28.3min | 4.7min |
 
 **Recent Trend:**
-- Last 5 plans: 07-05 (8min), 07-04 (3.4min), 07-03 (5.2min), 07-02 (4min), 07-01 (1.7min)
-- Trend: Phase 7 complete - streaming infrastructure, CliAgent abstraction, and gap closure complete
+- Last 5 plans: 07-06 (6min), 07-05 (8min), 07-04 (3.4min), 07-03 (5.2min), 07-02 (4min)
+- Trend: Phase 7 gap closure complete - mcp_agent() methods added to all Clients
 
 *Updated after each plan completion*
 
@@ -124,6 +124,10 @@ Recent decisions affecting current work:
 - Streaming helpers spawn tokio tasks for background execution with channel-based event forwarding (07-05)
 - CliAgent prompt() and chat() methods consume self since ToolSet lacks Clone (07-05)
 - CliAgent provides methods, not Rig Prompt/Chat trait implementations (trait signatures incompatible) (07-05)
+- mcp_agent() uses CliAgent::builder() factory method not CliAgentBuilder::new() (private constructor) (07-06)
+- mcp_agent() conceptual examples marked as 'ignore' since they require user-supplied ToolSet (07-06)
+- Removed completion_with_mcp/completion_without_mcp routing - clean separation via agent() vs mcp_agent() (07-06)
+- CompletionClient trait added to prelude for consistent agent() access in doctests (07-06)
 
 ### Pending Todos
 
@@ -148,6 +152,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-03
-Stopped at: Completed 07-05-PLAN.md (MCP Streaming & CliAgent) - Phase 7 complete
+Last session: 2026-02-02
+Stopped at: Completed 07-06-PLAN.md (Client mcp_agent() Method) - Wave 2 gap closure complete
 Resume file: None
