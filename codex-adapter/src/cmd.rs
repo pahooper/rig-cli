@@ -123,7 +123,7 @@ pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{CodexConfig, SandboxMode};
+    use crate::types::{ApprovalPolicy, CodexConfig, SandboxMode};
     use std::path::PathBuf;
 
     // NOTE: Codex Issue #4152 -- MCP tools bypass sandbox restrictions.
@@ -217,6 +217,7 @@ mod tests {
     fn test_full_containment_config() {
         let config = CodexConfig {
             sandbox: Some(SandboxMode::ReadOnly),
+            ask_for_approval: Some(ApprovalPolicy::Untrusted),
             skip_git_repo_check: true,
             cd: Some(PathBuf::from("/tmp/isolated")),
             full_auto: false, // explicit false to document containment posture
@@ -231,6 +232,10 @@ mod tests {
             "Expected '--sandbox read-only'"
         );
         assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            "Expected '--ask-for-approval untrusted'"
+        );
+        assert!(
             args_str.windows(2).any(|w| w[0] == "--cd" && w[1] == "/tmp/isolated"),
             "Expected '--cd /tmp/isolated'"
         );
@@ -242,5 +247,166 @@ mod tests {
             !args_str.contains(&"--full-auto"),
             "Expected --full-auto to be absent"
         );
+    }
+
+    // ==================== Approval Policy Tests ====================
+
+    #[test]
+    fn test_approval_policy_untrusted_flag() {
+        let config = CodexConfig {
+            ask_for_approval: Some(ApprovalPolicy::Untrusted),
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            "Expected '--ask-for-approval untrusted' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_approval_policy_never_flag() {
+        let config = CodexConfig {
+            ask_for_approval: Some(ApprovalPolicy::Never),
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "never"),
+            "Expected '--ask-for-approval never' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_sandbox_with_approval_combination() {
+        // Both containment layers together
+        let config = CodexConfig {
+            sandbox: Some(SandboxMode::ReadOnly),
+            ask_for_approval: Some(ApprovalPolicy::Untrusted),
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            "Expected '--sandbox read-only'"
+        );
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            "Expected '--ask-for-approval untrusted'"
+        );
+    }
+
+    #[test]
+    fn test_full_containment_with_approval() {
+        // Maximum containment: sandbox + approval + skip_git_repo_check + cd
+        let config = CodexConfig {
+            sandbox: Some(SandboxMode::ReadOnly),
+            ask_for_approval: Some(ApprovalPolicy::Untrusted),
+            skip_git_repo_check: true,
+            cd: Some(PathBuf::from("/tmp/contained")),
+            full_auto: false,
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Verify complete containment posture
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            "Expected '--sandbox read-only'"
+        );
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            "Expected '--ask-for-approval untrusted'"
+        );
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--cd" && w[1] == "/tmp/contained"),
+            "Expected '--cd /tmp/contained'"
+        );
+        assert!(
+            args_str.contains(&"--skip-git-repo-check"),
+            "Expected '--skip-git-repo-check'"
+        );
+        assert!(
+            !args_str.contains(&"--full-auto"),
+            "Expected --full-auto to be absent for containment"
+        );
+    }
+
+    #[test]
+    fn test_full_auto_excludes_manual_containment() {
+        // Document that full_auto overrides manual sandbox/approval settings.
+        // This test documents the CONFLICT -- if both are set, full_auto wins at CLI level.
+        // The Codex CLI will use on-request + workspace-write regardless of our flags.
+        let config = CodexConfig {
+            sandbox: Some(SandboxMode::ReadOnly),
+            ask_for_approval: Some(ApprovalPolicy::Untrusted),
+            full_auto: true, // This overrides the above at CLI level!
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // We still generate all flags (the API doesn't prevent conflicts)
+        // but document that --full-auto takes precedence in the Codex CLI
+        assert!(
+            args_str.contains(&"--full-auto"),
+            "Expected --full-auto present"
+        );
+        // These are still generated but will be overridden by --full-auto
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            "Sandbox flag still generated (but overridden by full-auto)"
+        );
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            "Approval flag still generated (but overridden by full-auto)"
+        );
+    }
+
+    #[test]
+    fn test_approval_policy_on_failure_flag() {
+        let config = CodexConfig {
+            ask_for_approval: Some(ApprovalPolicy::OnFailure),
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "on-failure"),
+            "Expected '--ask-for-approval on-failure' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_approval_policy_on_request_flag() {
+        let config = CodexConfig {
+            ask_for_approval: Some(ApprovalPolicy::OnRequest),
+            ..CodexConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "on-request"),
+            "Expected '--ask-for-approval on-request' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_approval_policy_default_is_untrusted() {
+        // Verify ApprovalPolicy::default() returns Untrusted (locked decision)
+        assert_eq!(ApprovalPolicy::default(), ApprovalPolicy::Untrusted);
     }
 }
