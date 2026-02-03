@@ -15,6 +15,27 @@ pub enum SandboxMode {
     DangerFullAccess,
 }
 
+/// Approval policy for command execution.
+///
+/// Controls when the Codex CLI requires user approval for command execution.
+/// Per project policy, `Untrusted` is the recommended default for maximum
+/// containment (most restrictive automated mode).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub enum ApprovalPolicy {
+    /// Only run "trusted" commands without asking for user approval.
+    /// Escalates to user for untrusted commands.
+    /// This is the RECOMMENDED default for containment-first operation.
+    #[default]
+    Untrusted,
+    /// Run all commands without approval. Only asks if a command fails,
+    /// offering un-sandboxed re-execution.
+    OnFailure,
+    /// The model decides when to ask the user for approval.
+    OnRequest,
+    /// Never ask for user approval. Failures return immediately to model.
+    Never,
+}
+
 /// Configuration for a Codex CLI invocation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodexConfig {
@@ -22,6 +43,25 @@ pub struct CodexConfig {
     pub model: Option<String>,
     /// Sandbox isolation level.
     pub sandbox: Option<SandboxMode>,
+    /// Approval policy for command execution (--ask-for-approval).
+    ///
+    /// When `Some`, generates `--ask-for-approval <policy>` flag.
+    /// When `None`, no flag is generated (CLI uses its own internal default).
+    ///
+    /// **IMPORTANT (LOCKED DECISION):** For containment-first operation, explicitly
+    /// set this to `Some(ApprovalPolicy::Untrusted)` which is the most restrictive
+    /// automated mode. The `ApprovalPolicy::default()` returns `Untrusted` for this
+    /// reason.
+    ///
+    /// Example for maximum containment:
+    /// ```ignore
+    /// let config = CodexConfig {
+    ///     ask_for_approval: Some(ApprovalPolicy::default()), // Untrusted
+    ///     sandbox: Some(SandboxMode::ReadOnly),
+    ///     ..CodexConfig::default()
+    /// };
+    /// ```
+    pub ask_for_approval: Option<ApprovalPolicy>,
     /// Enable full-auto mode (no approval prompts).
     pub full_auto: bool,
     /// Enable web search capability.
@@ -49,6 +89,7 @@ impl Default for CodexConfig {
         Self {
             model: None,
             sandbox: None,
+            ask_for_approval: None,
             full_auto: false,
             search: false,
             skip_git_repo_check: false,
