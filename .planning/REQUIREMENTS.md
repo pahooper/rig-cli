@@ -54,7 +54,7 @@ Requirements for v1.0 production release. Each maps to roadmap phases.
 
 - [x] **ADPT-01**: Claude Code adapter is production-hardened with all containment and extraction features
 - [x] **ADPT-02**: Codex adapter is production-hardened with all containment and extraction features
-- [ ] **ADPT-03**: OpenCode adapter is maintained and functional but not production-hardened for v1.0
+- [x] **ADPT-03**: OpenCode adapter is production-hardened with all containment and extraction features
 
 ## v2 Requirements
 
@@ -116,7 +116,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | ADPT-01 | Phase 8 | Complete |
 | QUAL-01 | Phase 8 | Complete |
 | ADPT-02 | Phase 9 | Complete |
-| ADPT-03 | Phase 10 | Pending |
+| ADPT-03 | Phase 10 | Complete |
 | QUAL-03 | Phase 11 | Pending |
 | QUAL-04 | Phase 11 | Pending |
 
@@ -127,4 +127,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-03 after Phase 8 completion*
+*Last updated: 2026-02-03 after Phase 10 completion*

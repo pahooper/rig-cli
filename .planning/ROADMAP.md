@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Rig Integration Polish** - Native Rig ecosystem feel
 - [x] **Phase 8: Claude Code Adapter** - Production hardening for primary adapter
 - [x] **Phase 9: Codex Adapter** - Production hardening for secondary adapter
-- [ ] **Phase 10: OpenCode Adapter** - Production hardening for third adapter (full parity)
+- [x] **Phase 10: OpenCode Adapter** - Production hardening for third adapter (full parity)
 - [ ] **Phase 11: Documentation & Examples** - End-to-end examples and comprehensive doc comments
 
 ## Phase Details
@@ -208,8 +208,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 10-01-PLAN.md — Add comprehensive module-level documentation to cmd.rs and lib.rs, clippy pedantic pass
-- [ ] 10-02-PLAN.md — Add E2E containment tests with real OpenCode CLI (tests/e2e_containment.rs)
+- [x] 10-01-PLAN.md — Add comprehensive module-level documentation to cmd.rs and lib.rs, clippy pedantic pass
+- [x] 10-02-PLAN.md — Add E2E containment tests with real OpenCode CLI (tests/e2e_containment.rs)
 
 ### Phase 11: Documentation & Examples
 **Goal**: Developer can understand and use library end-to-end from documentation
@@ -242,5 +242,5 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 7. Rig Integration Polish | 7/7 | Complete | 2026-02-03 |
 | 8. Claude Code Adapter | 4/4 | Complete | 2026-02-03 |
 | 9. Codex Adapter | 2/2 | Complete | 2026-02-03 |
-| 10. OpenCode Adapter | 0/2 | Not started | - |
+| 10. OpenCode Adapter | 2/2 | Complete | 2026-02-03 |
 | 11. Documentation & Examples | 0/TBD | Not started | - |
