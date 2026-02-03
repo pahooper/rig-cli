@@ -151,10 +151,13 @@ Plans:
   2. JsonSchemaToolkit and RigMcpHandler follow current MCP-centered approach
   3. Public API is simple and obvious for Rust developers
   4. Builder patterns and extension traits feel consistent with Rig's design language
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 07-01: TBD
+- [ ] 07-01-PLAN.md — Create rig-cli facade crate with Cargo.toml, feature flags, ClientConfig, and Error types
+- [ ] 07-02-PLAN.md — Claude Code Client implementing CompletionClient trait (reference provider pattern)
+- [ ] 07-03-PLAN.md — Codex and OpenCode Clients following Claude pattern
+- [ ] 07-04-PLAN.md — Prelude, escape hatches, debug-output feature, and API verification
 
 ### Phase 8: Claude Code Adapter
 **Goal**: Claude Code adapter is production-hardened as primary adapter
@@ -226,7 +229,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 4. Agent Containment | 2/2 | Complete | 2026-02-02 |
 | 5. Observability Infrastructure | 2/2 | Complete | 2026-02-02 |
 | 6. Platform Hardening | 4/4 | Complete | 2026-02-03 |
-| 7. Rig Integration Polish | 0/TBD | Not started | - |
+| 7. Rig Integration Polish | 0/4 | Not started | - |
 | 8. Claude Code Adapter | 0/TBD | Not started | - |
 | 9. Codex Adapter | 0/TBD | Not started | - |
 | 10. OpenCode Maintenance | 0/TBD | Not started | - |
