@@ -13,6 +13,7 @@ default = ["claude", "codex", "opencode"]
 claude = []
 codex = []
 opencode = []
+debug-output = []
 
 [dependencies]
 rig-provider = { path = "../rig-provider" }

@@ -173,6 +173,21 @@ impl Client {
         self.payload = Some(data.into());
         self
     }
+
+    /// Access the underlying CLI handle for advanced use cases.
+    ///
+    /// This is an escape hatch for developers who need access to adapter-specific
+    /// functionality not exposed through the standard Rig provider interface.
+    #[must_use]
+    pub fn cli(&self) -> &claudecode_adapter::ClaudeCli {
+        &self.cli
+    }
+
+    /// Access the client configuration.
+    #[must_use]
+    pub fn config(&self) -> &ClientConfig {
+        &self.config
+    }
 }
 
 impl rig::client::CompletionClient for Client {
@@ -362,7 +377,16 @@ impl Model {
             .cli
             .run(prompt, &config)
             .await
-            .map_err(|e| CompletionError::ProviderError(e.to_string()))?;
+            .map_err(|e| {
+                #[cfg(feature = "debug-output")]
+                {
+                    CompletionError::ProviderError(format!("{e}\n--- raw debug output ---\nError occurred during CLI execution. Enable tracing for detailed output."))
+                }
+                #[cfg(not(feature = "debug-output"))]
+                {
+                    CompletionError::ProviderError(e.to_string())
+                }
+            })?;
 
         let duration_ms = start.elapsed().as_millis() as u64;
 
