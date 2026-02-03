@@ -1,7 +1,71 @@
-//! Adapter crate for running the `OpenCode` CLI as a subprocess.
+//! Adapter crate for running the OpenCode CLI as a subprocess.
 //!
-//! Provides discovery, configuration, health checks, and streaming
-//! execution of the `OpenCode` binary from Rust.
+//! This crate provides a Rust interface for executing the OpenCode CLI tool,
+//! with streaming output, timeout handling, and graceful shutdown support.
+//!
+//! ## Quick Start
+//!
+//! ```rust,ignore
+//! use opencode_adapter::{discover_opencode, OpenCodeCli, OpenCodeConfig};
+//! use std::time::Duration;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Discover and validate CLI
+//!     let path = discover_opencode(None)?;
+//!     let cli = OpenCodeCli::new(path);
+//!     cli.check_health().await?;
+//!
+//!     // Configure and run
+//!     let config = OpenCodeConfig {
+//!         model: Some("opencode/big-pickle".to_string()),
+//!         timeout: Duration::from_secs(120),
+//!         ..OpenCodeConfig::default()
+//!     };
+//!
+//!     let result = cli.run("What is 2 + 2?", &config).await?;
+//!     println!("Output: {}", result.stdout);
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Architecture
+//!
+//! The adapter follows the same structure as `claudecode-adapter` and `codex-adapter`:
+//!
+//! - **Discovery** ([`discover_opencode`]): Locates the CLI binary via PATH, env var, or fallbacks
+//! - **Configuration** ([`OpenCodeConfig`]): Typed config for model, timeout, working directory
+//! - **Execution** ([`run_opencode`]): Spawns subprocess with bounded output and timeout
+//! - **Streaming** ([`OpenCodeCli::stream`]): Real-time event streaming via channels
+//! - **Errors** ([`OpenCodeError`]): Rich error types with context (PID, elapsed time, partial output)
+//!
+//! ## Containment
+//!
+//! Unlike Claude Code and Codex, OpenCode has no CLI flags for sandboxing or tool restriction.
+//! Containment is achieved through:
+//!
+//! - **Working directory**: Set via [`OpenCodeConfig::cwd`], passed to `Command::current_dir()`
+//! - **MCP configuration**: Set via [`OpenCodeConfig::mcp_config_path`], passed as `OPENCODE_CONFIG` env var
+//! - **System prompt**: Set via [`OpenCodeConfig::prompt`], prepended to the user message
+//!
+//! ## Process Lifecycle
+//!
+//! The adapter implements production-grade subprocess management:
+//!
+//! 1. **Bounded channels**: 100-message capacity prevents memory exhaustion
+//! 2. **Output limits**: 10MB cap with [`OpenCodeError::OutputTruncated`] on overflow
+//! 3. **Graceful shutdown**: SIGTERM with 5-second grace period, then SIGKILL
+//! 4. **Task cleanup**: `JoinSet` ensures all async tasks complete or abort
+//!
+//! ## Feature Parity
+//!
+//! This adapter is production-hardened to the same standards as `claudecode-adapter`
+//! and `codex-adapter`. All three adapters share:
+//!
+//! - Identical error handling patterns
+//! - Same timeout and shutdown behavior
+//! - Equivalent test coverage (unit + E2E)
+//! - Zero clippy pedantic warnings
 
 pub mod cmd;
 pub mod discovery;
