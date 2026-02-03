@@ -189,10 +189,11 @@ Plans:
   2. All extraction features work reliably with Codex response format
   3. Codex-specific CLI flags are audited and documented
   4. Passes clippy pedantic with zero warnings
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 09-01: TBD
+- [ ] 09-01-PLAN.md — Add ApprovalPolicy enum, CLI flag documentation, and flag combination tests
+- [ ] 09-02-PLAN.md — Add E2E containment tests with real Codex CLI (tests/e2e_containment.rs)
 
 ### Phase 10: OpenCode Maintenance
 **Goal**: OpenCode adapter is functional but not production-hardened
@@ -238,6 +239,6 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 6. Platform Hardening | 4/4 | Complete | 2026-02-03 |
 | 7. Rig Integration Polish | 7/7 | Complete | 2026-02-03 |
 | 8. Claude Code Adapter | 4/4 | Complete | 2026-02-03 |
-| 9. Codex Adapter | 0/TBD | Not started | - |
+| 9. Codex Adapter | 0/2 | Not started | - |
 | 10. OpenCode Maintenance | 0/TBD | Not started | - |
 | 11. Documentation & Examples | 0/TBD | Not started | - |
