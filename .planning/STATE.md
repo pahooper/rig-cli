@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 6 in progress. Cross-platform support and platform hardening underway.
+**Current focus:** Phase 7 complete. Rig integration polished with two execution paths (agent(), mcp_agent()).
 
 ## Current Position
 

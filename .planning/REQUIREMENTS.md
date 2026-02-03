@@ -39,14 +39,14 @@ Requirements for v1.0 production release. Each maps to roadmap phases.
 
 - [x] **PLAT-01**: Full functionality on Pop!_OS (Linux) and Windows — subprocess spawning, temp directories, config paths, setup registration
 - [x] **PLAT-02**: CLI binary discovery works reliably on both Linux and Windows (handles .exe, PATH differences)
-- [ ] **PLAT-03**: Integrates with Rig 0.29 using idiomatic patterns (CompletionModel, Tool, ToolSet, extraction)
-- [ ] **PLAT-04**: Uses current MCP-centered approach (JsonSchemaToolkit, RigMcpHandler, RMCP protocol)
+- [x] **PLAT-03**: Integrates with Rig 0.29 using idiomatic patterns (CompletionModel, Tool, ToolSet, extraction)
+- [x] **PLAT-04**: Uses current MCP-centered approach (JsonSchemaToolkit, RigMcpHandler, RMCP protocol)
 - [x] **PLAT-05**: External crates are well-maintained and stable (no experimental or abandoned dependencies)
 
 ### Code Quality
 
 - [ ] **QUAL-01**: Passes clippy pedantic with zero warnings — root causes fixed, not suppressed with `#[allow]`
-- [ ] **QUAL-02**: API surface is simple and obvious for Rust developers — feels like a native Rig extension
+- [x] **QUAL-02**: API surface is simple and obvious for Rust developers — feels like a native Rig extension
 - [ ] **QUAL-03**: End-to-end examples demonstrate extraction workflow with real CLI agents
 - [ ] **QUAL-04**: Doc comments on all public types and methods
 
@@ -110,9 +110,9 @@ Deferred to future release. Tracked but not in current roadmap.
 | PLAT-01 | Phase 6 | Complete |
 | PLAT-02 | Phase 6 | Complete |
 | PLAT-05 | Phase 6 | Complete |
-| PLAT-03 | Phase 7 | Pending |
-| PLAT-04 | Phase 7 | Pending |
-| QUAL-02 | Phase 7 | Pending |
+| PLAT-03 | Phase 7 | Complete |
+| PLAT-04 | Phase 7 | Complete |
+| QUAL-02 | Phase 7 | Complete |
 | ADPT-01 | Phase 8 | Pending |
 | QUAL-01 | Phase 8 | Pending |
 | ADPT-02 | Phase 9 | Pending |
@@ -127,4 +127,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-03 after Phase 6 completion*
+*Last updated: 2026-02-03 after Phase 7 completion*

@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Agent Containment** - MCP tool boundaries and sandbox enforcement
 - [x] **Phase 5: Observability Infrastructure** - Structured tracing and CLI version detection
 - [x] **Phase 6: Platform Hardening** - Cross-platform reliability for Linux and Windows
-- [ ] **Phase 7: Rig Integration Polish** - Native Rig ecosystem feel
+- [x] **Phase 7: Rig Integration Polish** - Native Rig ecosystem feel
 - [ ] **Phase 8: Claude Code Adapter** - Production hardening for primary adapter
 - [ ] **Phase 9: Codex Adapter** - Production hardening for secondary adapter
 - [ ] **Phase 10: OpenCode Maintenance** - Functional baseline without production hardening
@@ -159,9 +159,9 @@ Plans:
 - [x] 07-02-PLAN.md — Claude Code Client implementing CompletionClient trait (reference provider pattern)
 - [x] 07-03-PLAN.md — Codex and OpenCode Clients following Claude pattern
 - [x] 07-04-PLAN.md — Prelude, escape hatches, debug-output feature, and API verification
-- [ ] 07-05-PLAN.md — CliAgent infrastructure: McpToolAgent streaming, CliAgent/CliAgentBuilder with Prompt/Chat traits
-- [ ] 07-06-PLAN.md — Integrate mcp_agent() into Claude, Codex, OpenCode Clients
-- [ ] 07-07-PLAN.md — Wire payload injection, fix dead code warnings, verify streaming parity
+- [x] 07-05-PLAN.md — CliAgent infrastructure: McpToolAgent streaming, CliAgent/CliAgentBuilder with Prompt/Chat traits
+- [x] 07-06-PLAN.md — Integrate mcp_agent() into Claude, Codex, OpenCode Clients
+- [x] 07-07-PLAN.md — Wire payload injection, fix dead code warnings, verify streaming parity
 
 ### Phase 8: Claude Code Adapter
 **Goal**: Claude Code adapter is production-hardened as primary adapter
@@ -233,7 +233,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 4. Agent Containment | 2/2 | Complete | 2026-02-02 |
 | 5. Observability Infrastructure | 2/2 | Complete | 2026-02-02 |
 | 6. Platform Hardening | 4/4 | Complete | 2026-02-03 |
-| 7. Rig Integration Polish | 4/7 | Gap closure | - |
+| 7. Rig Integration Polish | 7/7 | Complete | 2026-02-03 |
 | 8. Claude Code Adapter | 0/TBD | Not started | - |
 | 9. Codex Adapter | 0/TBD | Not started | - |
 | 10. OpenCode Maintenance | 0/TBD | Not started | - |
