@@ -10,6 +10,8 @@
 //! ## Example
 //!
 //! ```no_run
+//! # use rig::client::CompletionClient;
+//! # use rig::completion::Prompt;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let client = rig_cli::opencode::Client::new().await?;
 //! let agent = client.agent("opencode/big-pickle").preamble("You are helpful").build();

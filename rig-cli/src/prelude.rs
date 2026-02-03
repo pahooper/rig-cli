@@ -20,6 +20,7 @@ pub use crate::opencode::Client as OpenCodeClient;
 pub use crate::errors::Error;
 
 // Re-export key Rig traits so users don't need separate rig import
+pub use rig::client::CompletionClient;
 pub use rig::completion::Prompt;
 pub use rig::completion::Chat;
 

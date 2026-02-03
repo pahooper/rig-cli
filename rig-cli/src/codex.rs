@@ -10,6 +10,8 @@
 //! ## Example
 //!
 //! ```no_run
+//! # use rig::client::CompletionClient;
+//! # use rig::completion::Prompt;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let client = rig_cli::codex::Client::new().await?;
 //! let agent = client.agent("gpt-4").preamble("You are helpful").build();

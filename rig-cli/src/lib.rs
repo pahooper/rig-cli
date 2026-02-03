@@ -36,25 +36,22 @@
 //! For structured data extraction where the agent MUST respond via tool calls
 //! (not freeform text), use `mcp_agent()`:
 //!
-//! ```no_run
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! ```ignore
 //! let client = rig_cli::claude::Client::new().await?;
 //! let agent = client.mcp_agent("sonnet")
-//!     .toolset(my_tools)
+//!     .toolset(my_tools)  // Your ToolSet here
 //!     .build()?;
 //! let result = agent.prompt("Extract data...").await?;
-//! # Ok(())
-//! # }
 //! ```
 //!
 //! ## Structured Extraction with MCP
 //!
 //! For structured data extraction, use the MCP-enforced extraction pattern:
 //!
-//! ```no_run
-//! # use rig_cli::prelude::*;
-//! # use serde::{Deserialize, Serialize};
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! ```ignore
+//! use rig_cli::prelude::*;
+//! use serde::{Deserialize, Serialize};
+//!
 //! #[derive(Debug, Deserialize, Serialize)]
 //! struct PersonInfo {
 //!     name: String,
@@ -79,8 +76,6 @@
 //!     .await?;
 //!
 //! println!("{:?}", result);
-//! # Ok(())
-//! # }
 //! ```
 //!
 //! ## Feature Flags

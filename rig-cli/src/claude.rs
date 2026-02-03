@@ -25,18 +25,16 @@
 //!
 //! # Structured Extraction (MCP-Enforced)
 //!
-//! ```no_run
-//! # use rig_cli::claude::Client;
-//! # use rig::completion::Prompt;
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! ```ignore
+//! use rig_cli::claude::Client;
+//! use rig::completion::Prompt;
+//!
 //! let client = Client::new().await?;
 //! let agent = client.mcp_agent("sonnet")
-//!     .toolset(extraction_tools)
+//!     .toolset(extraction_tools)  // Your ToolSet here
 //!     .preamble("Extract structured data")
 //!     .build()?;
 //! let result = agent.prompt("Extract from: ...").await?;
-//! # Ok(())
-//! # }
 //! ```
 //!
 //! For MCP enforcement, the agent is constrained to submit responses ONLY via
@@ -223,21 +221,19 @@ impl Client {
     ///
     /// # Example
     ///
-    /// ```no_run
-    /// # use rig_cli::claude::Client;
-    /// # use rig::completion::Prompt;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// ```ignore
+    /// use rig_cli::claude::Client;
+    /// use rig::completion::Prompt;
+    ///
     /// let client = Client::new().await?;
     ///
     /// // MCP-enforced extraction
     /// let agent = client.mcp_agent("sonnet")
-    ///     .toolset(extraction_tools)
+    ///     .toolset(extraction_tools)  // Your ToolSet here
     ///     .preamble("You are a data extraction agent")
     ///     .build()?;
     ///
     /// let result = agent.prompt("Extract user data from: ...").await?;
-    /// # Ok(())
-    /// # }
     /// ```
     #[must_use]
     pub fn mcp_agent(&self, _model: impl Into<String>) -> CliAgentBuilder {
