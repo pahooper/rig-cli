@@ -50,5 +50,8 @@ pub mod config;
 /// Public error types.
 pub mod errors;
 
+/// Shared response type.
+pub mod response;
+
 /// Commonly used types and traits.
 pub mod prelude;
