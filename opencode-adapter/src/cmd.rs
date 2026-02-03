@@ -1,4 +1,47 @@
-//! Command-line argument construction for the `OpenCode` binary.
+//! Command-line argument builder for OpenCode CLI invocations.
+//!
+//! ## Flag Reference
+//!
+//! ### Model and Output Flags
+//! - `--model <model>`: Model selection (e.g., opencode/big-pickle)
+//! - `--print-logs`: Enable debug log output
+//! - `--log-level <level>`: Log verbosity (debug, info, warn, error)
+//!
+//! ### Server Flags (for OpenCode server mode)
+//! - `--port <port>`: Server port override
+//! - `--hostname <host>`: Server hostname override
+//!
+//! ## Containment Strategy
+//!
+//! **IMPORTANT:** OpenCode has no CLI flags for sandbox, approval policy, or tool
+//! restriction (unlike Claude Code and Codex). Containment is achieved through:
+//!
+//! 1. **Working Directory Isolation**: `Command::current_dir()` sets cwd, not a CLI arg
+//! 2. **MCP Config via Environment**: `OPENCODE_CONFIG` env var points to config file
+//! 3. **System Prompt Prepending**: No `--system-prompt` flag; prompt is prepended to message
+//!
+//! ### Containment Comparison
+//! | Feature | Claude Code | Codex | OpenCode |
+//! |---------|-------------|-------|----------|
+//! | Sandbox | --tools "" | --sandbox | (none) |
+//! | Tool restriction | --allowed-tools | (none) | (none) |
+//! | Working dir | --cwd | --cd | Command::current_dir() |
+//! | MCP config | --mcp-config | -c overrides | OPENCODE_CONFIG env |
+//! | System prompt | --system-prompt | (prepend) | (prepend) |
+//!
+//! ## Version Notes
+//! - `run` subcommand: Standard execution mode
+//! - `--model`: Supports opencode/big-pickle and other available models
+//! - No version-specific flags known; OpenCode CLI has minimal flag surface
+//!
+//! ## Known Limitations
+//! - No filesystem sandbox mechanism (containment relies on process isolation)
+//! - No tool restriction flags (all configured tools are available)
+//! - System prompt must be prepended to user message (no dedicated flag)
+//!
+//! ## External References
+//! - [OpenCode Documentation](https://opencode.ai/docs/)
+//! - [OpenCode MCP Servers](https://opencode.ai/docs/mcp-servers/)
 
 use crate::types::OpenCodeConfig;
 use std::ffi::OsString;
