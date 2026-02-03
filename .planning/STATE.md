@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 7 complete. Rig integration polished with two execution paths (agent(), mcp_agent()).
+**Current focus:** Phase 8 complete. Claude Code adapter production-hardened with clippy pedantic compliance, CLI flag documentation, E2E containment tests, and extraction failure tests.
 
 ## Current Position
 
-Phase: 8 of 11 (Claude Code Adapter)
-Plan: 3 of 7 in current phase
-Status: In progress (Complete: 08-01, 08-02, 08-03)
-Last activity: 2026-02-03 — Completed 08-03-PLAN.md (E2E Containment Tests)
+Phase: 8 of 11 (Claude Code Adapter) - PHASE COMPLETE
+Plan: 4 of 4 in current phase - PHASE COMPLETE
+Status: Phase 8 complete (Complete: 08-01, 08-02, 08-03, 08-04)
+Last activity: 2026-02-03 — Completed 08-04-PLAN.md (Extraction Failure Tests) - Phase verified
 
-Progress: [███████████████████] 30/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 3/7)
+Progress: [████████████████████] 31/34 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 30
-- Average duration: 2.8 min
-- Total execution time: 1.99 hours
+- Total plans completed: 31
+- Average duration: 2.9 min
+- Total execution time: 2.02 hours
 
 **By Phase:**
 
@@ -35,11 +35,11 @@ Progress: [███████████████████] 30/34 plan
 | 05-observability-infrastructure | 2 | 5.5min | 2.75min |
 | 06-platform-hardening | 4 | 8.7min | 2.2min |
 | 07-rig-integration-polish | 7 | 31.5min | 4.5min |
-| 08-claude-code-adapter | 3 | 26.3min | 8.77min |
+| 08-claude-code-adapter | 4 | 24min | 6min |
 
 **Recent Trend:**
-- Last 5 plans: 08-03 (12min), 08-02 (2min), 08-01 (8min), 07-07 (3.2min), 07-06 (6min)
-- Trend: Phase 8 in progress - E2E tests validate containment features with real CLI
+- Last 5 plans: 08-04 (2min), 08-03 (12min), 08-02 (2min), 08-01 (8min), 07-07 (3.2min)
+- Trend: Phase 8 COMPLETE - Claude Code adapter production-hardened
 
 *Updated after each plan completion*
 
@@ -170,5 +170,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 08-03-PLAN.md (E2E Containment Tests)
+Stopped at: Completed Phase 8 (Claude Code Adapter) - all 4 plans, verified 17/17 must-haves
 Resume file: None

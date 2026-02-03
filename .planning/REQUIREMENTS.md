@@ -45,14 +45,14 @@ Requirements for v1.0 production release. Each maps to roadmap phases.
 
 ### Code Quality
 
-- [ ] **QUAL-01**: Passes clippy pedantic with zero warnings — root causes fixed, not suppressed with `#[allow]`
+- [x] **QUAL-01**: Passes clippy pedantic with zero warnings — root causes fixed, not suppressed with `#[allow]`
 - [x] **QUAL-02**: API surface is simple and obvious for Rust developers — feels like a native Rig extension
 - [ ] **QUAL-03**: End-to-end examples demonstrate extraction workflow with real CLI agents
 - [ ] **QUAL-04**: Doc comments on all public types and methods
 
 ### Adapters
 
-- [ ] **ADPT-01**: Claude Code adapter is production-hardened with all containment and extraction features
+- [x] **ADPT-01**: Claude Code adapter is production-hardened with all containment and extraction features
 - [ ] **ADPT-02**: Codex adapter is production-hardened with all containment and extraction features
 - [ ] **ADPT-03**: OpenCode adapter is maintained and functional but not production-hardened for v1.0
 
@@ -113,8 +113,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | PLAT-03 | Phase 7 | Complete |
 | PLAT-04 | Phase 7 | Complete |
 | QUAL-02 | Phase 7 | Complete |
-| ADPT-01 | Phase 8 | Pending |
-| QUAL-01 | Phase 8 | Pending |
+| ADPT-01 | Phase 8 | Complete |
+| QUAL-01 | Phase 8 | Complete |
 | ADPT-02 | Phase 9 | Pending |
 | ADPT-03 | Phase 10 | Pending |
 | QUAL-03 | Phase 11 | Pending |
@@ -127,4 +127,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-03 after Phase 7 completion*
+*Last updated: 2026-02-03 after Phase 8 completion*
