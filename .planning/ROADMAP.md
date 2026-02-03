@@ -2,7 +2,7 @@
 
 ## Overview
 
-This roadmap transforms rig-cli from functional prototype to production-ready library. The journey spans 11 phases, starting with critical resource management fixes (bounded channels, task cleanup, zombie prevention) that prevent OOM kills and resource exhaustion. We then layer in the retry-with-validation loop that enables self-correcting structured extraction, followed by agent containment, observability, and platform hardening. The final phases polish the Rig integration, harden Claude Code and Codex adapters to production quality, maintain OpenCode functionality, and deliver comprehensive documentation. Each phase builds on stable foundations to deliver a CLI-agent provider that feels native to the Rig ecosystem.
+This roadmap transforms rig-cli from functional prototype to production-ready library. The journey spans 11 phases, starting with critical resource management fixes (bounded channels, task cleanup, zombie prevention) that prevent OOM kills and resource exhaustion. We then layer in the retry-with-validation loop that enables self-correcting structured extraction, followed by agent containment, observability, and platform hardening. The final phases polish the Rig integration and harden all three adapters (Claude Code, Codex, and OpenCode) to production quality, then deliver comprehensive documentation. Each phase builds on stable foundations to deliver a CLI-agent provider that feels native to the Rig ecosystem.
 
 ## Phases
 
@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Rig Integration Polish** - Native Rig ecosystem feel
 - [x] **Phase 8: Claude Code Adapter** - Production hardening for primary adapter
 - [x] **Phase 9: Codex Adapter** - Production hardening for secondary adapter
-- [ ] **Phase 10: OpenCode Maintenance** - Functional baseline without production hardening
+- [ ] **Phase 10: OpenCode Adapter** - Production hardening for third adapter (full parity)
 - [ ] **Phase 11: Documentation & Examples** - End-to-end examples and comprehensive doc comments
 
 ## Phase Details
@@ -195,15 +195,16 @@ Plans:
 - [x] 09-01-PLAN.md — Add ApprovalPolicy enum, CLI flag documentation, and flag combination tests
 - [x] 09-02-PLAN.md — Add E2E containment tests with real Codex CLI (tests/e2e_containment.rs)
 
-### Phase 10: OpenCode Maintenance
-**Goal**: OpenCode adapter is functional but not production-hardened
+### Phase 10: OpenCode Adapter
+**Goal**: OpenCode adapter is production-hardened to full parity with Claude Code and Codex
 **Depends on**: Phase 9
 **Requirements**: ADPT-03
 **Success Criteria** (what must be TRUE):
-  1. OpenCode adapter compiles and runs basic extraction workflow
-  2. Happy path works (valid JSON extraction on first try)
-  3. Failure paths are documented but not hardened
-  4. No investment in retry tuning or edge case handling
+  1. All containment features work reliably with OpenCode CLI flags
+  2. All extraction features work reliably with OpenCode response format
+  3. OpenCode-specific CLI flags are audited and documented
+  4. Passes clippy pedantic with zero warnings
+  5. E2E containment tests pass with real OpenCode CLI
 **Plans**: TBD
 
 Plans:
