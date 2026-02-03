@@ -400,4 +400,110 @@ mod tests {
             _ => panic!("Expected AgentError"),
         }
     }
+
+    #[tokio::test]
+    async fn test_extraction_max_retries_complete_history() {
+        // Test that MaxRetriesExceeded contains complete attempt history
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "integer", "minimum": 0}
+            },
+            "required": ["name", "age"]
+        });
+
+        let orchestrator = ExtractionOrchestrator::new(schema).max_attempts(3);
+
+        let counter = Arc::new(AtomicUsize::new(0));
+        let counter_clone = counter.clone();
+
+        let agent_fn = move |_prompt: String| {
+            let counter = counter_clone.clone();
+            async move {
+                let count = counter.fetch_add(1, Ordering::SeqCst);
+                // Return different invalid JSONs each attempt for history verification
+                match count {
+                    0 => Ok(r#"{"name": "test"}"#.to_string()), // Missing age
+                    1 => Ok(r#"{"name": 123, "age": 25}"#.to_string()), // Wrong name type
+                    _ => Ok(r#"{"name": "test", "age": -5}"#.to_string()), // Negative age
+                }
+            }
+        };
+
+        let result = orchestrator.extract(agent_fn, "initial".to_string()).await;
+
+        match result {
+            Err(ExtractionError::MaxRetriesExceeded {
+                attempts,
+                max_attempts,
+                history,
+                metrics,
+                ..
+            }) => {
+                assert_eq!(attempts, 3, "Should report 3 attempts");
+                assert_eq!(max_attempts, 3, "Should report max_attempts=3");
+                assert_eq!(history.len(), 3, "History should contain all 3 attempts");
+
+                // Verify each attempt record
+                for (i, record) in history.iter().enumerate() {
+                    assert_eq!(record.attempt_number, i + 1, "Attempt number mismatch");
+                    assert!(!record.validation_errors.is_empty(), "Should have validation errors");
+                    assert!(!record.raw_agent_output.is_empty(), "Should capture raw output");
+                }
+
+                // Verify metrics
+                assert_eq!(metrics.total_attempts, 3);
+                assert!(metrics.wall_time.as_millis() > 0);
+            }
+            Ok(_) => panic!("Expected MaxRetriesExceeded error"),
+            Err(e) => panic!("Unexpected error: {e:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_extraction_parse_failure_counts_against_budget() {
+        // Test that JSON parse failures count against retry budget
+        let schema = json!({"type": "object", "properties": {"x": {"type": "number"}}});
+
+        let orchestrator = ExtractionOrchestrator::new(schema).max_attempts(2);
+
+        let counter = Arc::new(AtomicUsize::new(0));
+        let counter_clone = counter.clone();
+
+        let agent_fn = move |_prompt: String| {
+            let counter = counter_clone.clone();
+            async move {
+                let count = counter.fetch_add(1, Ordering::SeqCst);
+                match count {
+                    0 => Ok("not valid json at all".to_string()), // Parse failure
+                    _ => Ok(r#"{"x": "string"}"#.to_string()), // Valid JSON but wrong type
+                }
+            }
+        };
+
+        let result = orchestrator.extract(agent_fn, "initial".to_string()).await;
+
+        match result {
+            Err(ExtractionError::MaxRetriesExceeded { history, .. }) => {
+                assert_eq!(history.len(), 2, "Both attempts should be recorded");
+
+                // First attempt: parse failure
+                assert!(
+                    history[0].validation_errors[0].contains("JSON parse error"),
+                    "First attempt should be parse error: {:?}",
+                    history[0].validation_errors
+                );
+                assert_eq!(history[0].submitted_json, serde_json::Value::Null);
+
+                // Second attempt: validation failure
+                assert!(
+                    !history[1].validation_errors[0].contains("JSON parse error"),
+                    "Second attempt should be validation error"
+                );
+            }
+            Ok(_) => panic!("Expected MaxRetriesExceeded"),
+            Err(e) => panic!("Unexpected error: {e:?}"),
+        }
+    }
 }
