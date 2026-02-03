@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 5 complete. Structured tracing and CLI version detection established. Ready for Phase 6 - Platform Hardening.
+**Current focus:** Phase 6 in progress. Cross-platform support and platform hardening underway.
 
 ## Current Position
 
 Phase: 6 of 11 (Platform Hardening) — IN PROGRESS
-Plan: 1 of 4 in current phase (1 complete)
+Plan: 2 of 4 in current phase (2 complete)
 Status: In progress
-Last activity: 2026-02-03 — Completed 06-04-PLAN.md (Dependency Audit Infrastructure)
+Last activity: 2026-02-03 — Completed 06-01-PLAN.md (Cross-Platform Process Management)
 
-Progress: [███████████░] 17/20 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 1/4)
+Progress: [███████████░] 18/20 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 2/4)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
+- Total plans completed: 18
 - Average duration: 2.8 min
-- Total execution time: 0.91 hours
+- Total execution time: 0.96 hours
 
 **By Phase:**
 
@@ -33,11 +33,11 @@ Progress: [███████████░] 17/20 plans complete (Phase 1: 
 | 03-payload-instruction-system | 2 | 4.5min | 2.25min |
 | 04-agent-containment | 2 | 4.4min | 2.2min |
 | 05-observability-infrastructure | 2 | 5.5min | 2.75min |
-| 06-platform-hardening | 1 | 1min | 1min |
+| 06-platform-hardening | 2 | 4min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (2min), 05-01 (2.9min), 05-02 (2.6min), 06-04 (1min)
-- Trend: Phase 6 started — dependency audit infrastructure in place
+- Last 5 plans: 05-01 (2.9min), 05-02 (2.6min), 06-04 (1min), 06-01 (3min)
+- Trend: Phase 6 underway — cross-platform support and dependency audit infrastructure
 
 *Updated after each plan completion*
 
@@ -88,6 +88,10 @@ Recent decisions affecting current work:
 - Version detection warns and continues on mismatch, never blocks execution (fail-open policy) (05-02)
 - Distinct warning events: version_unsupported (below min) vs version_untested (above max_tested) (05-02)
 - Version detection is stateless, runs once per agent execution (no caching) (05-02)
+- Use cfg(unix)/cfg(windows) conditional compilation for platform-specific code, not runtime detection (06-01)
+- Windows graceful shutdown uses immediate Child::kill() (TerminateProcess) - documented platform limitation (06-01)
+- Platform-neutral error types use String descriptions instead of Unix-specific errno types (06-01)
+- Nix crate imports moved inside cfg(unix) function bodies, gated behind [target.'cfg(unix)'.dependencies] (06-01)
 - Include cargo audit in check recipe for continuous security validation (06-04)
 - Provide standalone audit, audit-update, and outdated targets for developer convenience (06-04)
 - cargo-outdated is optional tooling, target defined but installation not required (06-04)
@@ -116,5 +120,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 06-04-PLAN.md (Dependency Audit Infrastructure)
+Stopped at: Completed 06-01-PLAN.md (Cross-Platform Process Management)
 Resume file: None
