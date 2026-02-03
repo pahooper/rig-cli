@@ -5,6 +5,7 @@ edition = "2021"
 description = "Turn CLI-based AI agents into idiomatic Rig 0.29 providers"
 license = "MIT"
 repository = "https://github.com/pnod/rig-cli"
+readme = "../README.md"
 keywords = ["rig", "cli", "provider", "llm", "structured-extraction"]
 categories = ["development-tools"]
 

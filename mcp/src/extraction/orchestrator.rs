@@ -52,6 +52,9 @@ impl ExtractionOrchestrator {
     /// Returns `ExtractionError::MaxRetriesExceeded` if all retry attempts are exhausted.
     /// Returns `ExtractionError::SchemaError` if the schema is invalid.
     /// Returns `ExtractionError::AgentError` if the agent function returns an error.
+    // Extraction retry loop is inherently complex with 5 stages (prompt, call, parse, validate, retry).
+    // Splitting would fragment the state machine and reduce readability.
+    #[allow(clippy::too_many_lines)]
     #[tracing::instrument(
         name = "extraction_orchestrator_extract",
         skip_all,

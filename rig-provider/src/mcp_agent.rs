@@ -1041,6 +1041,8 @@ async fn run_opencode(
     })
 }
 
+// Multiple parameters required by Claude Code CLI API (config, system, tools, builtins, timeout, cwd, channel)
+#[allow(clippy::too_many_arguments)]
 async fn run_claude_code_stream(
     prompt: &str,
     mcp_config: &rig_mcp_server::server::McpConfig,
