@@ -134,10 +134,13 @@ Plans:
   2. CLI binary discovery handles .exe extensions and PATH differences correctly
   3. Setup registration works on both platforms without platform-specific code paths
   4. All external crate dependencies are well-maintained and stable
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 06-01: TBD
+- [ ] 06-01-PLAN.md — Cross-platform signal handling (cfg(unix)/cfg(windows) for all adapter process.rs)
+- [ ] 06-02-PLAN.md — Binary discovery with fallback locations, install hints, standardized 3-tier pattern
+- [ ] 06-03-PLAN.md — Path handling: dirs::home_dir() in setup.rs, OsString migration, example fixes
+- [ ] 06-04-PLAN.md — Dependency audit: justfile targets for cargo audit, semver strategy verification
 
 ### Phase 7: Rig Integration Polish
 **Goal**: API surface feels like native Rig extension built by 0xPlaygrounds
