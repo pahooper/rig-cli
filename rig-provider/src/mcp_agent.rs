@@ -335,7 +335,7 @@ impl McpToolAgentBuilder {
     ///
     /// For Claude Code: maps to --tools flag with listed tools.
     /// For Codex: no direct equivalent (Codex builtins are controlled by sandbox mode).
-    /// For OpenCode: documented as best-effort (no CLI flags for tool restriction).
+    /// For `OpenCode`: documented as best-effort (no CLI flags for tool restriction).
     #[must_use]
     pub fn allow_builtins(mut self, tools: Vec<String>) -> Self {
         self.builtin_tools = Some(tools);
@@ -344,8 +344,8 @@ impl McpToolAgentBuilder {
 
     /// Sets the Codex sandbox isolation level.
     ///
-    /// Default: SandboxMode::ReadOnly (most restrictive).
-    /// Only affects Codex adapter; Claude Code and OpenCode ignore this setting.
+    /// Default: `SandboxMode::ReadOnly` (most restrictive).
+    /// Only affects Codex adapter; Claude Code and `OpenCode` ignore this setting.
     #[must_use]
     pub fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
         self.sandbox_mode = Some(mode);
@@ -386,7 +386,7 @@ impl McpToolAgentBuilder {
 
     /// Executes the MCP tool agent with streaming output.
     ///
-    /// Similar to run(), but returns a receiver that yields `McpStreamEvent`
+    /// Similar to `run()`, but returns a receiver that yields `McpStreamEvent`
     /// as the CLI produces output. The agent spawns in a background task.
     ///
     /// # Errors
@@ -628,8 +628,8 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
 
 /// MCP-enforced CLI agent that implements Rig's Prompt and Chat traits.
 ///
-/// Unlike CompletionModel (which receives ToolDefinitions), CliAgent holds
-/// a concrete ToolSet, enabling true MCP enforcement where all agent
+/// Unlike `CompletionModel` (which receives `ToolDefinitions`), `CliAgent` holds
+/// a concrete `ToolSet`, enabling true MCP enforcement where all agent
 /// interactions must go through MCP tool calls.
 ///
 /// # Example
@@ -663,7 +663,7 @@ pub struct CliAgent {
     server_name: String,
 }
 
-/// Builder for CliAgent.
+/// Builder for `CliAgent`.
 pub struct CliAgentBuilder {
     toolset: Option<rig::tool::ToolSet>,
     adapter: Option<CliAdapter>,
@@ -746,7 +746,7 @@ impl CliAgentBuilder {
 
     /// Sets the Codex sandbox isolation level.
     ///
-    /// Default: SandboxMode::ReadOnly. Only affects Codex adapter.
+    /// Default: `SandboxMode::ReadOnly`. Only affects Codex adapter.
     #[must_use]
     pub fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
         self.sandbox_mode = Some(mode);
@@ -769,7 +769,7 @@ impl CliAgentBuilder {
         self
     }
 
-    /// Builds the CliAgent.
+    /// Builds the `CliAgent`.
     ///
     /// # Errors
     /// Returns error if required fields (toolset, adapter) are not set.
@@ -806,7 +806,7 @@ impl CliAgent {
     /// Executes a prompt and returns the agent's output.
     ///
     /// This method builds an [`McpToolAgent`] internally with the configured
-    /// fields and executes it. Consumes the CliAgent since `ToolSet` cannot be cloned.
+    /// fields and executes it. Consumes the `CliAgent` since `ToolSet` cannot be cloned.
     ///
     /// # Errors
     /// Returns [`ProviderError`] if execution fails.
@@ -846,7 +846,7 @@ impl CliAgent {
     /// Executes a chat-style interaction with message history.
     ///
     /// Formats the chat history as a conversation and appends the current prompt.
-    /// Consumes the CliAgent since `ToolSet` cannot be cloned.
+    /// Consumes the `CliAgent` since `ToolSet` cannot be cloned.
     ///
     /// # Errors
     /// Returns [`ProviderError`] if execution fails.

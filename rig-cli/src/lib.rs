@@ -2,8 +2,8 @@
 //!
 //! Turn CLI-based AI agents into idiomatic Rig 0.29 providers.
 //!
-//! This crate provides a Rig-idiomatic facade over CLI-based AI agents (Claude Code, Codex, OpenCode),
-//! allowing you to use them with the same patterns you use for cloud API providers like OpenAI or Anthropic.
+//! This crate provides a Rig-idiomatic facade over CLI-based AI agents (Claude Code, Codex, `OpenCode`),
+//! allowing you to use them with the same patterns you use for cloud API providers like `OpenAI` or Anthropic.
 //!
 //! ## Quick Start
 //!
@@ -82,7 +82,7 @@
 //!
 //! - `claude` (default): Enable Claude Code provider
 //! - `codex` (default): Enable Codex provider
-//! - `opencode` (default): Enable OpenCode provider
+//! - `opencode` (default): Enable `OpenCode` provider
 //! - `debug-output` (opt-in): Include raw CLI output in error messages for debugging
 
 #![deny(missing_docs)]

@@ -79,7 +79,7 @@ use uuid::Uuid;
 ///   Use for structured extraction where the agent MUST respond via tool calls.
 #[derive(Clone)]
 pub struct Client {
-    /// The underlying CLI client from claudecode_adapter.
+    /// The underlying CLI client from `claudecode_adapter`.
     cli: claudecode_adapter::ClaudeCli,
     /// Client configuration (timeout, binary path override, etc.).
     config: ClientConfig,
@@ -245,7 +245,7 @@ impl rig::client::CompletionClient for Client {
     // .agent() and .extractor() get default implementations automatically!
 }
 
-/// The CompletionModel implementation for Claude Code.
+/// The `CompletionModel` implementation for Claude Code.
 ///
 /// Provides direct CLI execution for prompts and streaming. For MCP-enforced
 /// structured extraction, use `Client::mcp_agent()` instead.

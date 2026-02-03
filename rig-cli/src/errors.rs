@@ -17,7 +17,7 @@ pub enum Error {
     #[error("Codex CLI not found. Install: npm i -g @openai/codex")]
     CodexNotFound,
 
-    /// OpenCode CLI not found on the system.
+    /// `OpenCode` CLI not found on the system.
     #[error("OpenCode CLI not found. Install: go install github.com/nicholasgasior/opencode@latest")]
     OpenCodeNotFound,
 

@@ -29,6 +29,13 @@ struct OutputState {
 ///
 /// If `sender` is provided, parsed events are forwarded in real time.
 /// Output is bounded to [`MAX_OUTPUT_BYTES`] per stream.
+///
+/// # Errors
+///
+/// Returns `OpenCodeError` if:
+/// - The `OpenCode` process fails to spawn (`SpawnFailed`)
+/// - Stdout or stderr handles cannot be captured (`NoStdout`, `NoStderr`)
+/// - The process exits with non-zero status (`NonZeroExit`)
 pub async fn run_opencode(
     path: &std::path::Path,
     message: &str,

@@ -4,10 +4,10 @@ use crate::error::OpenCodeError;
 use std::path::PathBuf;
 use which::which;
 
-/// Environment variable that overrides the default OpenCode CLI binary path.
+/// Environment variable that overrides the default `OpenCode` CLI binary path.
 pub const OPENCODE_BIN_ENV_VAR: &str = "OPENCODE_ADAPTER_BIN";
 
-/// Locates the OpenCode CLI executable.
+/// Locates the `OpenCode` CLI executable.
 ///
 /// Resolution order:
 /// 1. `explicit_path` if provided and the file exists.

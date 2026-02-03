@@ -31,6 +31,11 @@ impl OpenCodeCli {
     }
 
     /// Runs `--version` to verify the binary is functional.
+    ///
+    /// # Errors
+    ///
+    /// Returns `OpenCodeError::SpawnFailed` if the version check cannot be executed
+    /// or if the process exits with non-zero status.
     pub async fn check_health(&self) -> Result<(), OpenCodeError> {
         let output = Command::new(&self.path)
             .arg("--version")
@@ -54,6 +59,11 @@ impl OpenCodeCli {
     }
 
     /// Runs `OpenCode` to completion and returns the full result.
+    ///
+    /// # Errors
+    ///
+    /// Returns `OpenCodeError` if the `OpenCode` process fails to spawn, stream capture
+    /// fails, or the process exits with non-zero status. See [`run_opencode`] for details.
     pub async fn run(
         &self,
         message: &str,
@@ -63,6 +73,11 @@ impl OpenCodeCli {
     }
 
     /// Runs `OpenCode` while streaming events through `sender`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `OpenCodeError` if the `OpenCode` process fails to spawn, stream capture
+    /// fails, or the process exits with non-zero status. See [`run_opencode`] for details.
     pub async fn stream(
         &self,
         message: &str,

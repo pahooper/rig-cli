@@ -35,9 +35,9 @@ use rig_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
 use rig_provider::utils::format_chat_history;
 use tokio_stream::wrappers::ReceiverStream;
 
-/// OpenCode CLI provider client.
+/// `OpenCode` CLI provider client.
 ///
-/// Wraps the OpenCode CLI behind Rig's `CompletionClient` trait, providing
+/// Wraps the `OpenCode` CLI behind Rig's `CompletionClient` trait, providing
 /// the standard `.agent()` and `.extractor()` builder patterns.
 #[derive(Clone)]
 pub struct Client {
@@ -47,9 +47,9 @@ pub struct Client {
 }
 
 impl Client {
-    /// Creates a new OpenCode client with automatic CLI discovery.
+    /// Creates a new `OpenCode` client with automatic CLI discovery.
     ///
-    /// Discovers the OpenCode CLI binary via PATH and standard installation
+    /// Discovers the `OpenCode` CLI binary via PATH and standard installation
     /// locations, performs a health check, and returns a ready-to-use client.
     ///
     /// # Errors
@@ -70,7 +70,7 @@ impl Client {
         })
     }
 
-    /// Creates a new OpenCode client from the given configuration.
+    /// Creates a new `OpenCode` client from the given configuration.
     ///
     /// Uses the binary path from `config.binary_path` if provided,
     /// otherwise falls back to auto-discovery.
@@ -135,7 +135,7 @@ impl Client {
     }
 }
 
-/// OpenCode completion model.
+/// `OpenCode` completion model.
 ///
 /// Provides direct CLI execution for prompts and streaming. For MCP-enforced
 /// structured extraction, use `Client::mcp_agent()` instead.
