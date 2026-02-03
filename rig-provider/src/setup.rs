@@ -1,7 +1,7 @@
 use anyhow::Context;
 use serde_json::Value;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// Configuration for the setup process.
 pub struct SetupConfig {
@@ -17,31 +17,30 @@ pub fn run_setup(config: &SetupConfig) -> anyhow::Result<()> {
     tracing::info!("Starting Zero-Config self-registration...");
 
     let exe_path = std::env::current_exe()?;
-    let exe_path_str = exe_path.to_string_lossy().to_string();
-    let home = std::env::var("HOME").context("HOME env var not set")?;
+    let home = dirs::home_dir().context("Could not determine home directory")?;
 
     // 1. JSON-based configurations (Claude Code, OpenCode)
-    let claude_path = PathBuf::from(&home).join(".claude.json");
+    let claude_path = home.join(".claude.json");
     setup_json_mcp(
         "Claude Code",
         &claude_path,
-        &exe_path_str,
+        &exe_path,
         "rig-provider",
         config,
     )?;
 
-    let opencode_path = PathBuf::from(&home).join(".opencode.json");
+    let opencode_path = home.join(".opencode.json");
     setup_json_mcp(
         "OpenCode",
         &opencode_path,
-        &exe_path_str,
+        &exe_path,
         "rig-provider",
         config,
     )?;
 
     // 2. TOML-based configurations (Codex)
-    let codex_path = PathBuf::from(&home).join(".codex/config.toml");
-    setup_codex(&codex_path, &exe_path_str, "rig-provider", config)?;
+    let codex_path = home.join(".codex/config.toml");
+    setup_codex(&codex_path, &exe_path, "rig-provider", config)?;
 
     if config.dry_run {
         println!("\n[DRY RUN] Setup complete. No files were modified.");
@@ -55,7 +54,7 @@ pub fn run_setup(config: &SetupConfig) -> anyhow::Result<()> {
 fn setup_json_mcp(
     name: &str,
     path: &Path,
-    exe_path: &str,
+    exe_path: &Path,
     provider_name: &str,
     config: &SetupConfig,
 ) -> anyhow::Result<()> {
@@ -82,10 +81,13 @@ fn setup_json_mcp(
             "Invalid {name} config: mcpServers must be an object"
         ))?;
 
+    // Convert exe_path to string only for JSON serialization
+    let exe_str = exe_path.display().to_string();
+
     servers.insert(
         provider_name.to_string(),
         serde_json::json!({
-            "command": exe_path,
+            "command": exe_str,
             "args": [],
             "env": {}
         }),
@@ -109,7 +111,7 @@ fn setup_json_mcp(
 
 fn setup_codex(
     path: &Path,
-    exe_path: &str,
+    exe_path: &Path,
     provider_name: &str,
     config: &SetupConfig,
 ) -> anyhow::Result<()> {
@@ -125,7 +127,9 @@ fn setup_codex(
     if content.contains(&section_header) {
         println!("[SKIP] {provider_name} already exists in Codex config.");
     } else {
-        let entry = format!("\n{section_header}\ncommand = \"{exe_path}\"\nargs = []\n");
+        // Convert exe_path to string only for TOML serialization
+        let exe_str = exe_path.display().to_string();
+        let entry = format!("\n{section_header}\ncommand = \"{exe_str}\"\nargs = []\n");
         content.push_str(&entry);
 
         if config.dry_run {

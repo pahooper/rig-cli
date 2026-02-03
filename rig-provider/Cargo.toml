@@ -29,6 +29,7 @@ opencode-adapter = { path = "../opencode-adapter" }
 tokio-stream = "0.1.18"
 futures = "0.3.31"
 uuid = { version = "1.20.0", features = ["v4"] }
+dirs = "5.0"
 
 [lints]
 workspace = true
