@@ -1,28 +1,22 @@
-//! Codex provider client with MCP-enforced CompletionModel.
+//! Codex provider client with CompletionModel and MCP-enforced CliAgent.
+//!
+//! This module provides two execution paths:
+//!
+//! | Method | Execution | Use Case |
+//! |--------|-----------|----------|
+//! | `client.agent("model")` | Direct CLI | Simple prompts, chat, streaming |
+//! | `client.mcp_agent("model")` | MCP Server | Structured extraction, forced tool use |
 //!
 //! ## Example
 //!
 //! ```no_run
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create a client (discovers Codex CLI automatically)
 //! let client = rig_cli::codex::Client::new().await?;
-//!
-//! // Build an agent just like any Rig provider
-//! let agent = client.agent("gpt-4")
-//!     .preamble("You are a helpful assistant")
-//!     .build();
-//!
-//! // Prompt the agent
+//! let agent = client.agent("gpt-4").preamble("You are helpful").build();
 //! let response = agent.prompt("Hello!").await?;
 //! # Ok(())
 //! # }
 //! ```
-//!
-//! ## Note on MCP Enforcement
-//!
-//! MCP-based structured extraction is available via the underlying `rig_provider`
-//! crate's `McpToolAgent`. Direct integration at the facade level is planned for
-//! a future release.
 
 use crate::config::ClientConfig;
 use crate::errors::Error;
@@ -35,6 +29,7 @@ use rig::completion::{
 };
 use rig::streaming::{RawStreamingChoice, StreamingCompletionResponse};
 use rig::OneOrMany;
+use rig_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
 use rig_provider::utils::format_chat_history;
 use tokio_stream::wrappers::ReceiverStream;
 
@@ -120,13 +115,28 @@ impl Client {
     pub fn config(&self) -> &ClientConfig {
         &self.config
     }
+
+    /// Creates an MCP-enforced agent builder for structured extraction.
+    ///
+    /// See module docs for the difference between `agent()` and `mcp_agent()`.
+    #[must_use]
+    pub fn mcp_agent(&self, _model: impl Into<String>) -> CliAgentBuilder {
+        let mut builder = rig_provider::mcp_agent::CliAgent::builder()
+            .adapter(CliAdapter::Codex)
+            .timeout(self.config.timeout);
+
+        if let Some(ref payload) = self.payload {
+            builder = builder.payload(payload.clone());
+        }
+
+        builder
+    }
 }
 
 /// Codex completion model.
 ///
-/// Implements Rig's `CompletionModel` trait, routing tool-bearing requests
-/// through `McpToolAgent` for MCP-enforced execution and falling back to
-/// direct CLI invocation for simple prompts.
+/// Provides direct CLI execution for prompts and streaming. For MCP-enforced
+/// structured extraction, use `Client::mcp_agent()` instead.
 #[derive(Clone)]
 pub struct Model {
     cli: CodexCli,
@@ -152,10 +162,6 @@ impl CompletionModel for Model {
         request: CompletionRequest,
     ) -> Result<CompletionResponse<Self::Response>, CompletionError> {
         let prompt_text = format_chat_history(&request);
-
-        // TODO: Route through McpToolAgent for MCP-enforced structured extraction.
-        // For now, use direct CLI execution for all requests (matching rig-provider pattern).
-        // MCP enforcement will be added in a future iteration.
 
         let config = CodexConfig::default();
         let result = self

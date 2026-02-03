@@ -24,6 +24,29 @@
 //! # }
 //! ```
 //!
+//! ## Two Execution Paths
+//!
+//! rig-cli provides two ways to interact with CLI agents:
+//!
+//! | Method | When to Use |
+//! |--------|-------------|
+//! | `client.agent("model")` | Simple prompts, chat, streaming - direct CLI execution |
+//! | `client.mcp_agent("model")` | Structured extraction - MCP-enforced tool use |
+//!
+//! For structured data extraction where the agent MUST respond via tool calls
+//! (not freeform text), use `mcp_agent()`:
+//!
+//! ```no_run
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let client = rig_cli::claude::Client::new().await?;
+//! let agent = client.mcp_agent("sonnet")
+//!     .toolset(my_tools)
+//!     .build()?;
+//! let result = agent.prompt("Extract data...").await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
 //! ## Structured Extraction with MCP
 //!
 //! For structured data extraction, use the MCP-enforced extraction pattern:
@@ -95,6 +118,9 @@ pub mod prelude;
 
 // Re-export the Rig crate so users can access Rig types via rig_cli::rig::...
 pub use rig;
+
+// MCP-enforced agent types (from rig-provider)
+pub use rig_provider::mcp_agent::{CliAgent, CliAgentBuilder, CliAdapter, McpStreamEvent};
 
 /// Re-export of MCP extraction types for structured data extraction workflows.
 ///
