@@ -626,6 +626,247 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
     }
 }
 
+/// MCP-enforced CLI agent that implements Rig's Prompt and Chat traits.
+///
+/// Unlike CompletionModel (which receives ToolDefinitions), CliAgent holds
+/// a concrete ToolSet, enabling true MCP enforcement where all agent
+/// interactions must go through MCP tool calls.
+///
+/// # Example
+///
+/// ```no_run
+/// use rig_provider::mcp_agent::{CliAgent, CliAdapter};
+/// use rig::completion::Prompt;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// # let my_toolset = rig::tool::ToolSet::builder().build();
+/// let agent = CliAgent::builder()
+///     .adapter(CliAdapter::ClaudeCode)
+///     .toolset(my_toolset)
+///     .preamble("You are a data extraction agent")
+///     .build()?;
+///
+/// let response = agent.prompt("Extract the user data").await?;
+/// # Ok(())
+/// # }
+/// ```
+pub struct CliAgent {
+    toolset: rig::tool::ToolSet,
+    adapter: CliAdapter,
+    preamble: Option<String>,
+    timeout: Duration,
+    payload: Option<String>,
+    instruction_template: Option<String>,
+    builtin_tools: Option<Vec<String>>,
+    sandbox_mode: Option<codex_adapter::SandboxMode>,
+    working_dir: Option<std::path::PathBuf>,
+    server_name: String,
+}
+
+/// Builder for CliAgent.
+pub struct CliAgentBuilder {
+    toolset: Option<rig::tool::ToolSet>,
+    adapter: Option<CliAdapter>,
+    preamble: Option<String>,
+    timeout: Duration,
+    payload: Option<String>,
+    instruction_template: Option<String>,
+    builtin_tools: Option<Vec<String>>,
+    sandbox_mode: Option<codex_adapter::SandboxMode>,
+    working_dir: Option<std::path::PathBuf>,
+    server_name: String,
+}
+
+impl CliAgentBuilder {
+    fn new() -> Self {
+        Self {
+            toolset: None,
+            adapter: None,
+            preamble: None,
+            timeout: Duration::from_secs(300),
+            payload: None,
+            instruction_template: None,
+            builtin_tools: None,
+            sandbox_mode: Some(codex_adapter::SandboxMode::ReadOnly),
+            working_dir: None,
+            server_name: "rig_mcp".to_string(),
+        }
+    }
+
+    /// Sets the Rig [`ToolSet`](rig::tool::ToolSet) that defines the MCP tools.
+    #[must_use]
+    pub fn toolset(mut self, toolset: rig::tool::ToolSet) -> Self {
+        self.toolset = Some(toolset);
+        self
+    }
+
+    /// Sets which CLI adapter to use for execution.
+    #[must_use]
+    pub const fn adapter(mut self, adapter: CliAdapter) -> Self {
+        self.adapter = Some(adapter);
+        self
+    }
+
+    /// Sets an optional preamble (system prompt) for the agent.
+    #[must_use]
+    pub fn preamble(mut self, preamble: impl Into<String>) -> Self {
+        self.preamble = Some(preamble.into());
+        self
+    }
+
+    /// Sets the maximum wall-clock timeout for CLI execution.
+    ///
+    /// Defaults to 300 seconds (5 minutes).
+    #[must_use]
+    pub const fn timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
+    /// Sets context data (file contents, text blobs) to inject into prompts.
+    #[must_use]
+    pub fn payload(mut self, data: impl Into<String>) -> Self {
+        self.payload = Some(data.into());
+        self
+    }
+
+    /// Sets a custom instruction template for tool workflow enforcement.
+    #[must_use]
+    pub fn instruction_template(mut self, template: impl Into<String>) -> Self {
+        self.instruction_template = Some(template.into());
+        self
+    }
+
+    /// Opts in to specific builtin tools alongside MCP tools.
+    #[must_use]
+    pub fn allow_builtins(mut self, tools: Vec<String>) -> Self {
+        self.builtin_tools = Some(tools);
+        self
+    }
+
+    /// Sets the Codex sandbox isolation level.
+    ///
+    /// Default: SandboxMode::ReadOnly. Only affects Codex adapter.
+    #[must_use]
+    pub fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
+        self.sandbox_mode = Some(mode);
+        self
+    }
+
+    /// Overrides the default temp directory with a specific working directory.
+    #[must_use]
+    pub fn working_dir(mut self, path: impl Into<std::path::PathBuf>) -> Self {
+        self.working_dir = Some(path.into());
+        self
+    }
+
+    /// Sets the MCP server name used in config and tool name prefixes.
+    ///
+    /// Defaults to `"rig_mcp"`.
+    #[must_use]
+    pub fn server_name(mut self, name: impl Into<String>) -> Self {
+        self.server_name = name.into();
+        self
+    }
+
+    /// Builds the CliAgent.
+    ///
+    /// # Errors
+    /// Returns error if required fields (toolset, adapter) are not set.
+    pub fn build(self) -> Result<CliAgent, ProviderError> {
+        let toolset = self
+            .toolset
+            .ok_or_else(|| ProviderError::McpToolAgent("toolset is required".to_string()))?;
+        let adapter = self
+            .adapter
+            .ok_or_else(|| ProviderError::McpToolAgent("adapter is required".to_string()))?;
+
+        Ok(CliAgent {
+            toolset,
+            adapter,
+            preamble: self.preamble,
+            timeout: self.timeout,
+            payload: self.payload,
+            instruction_template: self.instruction_template,
+            builtin_tools: self.builtin_tools,
+            sandbox_mode: self.sandbox_mode,
+            working_dir: self.working_dir,
+            server_name: self.server_name,
+        })
+    }
+}
+
+impl CliAgent {
+    /// Returns a new builder for configuring the agent.
+    #[must_use]
+    pub fn builder() -> CliAgentBuilder {
+        CliAgentBuilder::new()
+    }
+
+    /// Executes a prompt and returns the agent's output.
+    ///
+    /// This method builds an [`McpToolAgent`] internally with the configured
+    /// fields and executes it. Consumes the CliAgent since `ToolSet` cannot be cloned.
+    ///
+    /// # Errors
+    /// Returns [`ProviderError`] if execution fails.
+    pub async fn prompt(self, prompt: &str) -> Result<String, ProviderError> {
+        let mut builder = McpToolAgent::builder()
+            .toolset(self.toolset)
+            .adapter(self.adapter)
+            .prompt(prompt)
+            .timeout(self.timeout)
+            .server_name(&self.server_name);
+
+        // Apply optional fields
+        if let Some(ref preamble) = self.preamble {
+            builder = builder.system_prompt(preamble);
+        }
+        if let Some(ref payload) = self.payload {
+            builder = builder.payload(payload);
+        }
+        if let Some(ref template) = self.instruction_template {
+            builder = builder.instruction_template(template);
+        }
+        if let Some(ref builtins) = self.builtin_tools {
+            builder = builder.allow_builtins(builtins.clone());
+        }
+        if let Some(ref mode) = self.sandbox_mode {
+            builder = builder.sandbox_mode(mode.clone());
+        }
+        if let Some(ref dir) = self.working_dir {
+            builder = builder.working_dir(dir);
+        }
+
+        let result = builder.run().await?;
+
+        Ok(result.stdout)
+    }
+
+    /// Executes a chat-style interaction with message history.
+    ///
+    /// Formats the chat history as a conversation and appends the current prompt.
+    /// Consumes the CliAgent since `ToolSet` cannot be cloned.
+    ///
+    /// # Errors
+    /// Returns [`ProviderError`] if execution fails.
+    pub async fn chat(
+        self,
+        prompt: &str,
+        chat_history: &[String],
+    ) -> Result<String, ProviderError> {
+        // Format chat history into prompt
+        let full_prompt = if chat_history.is_empty() {
+            prompt.to_string()
+        } else {
+            let history = chat_history.join("\n");
+            format!("{history}\n\nuser: {prompt}")
+        };
+
+        self.prompt(&full_prompt).await
+    }
+}
+
 async fn run_claude_code(
     prompt: &str,
     mcp_config: &rig_mcp_server::server::McpConfig,
