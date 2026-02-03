@@ -108,13 +108,13 @@ impl Client {
     /// This is an escape hatch for developers who need access to adapter-specific
     /// functionality not exposed through the standard Rig provider interface.
     #[must_use]
-    pub fn cli(&self) -> &CodexCli {
+    pub const fn cli(&self) -> &CodexCli {
         &self.cli
     }
 
     /// Access the client configuration.
     #[must_use]
-    pub fn config(&self) -> &ClientConfig {
+    pub const fn config(&self) -> &ClientConfig {
         &self.config
     }
 
@@ -168,13 +168,13 @@ impl CompletionModel for Model {
         // If payload is set, wrap prompt in XML context structure
         let final_prompt = if let Some(ref payload) = self.payload {
             format!(
-                r#"<context>
+                r"<context>
 {payload}
 </context>
 
 <task>
 {prompt_text}
-</task>"#
+</task>"
             )
         } else {
             prompt_text
@@ -224,13 +224,13 @@ impl CompletionModel for Model {
         // If payload is set, wrap prompt in XML context structure
         let final_prompt = if let Some(ref payload) = self.payload {
             format!(
-                r#"<context>
+                r"<context>
 {payload}
 </context>
 
 <task>
 {prompt_text}
-</task>"#
+</task>"
             )
         } else {
             prompt_text

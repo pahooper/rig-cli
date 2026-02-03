@@ -19,7 +19,7 @@ pub struct CliResponse {
 impl CliResponse {
     /// Creates a new `CliResponse` from adapter-internal types.
     #[must_use]
-    pub fn from_run_result(stdout: String, exit_code: i32, duration_ms: u64) -> Self {
+    pub const fn from_run_result(stdout: String, exit_code: i32, duration_ms: u64) -> Self {
         Self {
             text: stdout,
             exit_code,

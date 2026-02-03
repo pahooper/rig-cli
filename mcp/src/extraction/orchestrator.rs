@@ -96,7 +96,7 @@ impl ExtractionOrchestrator {
                         event = "extraction_outcome",
                         success = false,
                         total_attempts = attempt,
-                        total_duration_ms = start.elapsed().as_millis() as u64,
+                        total_duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
                         error_kind = "agent_error",
                         "extraction_outcome"
                     );
@@ -185,7 +185,7 @@ impl ExtractionOrchestrator {
                     event = "extraction_outcome",
                     success = true,
                     total_attempts = attempt,
-                    total_duration_ms = start.elapsed().as_millis() as u64,
+                    total_duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
                     "extraction_outcome"
                 );
 
@@ -245,7 +245,7 @@ impl ExtractionOrchestrator {
             event = "extraction_outcome",
             success = false,
             total_attempts = self.config.max_attempts,
-            total_duration_ms = start.elapsed().as_millis() as u64,
+            total_duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
             "extraction_outcome"
         );
 

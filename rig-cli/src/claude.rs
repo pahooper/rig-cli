@@ -181,13 +181,13 @@ impl Client {
     /// This is an escape hatch for developers who need access to adapter-specific
     /// functionality not exposed through the standard Rig provider interface.
     #[must_use]
-    pub fn cli(&self) -> &claudecode_adapter::ClaudeCli {
+    pub const fn cli(&self) -> &claudecode_adapter::ClaudeCli {
         &self.cli
     }
 
     /// Access the client configuration.
     #[must_use]
-    pub fn config(&self) -> &ClientConfig {
+    pub const fn config(&self) -> &ClientConfig {
         &self.config
     }
 
@@ -260,7 +260,8 @@ pub struct Model {
     /// Optional payload for context injection.
     payload: Option<String>,
     /// Model identifier (stored for API consistency, CLI agents don't use per-request model selection).
-    #[allow(dead_code)]
+    // Matches Rig's CompletionModel pattern where Model has a model identifier field
+    #[allow(dead_code, clippy::struct_field_names)]
     model_name: String,
 }
 
@@ -288,13 +289,13 @@ impl CompletionModel for Model {
         // If payload is set, wrap prompt in XML context structure
         let final_prompt = if let Some(ref payload) = self.payload {
             format!(
-                r#"<context>
+                r"<context>
 {payload}
 </context>
 
 <task>
 {prompt_text}
-</task>"#
+</task>"
             )
         } else {
             prompt_text
@@ -332,7 +333,7 @@ impl CompletionModel for Model {
                 }
             })?;
 
-        let duration_ms = start.elapsed().as_millis() as u64;
+        let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
 
         let cli_response = CliResponse::from_run_result(
             result.stdout.clone(),
@@ -357,13 +358,13 @@ impl CompletionModel for Model {
         // If payload is set, wrap prompt in XML context structure
         let final_prompt = if let Some(ref payload) = self.payload {
             format!(
-                r#"<context>
+                r"<context>
 {payload}
 </context>
 
 <task>
 {prompt_text}
-</task>"#
+</task>"
             )
         } else {
             prompt_text

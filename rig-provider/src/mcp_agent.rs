@@ -347,7 +347,7 @@ impl McpToolAgentBuilder {
     /// Default: `SandboxMode::ReadOnly` (most restrictive).
     /// Only affects Codex adapter; Claude Code and `OpenCode` ignore this setting.
     #[must_use]
-    pub fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
+    pub const fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
         self.sandbox_mode = Some(mode);
         self
     }
@@ -411,14 +411,11 @@ impl McpToolAgentBuilder {
         let server_name = self.server_name.clone();
 
         // Create temp dir if working_dir not provided (CONT-04)
-        let (_temp_dir, effective_cwd) = match self.working_dir {
-            Some(dir) => (None, dir),
-            None => {
-                let td = tempfile::TempDir::new()
-                    .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp dir: {e}")))?;
-                let path = td.path().to_path_buf();
-                (Some(td), path)
-            }
+        let (_temp_dir, effective_cwd) = if let Some(dir) = self.working_dir { (None, dir) } else {
+            let td = tempfile::TempDir::new()
+                .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp dir: {e}")))?;
+            let path = td.path().to_path_buf();
+            (Some(td), path)
         };
 
         // 2. Get tool definitions
@@ -489,7 +486,7 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
         // 10. Execute per adapter
         match adapter {
             CliAdapter::ClaudeCode => {
-                run_claude_code_stream(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, &builtin_tools, &effective_cwd, tx)
+                run_claude_code_stream(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, builtin_tools.as_ref(), &effective_cwd, tx)
                     .await?;
             }
             CliAdapter::Codex => {
@@ -536,14 +533,11 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
         let sandbox_mode = self.sandbox_mode.unwrap_or(codex_adapter::SandboxMode::ReadOnly);
 
         // Create temp dir if working_dir not provided (CONT-04)
-        let (_temp_dir, effective_cwd) = match self.working_dir {
-            Some(dir) => (None, dir),
-            None => {
-                let td = tempfile::TempDir::new()
-                    .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp dir: {e}")))?;
-                let path = td.path().to_path_buf();
-                (Some(td), path)
-            }
+        let (_temp_dir, effective_cwd) = if let Some(dir) = self.working_dir { (None, dir) } else {
+            let td = tempfile::TempDir::new()
+                .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp dir: {e}")))?;
+            let path = td.path().to_path_buf();
+            (Some(td), path)
         };
 
         // 2. Get tool definitions
@@ -613,7 +607,7 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
         // 9. Execute per adapter
         match adapter {
             CliAdapter::ClaudeCode => {
-                run_claude_code(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, &builtin_tools, &effective_cwd)
+                run_claude_code(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, builtin_tools.as_ref(), &effective_cwd)
                     .await
             }
             CliAdapter::Codex => {
@@ -748,7 +742,7 @@ impl CliAgentBuilder {
     ///
     /// Default: `SandboxMode::ReadOnly`. Only affects Codex adapter.
     #[must_use]
-    pub fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
+    pub const fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
         self.sandbox_mode = Some(mode);
         self
     }
@@ -873,7 +867,7 @@ async fn run_claude_code(
     allowed_tools: &[String],
     system_prompt: &str,
     timeout: Duration,
-    builtin_tools: &Option<Vec<String>>,
+    builtin_tools: Option<&Vec<String>>,
     cwd: &std::path::Path,
 ) -> Result<McpToolAgentResult, ProviderError> {
     // Write Claude Code MCP config JSON to temp file
@@ -897,10 +891,10 @@ async fn run_claude_code(
     let cli = claudecode_adapter::ClaudeCli::new(report.claude_path, report.capabilities);
 
     // Apply containment: disable all builtins by default, opt-in via builtin_tools
-    let builtin_set = match builtin_tools {
-        None => claudecode_adapter::BuiltinToolSet::None,
-        Some(tools) => claudecode_adapter::BuiltinToolSet::Explicit(tools.clone()),
-    };
+    let builtin_set = builtin_tools.map_or(
+        claudecode_adapter::BuiltinToolSet::None,
+        |tools| claudecode_adapter::BuiltinToolSet::Explicit(tools.clone()),
+    );
 
     let config = claudecode_adapter::RunConfig {
         output_format: Some(claudecode_adapter::OutputFormat::Text),
@@ -1053,7 +1047,7 @@ async fn run_claude_code_stream(
     allowed_tools: &[String],
     system_prompt: &str,
     timeout: Duration,
-    builtin_tools: &Option<Vec<String>>,
+    builtin_tools: Option<&Vec<String>>,
     cwd: &std::path::Path,
     tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
 ) -> Result<(), ProviderError> {
@@ -1078,10 +1072,10 @@ async fn run_claude_code_stream(
     let cli = claudecode_adapter::ClaudeCli::new(report.claude_path, report.capabilities);
 
     // Apply containment: disable all builtins by default, opt-in via builtin_tools
-    let builtin_set = match builtin_tools {
-        None => claudecode_adapter::BuiltinToolSet::None,
-        Some(tools) => claudecode_adapter::BuiltinToolSet::Explicit(tools.clone()),
-    };
+    let builtin_set = builtin_tools.map_or(
+        claudecode_adapter::BuiltinToolSet::None,
+        |tools| claudecode_adapter::BuiltinToolSet::Explicit(tools.clone()),
+    );
 
     let config = claudecode_adapter::RunConfig {
         output_format: Some(claudecode_adapter::OutputFormat::StreamJson),
