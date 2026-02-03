@@ -5,7 +5,7 @@
 //! This crate provides a Rig-idiomatic facade over CLI-based AI agents (Claude Code, Codex, OpenCode),
 //! allowing you to use them with the same patterns you use for cloud API providers like OpenAI or Anthropic.
 //!
-//! ## Example
+//! ## Quick Start
 //!
 //! ```no_run
 //! # use rig_cli::prelude::*;
@@ -24,11 +24,48 @@
 //! # }
 //! ```
 //!
+//! ## Structured Extraction with MCP
+//!
+//! For structured data extraction, use the MCP-enforced extraction pattern:
+//!
+//! ```no_run
+//! # use rig_cli::prelude::*;
+//! # use serde::{Deserialize, Serialize};
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! #[derive(Debug, Deserialize, Serialize)]
+//! struct PersonInfo {
+//!     name: String,
+//!     age: u32,
+//! }
+//!
+//! // Create toolkit from your schema
+//! let toolkit = JsonSchemaToolkit::from_type::<PersonInfo>()?;
+//!
+//! // Build MCP orchestrator
+//! let orchestrator = ExtractionOrchestrator::builder()
+//!     .with_toolkit(toolkit)
+//!     .build();
+//!
+//! // Create client and extract
+//! let client = rig_cli::claude::Client::new().await?;
+//! let result = orchestrator
+//!     .extract::<PersonInfo>(
+//!         &client.agent("claude-sonnet-4").build(),
+//!         "Extract person info: Alice is 30 years old"
+//!     )
+//!     .await?;
+//!
+//! println!("{:?}", result);
+//! # Ok(())
+//! # }
+//! ```
+//!
 //! ## Feature Flags
 //!
 //! - `claude` (default): Enable Claude Code provider
 //! - `codex` (default): Enable Codex provider
 //! - `opencode` (default): Enable OpenCode provider
+//! - `debug-output` (opt-in): Include raw CLI output in error messages for debugging
 
 #![deny(missing_docs)]
 
@@ -55,3 +92,25 @@ pub mod response;
 
 /// Commonly used types and traits.
 pub mod prelude;
+
+// Re-export the Rig crate so users can access Rig types via rig_cli::rig::...
+pub use rig;
+
+/// Re-export of MCP extraction types for structured data extraction workflows.
+///
+/// These types enable building MCP-enforced extraction pipelines that guarantee
+/// schema-compliant output from CLI agents.
+pub mod extraction {
+    pub use rig_mcp_server::extraction::{
+        ExtractionConfig, ExtractionError, ExtractionMetrics, ExtractionOrchestrator,
+    };
+}
+
+/// Re-export of MCP tool types for building tool-based extraction workflows.
+///
+/// These types provide the building blocks for creating JSON schema-based toolkits
+/// and configuring MCP servers for structured agent execution.
+pub mod tools {
+    pub use rig_mcp_server::server::{McpConfig, RigMcpHandler, ToolSetExt};
+    pub use rig_mcp_server::tools::JsonSchemaToolkit;
+}

@@ -1,10 +1,29 @@
-//! Commonly used types and traits.
+//! Common imports for rig-cli usage.
 //!
-//! This prelude module provides convenient re-exports of frequently used types.
-//! Import with `use rig_cli::prelude::*;` to bring common items into scope.
+//! ```
+//! use rig_cli::prelude::*;
+//! ```
+//!
+//! This module re-exports the most commonly used types and traits for typical
+//! rig-cli usage patterns, including client types, error handling, Rig traits,
+//! and MCP types for structured extraction workflows.
 
-// Re-export error type (always available)
+// Client types (feature-gated)
+#[cfg(feature = "claude")]
+pub use crate::claude::Client as ClaudeClient;
+#[cfg(feature = "codex")]
+pub use crate::codex::Client as CodexClient;
+#[cfg(feature = "opencode")]
+pub use crate::opencode::Client as OpenCodeClient;
+
+// Error type (always available)
 pub use crate::errors::Error;
 
-// Re-export config type (always available)
-pub use crate::config::ClientConfig;
+// Re-export key Rig traits so users don't need separate rig import
+pub use rig::completion::Prompt;
+pub use rig::completion::Chat;
+
+// Re-export key MCP types for structured extraction workflows
+// These are the types users need to build ToolSets for extraction
+pub use rig_mcp_server::extraction::{ExtractionConfig, ExtractionOrchestrator};
+pub use rig_mcp_server::tools::JsonSchemaToolkit;
