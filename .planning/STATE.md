@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 7 of 11 (Rig Integration Polish)
-Plan: 3 of 4 in current phase (3 complete: 07-01, 07-02, 07-03)
-Status: In progress
-Last activity: 2026-02-03 — Completed 07-03-PLAN.md (Codex and OpenCode Clients)
+Plan: 4 of 4 in current phase (Phase complete: 07-01, 07-02, 07-03, 07-04)
+Status: Phase complete
+Last activity: 2026-02-03 — Completed 07-04-PLAN.md (API Polish & Ergonomics)
 
-Progress: [█████████████▌] 23/24 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 3/4)
+Progress: [██████████████] 24/24 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 4/4)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
+- Total plans completed: 24
 - Average duration: 2.6 min
-- Total execution time: 1.18 hours
+- Total execution time: 1.25 hours
 
 **By Phase:**
 
@@ -34,11 +34,11 @@ Progress: [█████████████▌] 23/24 plans complete (Pha
 | 04-agent-containment | 2 | 4.4min | 2.2min |
 | 05-observability-infrastructure | 2 | 5.5min | 2.75min |
 | 06-platform-hardening | 4 | 8.7min | 2.2min |
-| 07-rig-integration-polish | 3 | 10.9min | 3.6min |
+| 07-rig-integration-polish | 4 | 14.3min | 3.6min |
 
 **Recent Trend:**
-- Last 5 plans: 07-03 (5.2min), 07-02 (4min), 07-01 (1.7min), 06-04 (1min), 06-03 (3.7min)
-- Trend: All three CLI providers now have identical CompletionClient implementation pattern
+- Last 5 plans: 07-04 (3.4min), 07-03 (5.2min), 07-02 (4min), 07-01 (1.7min), 06-04 (1min)
+- Trend: Phase 7 complete - rig-cli facade provides clean API with prelude, escape hatches, and MCP re-exports
 
 *Updated after each plan completion*
 
@@ -115,6 +115,11 @@ Recent decisions affecting current work:
 - All three providers (Claude, Codex, OpenCode) follow identical implementation pattern for API consistency (07-03)
 - Codex and OpenCode StreamEvent enums have fewer variants (Text/Error/Unknown only, no ToolCall/ToolResult) (07-03)
 - Payload field stored but unused in Model pending future MCP integration (07-03)
+- Prelude exports minimal set: Client types (feature-gated), Error, Rig traits (Prompt, Chat), MCP types (07-04)
+- Escape hatches return CLI handle directly (not internal Model) for adapter-specific access (07-04)
+- debug-output feature is opt-in only, not in default features (production safety) (07-04)
+- Re-export rig crate at lib root for user access to Rig types via rig_cli::rig::... (07-04)
+- MCP types re-exported through extraction and tools modules for discoverability (07-04)
 
 ### Pending Todos
 
@@ -140,5 +145,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07-03-PLAN.md (Codex and OpenCode Clients)
+Stopped at: Completed 07-04-PLAN.md (API Polish & Ergonomics) - Phase 7 complete
 Resume file: None
