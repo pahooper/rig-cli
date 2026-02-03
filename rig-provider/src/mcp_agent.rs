@@ -415,6 +415,8 @@ impl McpToolAgentBuilder {
             .map_err(|e| ProviderError::McpToolAgent(format!("Failed to get current exe: {e}")))?;
         let mcp_config = rig_mcp_server::server::McpConfig {
             name: self.server_name.clone(),
+            // Path-to-string for JSON serialization; lossy is acceptable since CLI commands
+            // must be valid UTF-8 in JSON config format.
             command: exe.to_string_lossy().to_string(),
             args: vec![],
             env: {
@@ -521,6 +523,7 @@ async fn run_claude_code(
         output_format: Some(claudecode_adapter::OutputFormat::Text),
         system_prompt: claudecode_adapter::SystemPromptMode::Append(system_prompt.to_string()),
         mcp: Some(claudecode_adapter::McpPolicy {
+            // Temp file paths are always valid UTF-8 (created by tempfile crate).
             configs: vec![config_path.to_string_lossy().to_string()],
             strict: true,
         }),

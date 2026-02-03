@@ -9,7 +9,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
-use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -164,9 +163,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn register_self_as_mcp() -> Result<(), Box<dyn std::error::Error>> {
     let exe = std::env::current_exe()?;
     let exe_str = exe.to_string_lossy().to_string();
-    let home = std::env::var("HOME").map_err(|e| format!("HOME env var not set: {}", e))?;
-    let path = PathBuf::from(&home).join(".claude.json");
-    
+    let home = dirs::home_dir()
+        .ok_or_else(|| "Could not determine home directory".to_string())?;
+    let path = home.join(".claude.json");
+
     println!("Registering example MCP server at: {}", path.display());
 
     let mut data = if path.exists() {
