@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Payload & Instruction System** - Context data injection and forced tool workflow
 - [x] **Phase 4: Agent Containment** - MCP tool boundaries and sandbox enforcement
 - [x] **Phase 5: Observability Infrastructure** - Structured tracing and CLI version detection
-- [ ] **Phase 6: Platform Hardening** - Cross-platform reliability for Linux and Windows
+- [x] **Phase 6: Platform Hardening** - Cross-platform reliability for Linux and Windows
 - [ ] **Phase 7: Rig Integration Polish** - Native Rig ecosystem feel
 - [ ] **Phase 8: Claude Code Adapter** - Production hardening for primary adapter
 - [ ] **Phase 9: Codex Adapter** - Production hardening for secondary adapter
@@ -137,10 +137,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Cross-platform signal handling (cfg(unix)/cfg(windows) for all adapter process.rs)
-- [ ] 06-02-PLAN.md — Binary discovery with fallback locations, install hints, standardized 3-tier pattern
-- [ ] 06-03-PLAN.md — Path handling: dirs::home_dir() in setup.rs, OsString migration, example fixes
-- [ ] 06-04-PLAN.md — Dependency audit: justfile targets for cargo audit, semver strategy verification
+- [x] 06-01-PLAN.md — Cross-platform signal handling (cfg(unix)/cfg(windows) for all adapter process.rs)
+- [x] 06-02-PLAN.md — Binary discovery with fallback locations, install hints, standardized 3-tier pattern
+- [x] 06-03-PLAN.md — Path handling: dirs::home_dir() in setup.rs, OsString migration, example fixes
+- [x] 06-04-PLAN.md — Dependency audit: justfile targets for cargo audit, semver strategy verification
 
 ### Phase 7: Rig Integration Polish
 **Goal**: API surface feels like native Rig extension built by 0xPlaygrounds
@@ -225,7 +225,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 3. Payload & Instruction System | 2/2 | Complete | 2026-02-02 |
 | 4. Agent Containment | 2/2 | Complete | 2026-02-02 |
 | 5. Observability Infrastructure | 2/2 | Complete | 2026-02-02 |
-| 6. Platform Hardening | 0/TBD | Not started | - |
+| 6. Platform Hardening | 4/4 | Complete | 2026-02-03 |
 | 7. Rig Integration Polish | 0/TBD | Not started | - |
 | 8. Claude Code Adapter | 0/TBD | Not started | - |
 | 9. Codex Adapter | 0/TBD | Not started | - |
