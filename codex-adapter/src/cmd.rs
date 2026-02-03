@@ -1,6 +1,55 @@
-//! Command-line argument construction for the Codex CLI.
+//! Command-line argument builder for Codex CLI invocations.
+//!
+//! ## Flag Reference
+//!
+//! ### Containment Flags
+//! - `-s, --sandbox <mode>`: Filesystem isolation (read-only | workspace-write | danger-full-access)
+//! - `-a, --ask-for-approval <policy>`: Approval gating (untrusted | on-failure | on-request | never)
+//! - `--full-auto`: Convenience alias (-a on-request, --sandbox workspace-write)
+//! - `--dangerously-bypass-approvals-and-sandbox`: Disables ALL containment (extremely dangerous)
+//!
+//! ### Working Directory Flags
+//! - `-C, --cd <dir>`: Set working directory for the agent
+//! - `--add-dir <dir>`: Additional writable directories (repeatable)
+//! - `--skip-git-repo-check`: Allow non-git directories (needed for temp dir containment)
+//!
+//! ### Model and Output Flags
+//! - `-m, --model <model>`: Model to use (e.g., o4-mini)
+//! - `--search`: Enable live web search capability
+//! - `-c, --config <key=value>`: Override config values
+//!
+//! ## Flag Combinations and Compatibility
+//!
+//! ### Valid Containment Combinations
+//! | Combination | Effect |
+//! |-------------|--------|
+//! | `--sandbox read-only` | Landlock enforces read-only filesystem access |
+//! | `--ask-for-approval untrusted` | Only known-safe commands auto-run |
+//! | `--sandbox read-only -a untrusted` | Maximum containment (both layers) |
+//! | `--sandbox read-only --skip-git-repo-check` | Containment in temp directories |
+//!
+//! ### Invalid/Conflict Combinations
+//! | Combination | Issue |
+//! |-------------|-------|
+//! | `--full-auto` + `--sandbox read-only` | full-auto overrides to workspace-write |
+//! | `--full-auto` + `-a untrusted` | full-auto overrides to on-request |
+//! | `--sandbox X` + `--dangerously-bypass...` | Bypass disables sandbox entirely |
+//!
+//! ## Version Notes
+//! - `--ask-for-approval`: Available in Codex CLI 0.92.0+
+//! - `--sandbox`: Uses Linux Landlock (may have reduced effect on other platforms)
+//! - `--full-auto`: Convenience flag since Codex 0.90.0
+//!
+//! ## Known Limitations
+//! - MCP tools bypass Landlock sandbox restrictions (Codex Issue #4152)
+//!   ([GitHub #4152](https://github.com/openai/codex/issues/4152))
+//!   For strong isolation, use external Docker sandboxes.
+//! - `--dangerously-bypass-approvals-and-sandbox` disables ALL containment
+//!
+//! ## External References
+//! - [Codex CLI Reference](https://developers.openai.com/codex/cli/reference/)
 
-use crate::types::{CodexConfig, SandboxMode};
+use crate::types::{ApprovalPolicy, CodexConfig, SandboxMode};
 use std::ffi::OsString;
 
 /// Builds the argument list for a Codex CLI invocation.
@@ -21,6 +70,16 @@ pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
             SandboxMode::ReadOnly => args.push(OsString::from("read-only")),
             SandboxMode::WorkspaceWrite => args.push(OsString::from("workspace-write")),
             SandboxMode::DangerFullAccess => args.push(OsString::from("danger-full-access")),
+        }
+    }
+
+    if let Some(ref policy) = config.ask_for_approval {
+        args.push(OsString::from("--ask-for-approval"));
+        match policy {
+            ApprovalPolicy::Untrusted => args.push(OsString::from("untrusted")),
+            ApprovalPolicy::OnFailure => args.push(OsString::from("on-failure")),
+            ApprovalPolicy::OnRequest => args.push(OsString::from("on-request")),
+            ApprovalPolicy::Never => args.push(OsString::from("never")),
         }
     }
 
