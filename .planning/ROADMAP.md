@@ -172,10 +172,13 @@ Plans:
   2. All extraction features (retry, validation, payload) work reliably
   3. Passes clippy pedantic with zero warnings (root causes fixed, not suppressed)
   4. CLI flag combinations are tested and documented
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 08-01: TBD
+- [ ] 08-01-PLAN.md — Fix all clippy pedantic warnings workspace-wide (doc_markdown, const fn, truncation)
+- [ ] 08-02-PLAN.md — Add CLI flag documentation and combination tests to cmd.rs
+- [ ] 08-03-PLAN.md — Add E2E containment tests with real Claude CLI (tests/e2e_containment.rs)
+- [ ] 08-04-PLAN.md — Add comprehensive extraction failure tests to orchestrator.rs
 
 ### Phase 9: Codex Adapter
 **Goal**: Codex adapter is production-hardened as secondary adapter
@@ -234,7 +237,7 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 5. Observability Infrastructure | 2/2 | Complete | 2026-02-02 |
 | 6. Platform Hardening | 4/4 | Complete | 2026-02-03 |
 | 7. Rig Integration Polish | 7/7 | Complete | 2026-02-03 |
-| 8. Claude Code Adapter | 0/TBD | Not started | - |
+| 8. Claude Code Adapter | 0/4 | Not started | - |
 | 9. Codex Adapter | 0/TBD | Not started | - |
 | 10. OpenCode Maintenance | 0/TBD | Not started | - |
 | 11. Documentation & Examples | 0/TBD | Not started | - |
