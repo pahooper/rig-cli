@@ -212,4 +212,111 @@ mod tests {
             "MCP config path should be set via OPENCODE_CONFIG env var, not args"
         );
     }
+
+    #[test]
+    fn test_full_config_combination() {
+        // Test all config options together
+        let config = OpenCodeConfig {
+            model: Some("opencode/big-pickle".to_string()),
+            print_logs: true,
+            log_level: Some("DEBUG".to_string()),
+            port: Some(8080),
+            hostname: Some("localhost".to_string()),
+            prompt: Some("You are helpful.".to_string()),
+            cwd: Some(std::path::PathBuf::from("/tmp/work")),
+            mcp_config_path: Some(std::path::PathBuf::from("/tmp/mcp.json")),
+            env_vars: vec![],
+            timeout: std::time::Duration::from_secs(60),
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Verify CLI flags that DO appear
+        assert!(args_str.windows(2).any(|w| w[0] == "--model" && w[1] == "opencode/big-pickle"));
+        assert!(args_str.contains(&"--print-logs"));
+        assert!(args_str.windows(2).any(|w| w[0] == "--log-level" && w[1] == "DEBUG"));
+        assert!(args_str.windows(2).any(|w| w[0] == "--port" && w[1] == "8080"));
+        assert!(args_str.windows(2).any(|w| w[0] == "--hostname" && w[1] == "localhost"));
+
+        // Verify containment via NON-CLI mechanisms (these should NOT appear in args)
+        assert!(!args_str.iter().any(|a| a.contains("/tmp/work")), "cwd should not appear in args");
+        assert!(!args_str.iter().any(|a| a.contains("mcp.json")), "MCP config path should not appear in args");
+    }
+
+    #[test]
+    fn test_server_flags_combination() {
+        // Port + hostname together (server mode configuration)
+        let config = OpenCodeConfig {
+            port: Some(9000),
+            hostname: Some("0.0.0.0".to_string()),
+            ..OpenCodeConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(args_str.windows(2).any(|w| w[0] == "--port" && w[1] == "9000"));
+        assert!(args_str.windows(2).any(|w| w[0] == "--hostname" && w[1] == "0.0.0.0"));
+    }
+
+    #[test]
+    fn test_logging_flags_combination() {
+        // print_logs + log_level together
+        let config = OpenCodeConfig {
+            print_logs: true,
+            log_level: Some("WARN".to_string()),
+            ..OpenCodeConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(args_str.contains(&"--print-logs"));
+        assert!(args_str.windows(2).any(|w| w[0] == "--log-level" && w[1] == "WARN"));
+    }
+
+    #[test]
+    fn test_containment_flags_absent() {
+        // Verify NO containment flags exist (unlike Claude Code and Codex)
+        // This documents OpenCode's containment model: process-level, not CLI flags
+        let config = OpenCodeConfig {
+            cwd: Some(std::path::PathBuf::from("/isolated")),
+            mcp_config_path: Some(std::path::PathBuf::from("/config/mcp.json")),
+            ..OpenCodeConfig::default()
+        };
+        let args = build_args("test prompt", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        // Claude Code containment flags (must NOT appear)
+        assert!(!args_str.contains(&"--tools"));
+        assert!(!args_str.contains(&"--allowed-tools"));
+        assert!(!args_str.contains(&"--disallowed-tools"));
+        assert!(!args_str.contains(&"--strict-mcp-config"));
+
+        // Codex containment flags (must NOT appear)
+        assert!(!args_str.contains(&"--sandbox"));
+        assert!(!args_str.contains(&"--ask-for-approval"));
+        assert!(!args_str.contains(&"--full-auto"));
+
+        // Generic containment flags (must NOT appear)
+        assert!(!args_str.iter().any(|a| a.contains("--cd")));
+        assert!(!args_str.iter().any(|a| a.contains("--cwd")));
+        assert!(!args_str.iter().any(|a| a.contains("--mcp-config")));
+    }
+
+    #[test]
+    fn test_prompt_with_model_combination() {
+        // System prompt + model selection (common production config)
+        let config = OpenCodeConfig {
+            model: Some("opencode/fast".to_string()),
+            prompt: Some("Extract JSON only.".to_string()),
+            ..OpenCodeConfig::default()
+        };
+        let args = build_args("Parse this: {}", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(args_str.windows(2).any(|w| w[0] == "--model" && w[1] == "opencode/fast"));
+        // System prompt is prepended, so last arg should contain both
+        let last = args_str.last().unwrap();
+        assert!(last.contains("Extract JSON only."), "System prompt should be prepended");
+        assert!(last.contains("Parse this: {}"), "User message should follow");
+    }
 }
