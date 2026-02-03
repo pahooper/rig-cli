@@ -1,4 +1,4 @@
-//! Command-line argument builder for OpenCode CLI invocations.
+//! Command-line argument builder for `OpenCode` CLI invocations.
 //!
 //! ## Flag Reference
 //!
@@ -7,13 +7,13 @@
 //! - `--print-logs`: Enable debug log output
 //! - `--log-level <level>`: Log verbosity (debug, info, warn, error)
 //!
-//! ### Server Flags (for OpenCode server mode)
+//! ### Server Flags (for `OpenCode` server mode)
 //! - `--port <port>`: Server port override
 //! - `--hostname <host>`: Server hostname override
 //!
 //! ## Containment Strategy
 //!
-//! **IMPORTANT:** OpenCode has no CLI flags for sandbox, approval policy, or tool
+//! **IMPORTANT:** `OpenCode` has no CLI flags for sandbox, approval policy, or tool
 //! restriction (unlike Claude Code and Codex). Containment is achieved through:
 //!
 //! 1. **Working Directory Isolation**: `Command::current_dir()` sets cwd, not a CLI arg
@@ -21,18 +21,18 @@
 //! 3. **System Prompt Prepending**: No `--system-prompt` flag; prompt is prepended to message
 //!
 //! ### Containment Comparison
-//! | Feature | Claude Code | Codex | OpenCode |
+//! | Feature | Claude Code | Codex | `OpenCode` |
 //! |---------|-------------|-------|----------|
 //! | Sandbox | --tools "" | --sandbox | (none) |
 //! | Tool restriction | --allowed-tools | (none) | (none) |
-//! | Working dir | --cwd | --cd | Command::current_dir() |
-//! | MCP config | --mcp-config | -c overrides | OPENCODE_CONFIG env |
+//! | Working dir | --cwd | --cd | `Command::current_dir()` |
+//! | MCP config | --mcp-config | -c overrides | `OPENCODE_CONFIG` env |
 //! | System prompt | --system-prompt | (prepend) | (prepend) |
 //!
 //! ## Version Notes
 //! - `run` subcommand: Standard execution mode
 //! - `--model`: Supports opencode/big-pickle and other available models
-//! - No version-specific flags known; OpenCode CLI has minimal flag surface
+//! - No version-specific flags known; `OpenCode` CLI has minimal flag surface
 //!
 //! ## Known Limitations
 //! - No filesystem sandbox mechanism (containment relies on process isolation)

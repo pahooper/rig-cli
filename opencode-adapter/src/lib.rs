@@ -1,6 +1,6 @@
-//! Adapter crate for running the OpenCode CLI as a subprocess.
+//! Adapter crate for running the `OpenCode` CLI as a subprocess.
 //!
-//! This crate provides a Rust interface for executing the OpenCode CLI tool,
+//! This crate provides a Rust interface for executing the `OpenCode` CLI tool,
 //! with streaming output, timeout handling, and graceful shutdown support.
 //!
 //! ## Quick Start
@@ -41,7 +41,7 @@
 //!
 //! ## Containment
 //!
-//! Unlike Claude Code and Codex, OpenCode has no CLI flags for sandboxing or tool restriction.
+//! Unlike Claude Code and Codex, `OpenCode` has no CLI flags for sandboxing or tool restriction.
 //! Containment is achieved through:
 //!
 //! - **Working directory**: Set via [`OpenCodeConfig::cwd`], passed to `Command::current_dir()`
