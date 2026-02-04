@@ -12,9 +12,9 @@
 //! Run with: `cargo run --example mcp_tool_agent_e2e -- [claude|codex|opencode]`
 
 use rig::tool::ToolSet;
-use rig_mcp_server::prelude::ToolSetExt;
-use rig_mcp_server::tools::JsonSchemaToolkit;
-use rig_provider::{CliAdapter, McpToolAgent};
+use rig_cli_mcp::prelude::ToolSetExt;
+use rig_cli_mcp::tools::JsonSchemaToolkit;
+use rig_cli_provider::{CliAdapter, McpToolAgent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;

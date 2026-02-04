@@ -26,5 +26,5 @@ pub use rig::completion::Chat;
 
 // Re-export key MCP types for structured extraction workflows
 // These are the types users need to build ToolSets for extraction
-pub use rig_mcp_server::extraction::{ExtractionConfig, ExtractionOrchestrator};
-pub use rig_mcp_server::tools::JsonSchemaToolkit;
+pub use rig_cli_mcp::extraction::{ExtractionConfig, ExtractionOrchestrator};
+pub use rig_cli_mcp::tools::JsonSchemaToolkit;

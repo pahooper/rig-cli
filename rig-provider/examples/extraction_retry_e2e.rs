@@ -8,8 +8,8 @@
 //!
 //! Run with: `cargo run --example extraction_retry_e2e`
 
-use claudecode_adapter::{init, ClaudeCli, OutputFormat, RunConfig};
-use rig_mcp_server::extraction::{ExtractionConfig, ExtractionOrchestrator};
+use rig_cli_claude::{init, ClaudeCli, OutputFormat, RunConfig};
+use rig_cli_mcp::extraction::{ExtractionConfig, ExtractionOrchestrator};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -170,7 +170,7 @@ async fn main() -> anyhow::Result<()> {
         Err(e) => {
             println!("=== EXTRACTION FAILED ===\n");
             println!("Error: {e}");
-            if let rig_mcp_server::extraction::ExtractionError::MaxRetriesExceeded {
+            if let rig_cli_mcp::extraction::ExtractionError::MaxRetriesExceeded {
                 history,
                 metrics,
                 ..

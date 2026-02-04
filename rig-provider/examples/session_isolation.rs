@@ -1,7 +1,7 @@
-use codex_adapter::{discover_codex, CodexCli};
+use rig_cli_codex::{discover_codex, CodexCli};
 use rig::agent::AgentBuilder;
 use rig::completion::Prompt;
-use rig_provider::CodexModel;
+use rig_cli_provider::CodexModel;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

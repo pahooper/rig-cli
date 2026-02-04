@@ -35,7 +35,7 @@
 //! - No tool restriction flags (all configured tools are available)
 //! - Containment relies on process isolation, not CLI enforcement
 
-use opencode_adapter::{discover_opencode, run_opencode, OpenCodeCli, OpenCodeConfig, OpenCodeError};
+use rig_cli_opencode::{discover_opencode, run_opencode, OpenCodeCli, OpenCodeConfig, OpenCodeError};
 use std::time::Duration;
 use tempfile::TempDir;
 

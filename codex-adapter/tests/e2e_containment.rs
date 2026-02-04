@@ -33,7 +33,7 @@
 //!   Tests document this limitation rather than expecting perfect isolation.
 //! - Tests may be flaky due to LLM non-determinism.
 
-use codex_adapter::{discover_codex, run_codex, ApprovalPolicy, CodexCli, CodexConfig, SandboxMode};
+use rig_cli_codex::{discover_codex, run_codex, ApprovalPolicy, CodexCli, CodexConfig, SandboxMode};
 use std::time::Duration;
 use tempfile::TempDir;
 
@@ -250,7 +250,7 @@ async fn e2e_timeout_graceful_shutdown() {
             // Fast response is fine - model may have cached response
             eprintln!("Note: CLI responded before timeout");
         }
-        Err(codex_adapter::CodexError::Timeout {
+        Err(rig_cli_codex::CodexError::Timeout {
             elapsed,
             pid,
             partial_stdout,

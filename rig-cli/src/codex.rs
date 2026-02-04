@@ -23,7 +23,7 @@
 use crate::config::ClientConfig;
 use crate::errors::Error;
 use crate::response::CliResponse;
-use codex_adapter::{discover_codex, CodexCli, CodexConfig};
+use rig_cli_codex::{discover_codex, CodexCli, CodexConfig};
 use futures::StreamExt;
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
@@ -31,8 +31,8 @@ use rig::completion::{
 };
 use rig::streaming::{RawStreamingChoice, StreamingCompletionResponse};
 use rig::OneOrMany;
-use rig_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
-use rig_provider::utils::format_chat_history;
+use rig_cli_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
+use rig_cli_provider::utils::format_chat_history;
 use tokio_stream::wrappers::ReceiverStream;
 
 /// Codex CLI provider client.
@@ -123,7 +123,7 @@ impl Client {
     /// See module docs for the difference between `agent()` and `mcp_agent()`.
     #[must_use]
     pub fn mcp_agent(&self, _model: impl Into<String>) -> CliAgentBuilder {
-        let mut builder = rig_provider::mcp_agent::CliAgent::builder()
+        let mut builder = rig_cli_provider::mcp_agent::CliAgent::builder()
             .adapter(CliAdapter::Codex)
             .timeout(self.config.timeout);
 
@@ -258,11 +258,11 @@ impl CompletionModel for Model {
 
         // Convert the receiver into a stream
         let stream = ReceiverStream::new(rx).map(|event| match event {
-            codex_adapter::StreamEvent::Text { text } => Ok(RawStreamingChoice::Message(text)),
-            codex_adapter::StreamEvent::Error { message } => {
+            rig_cli_codex::StreamEvent::Text { text } => Ok(RawStreamingChoice::Message(text)),
+            rig_cli_codex::StreamEvent::Error { message } => {
                 Err(CompletionError::ProviderError(message))
             }
-            codex_adapter::StreamEvent::Unknown(_) => Ok(RawStreamingChoice::Message(String::new())),
+            rig_cli_codex::StreamEvent::Unknown(_) => Ok(RawStreamingChoice::Message(String::new())),
         });
 
         Ok(StreamingCompletionResponse::stream(Box::pin(stream)))

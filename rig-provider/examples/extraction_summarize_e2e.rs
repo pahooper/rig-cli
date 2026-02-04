@@ -14,8 +14,8 @@
 
 use clap::Parser;
 use rig::tool::ToolSet;
-use rig_mcp_server::prelude::ToolSetExt;
-use rig_mcp_server::tools::JsonSchemaToolkit;
+use rig_cli_mcp::prelude::ToolSetExt;
+use rig_cli_mcp::tools::JsonSchemaToolkit;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -126,7 +126,7 @@ async fn run_server(output_path: Option<PathBuf>) -> Result<(), Box<dyn std::err
 
 /// Client mode: register MCP server, launch Claude Code, verify result.
 async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
-    use claudecode_adapter::{init, ClaudeCli, McpPolicy, OutputFormat, RunConfig};
+    use rig_cli_claude::{init, ClaudeCli, McpPolicy, OutputFormat, RunConfig};
 
     // ── 1. Initialize Claude Code CLI ──────────────────────────────────
     println!("[1/5] Discovering Claude Code CLI...");

@@ -1,7 +1,7 @@
 use crate::errors::ProviderError;
 use crate::sessions::SessionManager;
 use crate::utils::format_chat_history;
-use codex_adapter::{discover_codex, CodexCli, CodexConfig, RunResult, StreamEvent};
+use rig_cli_codex::{discover_codex, CodexCli, CodexConfig, RunResult, StreamEvent};
 use futures::StreamExt;
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
@@ -114,7 +114,7 @@ impl CodexTool {
     ///
     /// # Errors
     /// Returns a `CodexError` if discovery or health check fails.
-    pub async fn new() -> Result<Self, codex_adapter::CodexError> {
+    pub async fn new() -> Result<Self, rig_cli_codex::CodexError> {
         let path = discover_codex(None)?;
         let cli = CodexCli::new(path);
         cli.check_health().await?;
@@ -157,7 +157,7 @@ impl Tool for CodexTool {
 
         if result.exit_code != 0 {
             return Err(ProviderError::Codex(
-                codex_adapter::CodexError::NonZeroExit {
+                rig_cli_codex::CodexError::NonZeroExit {
                     exit_code: result.exit_code,
                     pid: 0,
                     elapsed: std::time::Duration::from_millis(result.duration_ms),

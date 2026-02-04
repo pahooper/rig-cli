@@ -1,5 +1,5 @@
 [package]
-name = "codex-adapter"
+name = "rig-cli-codex"
 version = "0.1.0"
 edition = "2021"
 description = "Rust adapter for OpenAI Codex CLI subprocess execution"

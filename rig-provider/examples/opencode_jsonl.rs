@@ -1,9 +1,9 @@
 use clap::Parser;
 use rig::agent::AgentBuilder;
 use rig::tool::ToolSet;
-use rig_mcp_server::prelude::ToolSetExt;
-use rig_provider::OpenCodeModel;
-use opencode_adapter::{discover_opencode, OpenCodeCli};
+use rig_cli_mcp::prelude::ToolSetExt;
+use rig_cli_provider::OpenCodeModel;
+use rig_cli_opencode::{discover_opencode, OpenCodeCli};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -148,7 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // We use a custom config for testing "Big Pickle" mock model
     // Note: In a real scenario, OpenCode would use the default config/model.
-    let config = opencode_adapter::OpenCodeConfig {
+    let config = rig_cli_opencode::OpenCodeConfig {
         model: Some("Big Pickle".to_string()),
         print_logs: true, 
         ..Default::default()

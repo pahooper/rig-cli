@@ -6,7 +6,7 @@
 //! ## Quick Start
 //!
 //! ```rust,ignore
-//! use opencode_adapter::{discover_opencode, OpenCodeCli, OpenCodeConfig};
+//! use rig_cli_opencode::{discover_opencode, OpenCodeCli, OpenCodeConfig};
 //! use std::time::Duration;
 //!
 //! #[tokio::main]

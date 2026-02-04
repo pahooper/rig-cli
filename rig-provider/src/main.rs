@@ -2,11 +2,11 @@
 
 use clap::{Parser, Subcommand};
 use rig::tool::ToolSet;
-use rig_mcp_server::prelude::*;
-use rig_provider::adapters::claude::ClaudeTool;
-use rig_provider::adapters::codex::CodexTool;
-use rig_provider::adapters::opencode::OpenCodeTool;
-use rig_provider::setup::{run_setup, SetupConfig};
+use rig_cli_mcp::prelude::*;
+use rig_cli_provider::adapters::claude::ClaudeTool;
+use rig_cli_provider::adapters::codex::CodexTool;
+use rig_cli_provider::adapters::opencode::OpenCodeTool;
+use rig_cli_provider::setup::{run_setup, SetupConfig};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +38,7 @@ pub struct ProviderOutput {
     pub metadata: std::collections::HashMap<String, String>,
 }
 
-use rig_provider::errors::ProviderError;
+use rig_cli_provider::errors::ProviderError;
 
 #[tokio::main]
 async fn main() -> Result<(), ProviderError> {

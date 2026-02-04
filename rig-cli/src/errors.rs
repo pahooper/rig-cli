@@ -30,7 +30,7 @@ pub enum Error {
     /// This wraps errors from the rig-provider crate, preserving the full
     /// error chain for debugging while providing actionable Display messages.
     #[error("{0}")]
-    Provider(#[from] rig_provider::errors::ProviderError),
+    Provider(#[from] rig_cli_provider::errors::ProviderError),
 
     /// Error from Rig's completion system.
     ///

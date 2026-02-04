@@ -24,15 +24,15 @@ use crate::config::ClientConfig;
 use crate::errors::Error;
 use crate::response::CliResponse;
 use futures::StreamExt;
-use opencode_adapter::{discover_opencode, OpenCodeCli, OpenCodeConfig};
+use rig_cli_opencode::{discover_opencode, OpenCodeCli, OpenCodeConfig};
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
     CompletionResponse, Usage,
 };
 use rig::streaming::{RawStreamingChoice, StreamingCompletionResponse};
 use rig::OneOrMany;
-use rig_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
-use rig_provider::utils::format_chat_history;
+use rig_cli_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
+use rig_cli_provider::utils::format_chat_history;
 use tokio_stream::wrappers::ReceiverStream;
 
 /// `OpenCode` CLI provider client.
@@ -123,7 +123,7 @@ impl Client {
     /// See module docs for the difference between `agent()` and `mcp_agent()`.
     #[must_use]
     pub fn mcp_agent(&self, _model: impl Into<String>) -> CliAgentBuilder {
-        let mut builder = rig_provider::mcp_agent::CliAgent::builder()
+        let mut builder = rig_cli_provider::mcp_agent::CliAgent::builder()
             .adapter(CliAdapter::OpenCode)
             .timeout(self.config.timeout);
 
@@ -258,11 +258,11 @@ impl CompletionModel for Model {
 
         // Convert the receiver into a stream
         let stream = ReceiverStream::new(rx).map(|event| match event {
-            opencode_adapter::StreamEvent::Text { text } => Ok(RawStreamingChoice::Message(text)),
-            opencode_adapter::StreamEvent::Error { message } => {
+            rig_cli_opencode::StreamEvent::Text { text } => Ok(RawStreamingChoice::Message(text)),
+            rig_cli_opencode::StreamEvent::Error { message } => {
                 Err(CompletionError::ProviderError(message))
             }
-            opencode_adapter::StreamEvent::Unknown(_) => Ok(RawStreamingChoice::Message(String::new())),
+            rig_cli_opencode::StreamEvent::Unknown(_) => Ok(RawStreamingChoice::Message(String::new())),
         });
 
         Ok(StreamingCompletionResponse::stream(Box::pin(stream)))

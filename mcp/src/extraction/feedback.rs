@@ -14,7 +14,7 @@ use serde_json::Value;
 /// # Examples
 ///
 /// ```
-/// use rig_mcp_server::extraction::build_validation_feedback;
+/// use rig_cli_mcp::extraction::build_validation_feedback;
 /// use serde_json::json;
 ///
 /// let schema = json!({"type": "object", "properties": {"name": {"type": "string"}}});
@@ -68,7 +68,7 @@ pub fn build_validation_feedback(
 /// # Examples
 ///
 /// ```
-/// use rig_mcp_server::extraction::feedback::collect_validation_errors;
+/// use rig_cli_mcp::extraction::feedback::collect_validation_errors;
 /// use serde_json::json;
 ///
 /// let schema = json!({
@@ -112,7 +112,7 @@ pub fn collect_validation_errors(schema: &Value, instance: &Value) -> Vec<String
 /// # Examples
 ///
 /// ```
-/// use rig_mcp_server::extraction::feedback::build_parse_error_feedback;
+/// use rig_cli_mcp::extraction::feedback::build_parse_error_feedback;
 /// use serde_json::json;
 ///
 /// let schema = json!({"type": "object"});

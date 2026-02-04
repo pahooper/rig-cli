@@ -1,7 +1,7 @@
-use opencode_adapter::{discover_opencode, OpenCodeCli};
+use rig_cli_opencode::{discover_opencode, OpenCodeCli};
 use rig::agent::AgentBuilder;
 use rig::completion::Prompt;
-use rig_provider::OpenCodeModel;
+use rig_cli_provider::OpenCodeModel;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

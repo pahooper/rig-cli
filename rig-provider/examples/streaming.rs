@@ -1,9 +1,9 @@
-use claudecode_adapter::{init as init_claude, ClaudeCli};
-use codex_adapter::{discover_codex, CodexCli};
+use rig_cli_claude::{init as init_claude, ClaudeCli};
+use rig_cli_codex::{discover_codex, CodexCli};
 use rig::agent::{stream_to_stdout, AgentBuilder};
 use rig::streaming::StreamingPrompt;
-use rig_provider::{ClaudeModel, CodexModel, OpenCodeModel};
-use opencode_adapter::{discover_opencode, OpenCodeCli};
+use rig_cli_provider::{ClaudeModel, CodexModel, OpenCodeModel};
+use rig_cli_opencode::{discover_opencode, OpenCodeCli};
 use std::env;
 
 #[tokio::main]

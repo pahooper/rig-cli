@@ -1,5 +1,5 @@
 [package]
-name = "opencode-adapter"
+name = "rig-cli-opencode"
 version = "0.1.0"
 edition = "2021"
 description = "Rust adapter for OpenCode CLI subprocess execution"

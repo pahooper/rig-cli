@@ -1,4 +1,4 @@
-use rig_mcp_server::prelude::*;
+use rig_cli_mcp::prelude::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -71,7 +71,7 @@ async fn test_toolkit_and_submit_callback() {
 #[tokio::test]
 async fn test_toolkit_validation() {
     use rig::tool::Tool;
-    use rig_mcp_server::tools::ValidateJsonArgs;
+    use rig_cli_mcp::tools::ValidateJsonArgs;
 
     let (_, validate, _) = JsonSchemaToolkit::<TestModel>::builder()
         .build()

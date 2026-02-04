@@ -18,8 +18,8 @@
 
 use clap::Parser;
 use rig::tool::ToolSet;
-use rig_mcp_server::prelude::ToolSetExt;
-use rig_mcp_server::tools::JsonSchemaToolkit;
+use rig_cli_mcp::prelude::ToolSetExt;
+use rig_cli_mcp::tools::JsonSchemaToolkit;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -129,7 +129,7 @@ async fn run_server(output_path: Option<PathBuf>) -> Result<(), Box<dyn std::err
 
 /// Client mode: write MCP config, launch Claude Code, verify result.
 async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
-    use claudecode_adapter::{
+    use rig_cli_claude::{
         init, BuiltinToolSet, ClaudeCli, McpPolicy, OutputFormat, RunConfig, SystemPromptMode,
     };
     use std::time::Duration;
@@ -216,7 +216,7 @@ async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         // --allowed-tools whitelists ONLY the MCP tools.
         // Do NOT set builtin to None — that disables ALL tools including MCP.
         // --allowed-tools acts as a whitelist: anything not listed is blocked.
-        tools: claudecode_adapter::ToolPolicy {
+        tools: rig_cli_claude::ToolPolicy {
             builtin: BuiltinToolSet::Default,
             allowed: Some(allowed_tools),
             disallowed: None,

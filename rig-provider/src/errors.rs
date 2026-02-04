@@ -5,15 +5,15 @@ use thiserror::Error;
 pub enum ProviderError {
     /// Error from the Claude Code adapter.
     #[error("Claude adapter error: {0}")]
-    Claude(#[from] claudecode_adapter::ClaudeError),
+    Claude(#[from] rig_cli_claude::ClaudeError),
 
     /// Error from the Codex adapter.
     #[error("Codex adapter error: {0}")]
-    Codex(#[from] codex_adapter::CodexError),
+    Codex(#[from] rig_cli_codex::CodexError),
 
     /// Error from the `OpenCode` adapter.
     #[error("OpenCode adapter error: {0}")]
-    OpenCode(#[from] opencode_adapter::OpenCodeError),
+    OpenCode(#[from] rig_cli_opencode::OpenCodeError),
 
     /// Session management error.
     #[error("Session management error: {0}")]

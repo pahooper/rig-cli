@@ -1,4 +1,4 @@
-# rig-mcp-server
+# rig-cli-mcp
 
 A "Zero-Config" bridge between the [Rig](https://github.com/0xPlaygrounds/rig) toolset and the [Model Context Protocol (MCP)](https://modelcontextprotocol.io).
 
@@ -17,7 +17,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rig-mcp-server = { path = "../path/to/rig-mcp-server" } # Or from registry when available
+rig-cli-mcp = { path = "../path/to/rig-cli-mcp" } # Or from registry when available
 rig = { package = "rig-core", version = "0.29.0" }
 ```
 
@@ -26,7 +26,7 @@ rig = { package = "rig-core", version = "0.29.0" }
 The library provides a declarative way to create a trio of tools (`submit`, `validate`, `example`) that share a single source of truth:
 
 ```rust
-use rig_mcp_server::prelude::*;
+use rig_cli_mcp::prelude::*;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 use rig::tool::ToolSet;

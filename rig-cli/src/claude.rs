@@ -43,7 +43,7 @@
 use crate::config::ClientConfig;
 use crate::errors::Error;
 use crate::response::CliResponse;
-use claudecode_adapter;
+use rig_cli_claude;
 use futures::StreamExt;
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
@@ -51,7 +51,7 @@ use rig::completion::{
 };
 use rig::streaming::{RawStreamingChoice, RawStreamingToolCall, StreamingCompletionResponse};
 use rig::OneOrMany;
-use rig_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
+use rig_cli_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
 use uuid::Uuid;
@@ -79,8 +79,8 @@ use uuid::Uuid;
 ///   Use for structured extraction where the agent MUST respond via tool calls.
 #[derive(Clone)]
 pub struct Client {
-    /// The underlying CLI client from `claudecode_adapter`.
-    cli: claudecode_adapter::ClaudeCli,
+    /// The underlying CLI client from `rig_cli_claude`.
+    cli: rig_cli_claude::ClaudeCli,
     /// Client configuration (timeout, binary path override, etc.).
     config: ClientConfig,
     /// Optional payload data for context injection.
@@ -138,11 +138,11 @@ impl Client {
     /// ```
     pub async fn from_config(config: ClientConfig) -> Result<Self, Error> {
         let binary_path = config.binary_path.clone();
-        let report = claudecode_adapter::init(binary_path)
+        let report = rig_cli_claude::init(binary_path)
             .await
             .map_err(|_| Error::ClaudeNotFound)?;
 
-        let cli = claudecode_adapter::ClaudeCli::new(report.claude_path, report.capabilities);
+        let cli = rig_cli_claude::ClaudeCli::new(report.claude_path, report.capabilities);
 
         Ok(Self {
             cli,
@@ -181,7 +181,7 @@ impl Client {
     /// This is an escape hatch for developers who need access to adapter-specific
     /// functionality not exposed through the standard Rig provider interface.
     #[must_use]
-    pub const fn cli(&self) -> &claudecode_adapter::ClaudeCli {
+    pub const fn cli(&self) -> &rig_cli_claude::ClaudeCli {
         &self.cli
     }
 
@@ -222,7 +222,7 @@ impl Client {
     /// ```
     #[must_use]
     pub fn mcp_agent(&self, _model: impl Into<String>) -> CliAgentBuilder {
-        let mut builder = rig_provider::mcp_agent::CliAgent::builder()
+        let mut builder = rig_cli_provider::mcp_agent::CliAgent::builder()
             .adapter(CliAdapter::ClaudeCode)
             .timeout(self.config.timeout);
 
@@ -254,7 +254,7 @@ impl rig::client::CompletionClient for Client {
 #[derive(Clone)]
 pub struct Model {
     /// The underlying CLI client.
-    cli: claudecode_adapter::ClaudeCli,
+    cli: rig_cli_claude::ClaudeCli,
     /// Client configuration.
     config: ClientConfig,
     /// Optional payload for context injection.
@@ -284,7 +284,7 @@ impl CompletionModel for Model {
         request: CompletionRequest,
     ) -> Result<CompletionResponse<Self::Response>, CompletionError> {
         // Extract prompt from chat history using the utility function
-        let prompt_text = rig_provider::utils::format_chat_history(&request);
+        let prompt_text = rig_cli_provider::utils::format_chat_history(&request);
 
         // If payload is set, wrap prompt in XML context structure
         let final_prompt = if let Some(ref payload) = self.payload {
@@ -307,14 +307,14 @@ impl CompletionModel for Model {
         // Direct CLI execution path
         let start = Instant::now();
 
-        let mut config = claudecode_adapter::RunConfig {
+        let mut config = rig_cli_claude::RunConfig {
             timeout: self.config.timeout,
-            ..claudecode_adapter::RunConfig::default()
+            ..rig_cli_claude::RunConfig::default()
         };
 
         // If preamble present, append to system prompt
         if !preamble.is_empty() {
-            config.system_prompt = claudecode_adapter::SystemPromptMode::Append(preamble.to_string());
+            config.system_prompt = rig_cli_claude::SystemPromptMode::Append(preamble.to_string());
         }
 
         // Run the CLI
@@ -353,7 +353,7 @@ impl CompletionModel for Model {
         request: CompletionRequest,
     ) -> Result<StreamingCompletionResponse<Self::StreamingResponse>, CompletionError> {
         // Streaming always uses direct CLI (MCP enforcement only on completion path)
-        let prompt_text = rig_provider::utils::format_chat_history(&request);
+        let prompt_text = rig_cli_provider::utils::format_chat_history(&request);
 
         // If payload is set, wrap prompt in XML context structure
         let final_prompt = if let Some(ref payload) = self.payload {
@@ -374,16 +374,16 @@ impl CompletionModel for Model {
         let cli = self.cli.clone();
         let timeout = self.config.timeout;
 
-        let mut config = claudecode_adapter::RunConfig {
-            output_format: Some(claudecode_adapter::OutputFormat::StreamJson),
+        let mut config = rig_cli_claude::RunConfig {
+            output_format: Some(rig_cli_claude::OutputFormat::StreamJson),
             timeout,
-            ..claudecode_adapter::RunConfig::default()
+            ..rig_cli_claude::RunConfig::default()
         };
 
         // If preamble present, append to system prompt
         if let Some(preamble) = &request.preamble {
             config.system_prompt =
-                claudecode_adapter::SystemPromptMode::Append(preamble.clone());
+                rig_cli_claude::SystemPromptMode::Append(preamble.clone());
         }
 
         // If tools provided, wire allowed tools
@@ -401,24 +401,24 @@ impl CompletionModel for Model {
         // Convert the receiver into a stream
         let stream = ReceiverStream::new(rx).map(|event| {
             match event {
-                claudecode_adapter::StreamEvent::Text { text } => {
+                rig_cli_claude::StreamEvent::Text { text } => {
                     Ok(RawStreamingChoice::Message(text))
                 }
-                claudecode_adapter::StreamEvent::ToolCall { name, input } => {
+                rig_cli_claude::StreamEvent::ToolCall { name, input } => {
                     let id = Uuid::new_v4().to_string();
                     let tool_call = RawStreamingToolCall::new(id, name, input);
                     Ok(RawStreamingChoice::ToolCall(tool_call))
                 }
-                claudecode_adapter::StreamEvent::ToolResult { .. } => {
+                rig_cli_claude::StreamEvent::ToolResult { .. } => {
                     // For now we ignore tool results in the assistant output stream
                     // They are usually input for the next turn
                     // Empty message acts as a no-op heartbeat
                     Ok(RawStreamingChoice::Message(String::new()))
                 }
-                claudecode_adapter::StreamEvent::Error { message } => {
+                rig_cli_claude::StreamEvent::Error { message } => {
                     Err(CompletionError::ProviderError(message))
                 }
-                claudecode_adapter::StreamEvent::Unknown(_) => {
+                rig_cli_claude::StreamEvent::Unknown(_) => {
                     Ok(RawStreamingChoice::Message(String::new()))
                 }
             }

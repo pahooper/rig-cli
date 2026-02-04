@@ -1,7 +1,7 @@
 use crate::errors::ProviderError;
 use crate::sessions::SessionManager;
 use crate::utils::format_chat_history;
-use claudecode_adapter::{init, ClaudeCli, RunConfig, RunResult, StreamEvent};
+use rig_cli_claude::{init, ClaudeCli, RunConfig, RunResult, StreamEvent};
 use futures::StreamExt;
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
@@ -53,7 +53,7 @@ impl CompletionModel for ClaudeModel {
         if !request.tools.is_empty() {
             let allowed_tools: Vec<String> = request.tools.iter().map(|t| t.name.clone()).collect();
             config.tools.allowed = Some(allowed_tools);
-            config.tools.builtin = claudecode_adapter::BuiltinToolSet::Default; // or implicit?
+            config.tools.builtin = rig_cli_claude::BuiltinToolSet::Default; // or implicit?
         }
         let result = self
             .cli
@@ -79,7 +79,7 @@ impl CompletionModel for ClaudeModel {
 
         // Spawn the CLI process in the background
         let mut config = RunConfig {
-            output_format: Some(claudecode_adapter::OutputFormat::StreamJson),
+            output_format: Some(rig_cli_claude::OutputFormat::StreamJson),
             ..RunConfig::default()
         };
 
@@ -133,7 +133,7 @@ impl ClaudeTool {
     ///
     /// # Errors
     /// Returns a `ClaudeError` if initialization or discovery fails.
-    pub async fn new(mcp_configs: Vec<String>) -> Result<Self, claudecode_adapter::ClaudeError> {
+    pub async fn new(mcp_configs: Vec<String>) -> Result<Self, rig_cli_claude::ClaudeError> {
         let report = init(None).await?;
         Ok(Self {
             cli: ClaudeCli::new(report.claude_path, report.capabilities),
@@ -168,7 +168,7 @@ impl Tool for ClaudeTool {
             .map_err(|e| ProviderError::Session(e.to_string()))?;
 
         let config = RunConfig {
-            mcp: Some(claudecode_adapter::McpPolicy {
+            mcp: Some(rig_cli_claude::McpPolicy {
                 configs: self.mcp_configs.clone(),
                 strict: true,
             }),
@@ -180,7 +180,7 @@ impl Tool for ClaudeTool {
 
         if result.exit_code != 0 {
             return Err(ProviderError::Claude(
-                claudecode_adapter::ClaudeError::NonZeroExit {
+                rig_cli_claude::ClaudeError::NonZeroExit {
                     exit_code: result.exit_code,
                     pid: 0,
                     elapsed: std::time::Duration::from_millis(result.duration_ms),

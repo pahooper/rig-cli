@@ -23,7 +23,7 @@ pub struct ExtractionMetrics {
 /// # Examples
 ///
 /// ```
-/// use rig_mcp_server::extraction::estimate_tokens;
+/// use rig_cli_mcp::extraction::estimate_tokens;
 ///
 /// assert_eq!(estimate_tokens("hello"), 2);  // 5 chars / 4 = 1.25 -> 2
 /// assert_eq!(estimate_tokens("hello world"), 3);  // 11 chars / 4 = 2.75 -> 3

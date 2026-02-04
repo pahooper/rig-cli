@@ -1,8 +1,8 @@
-use claudecode_adapter::{init, ClaudeCli};
+use rig_cli_claude::{init, ClaudeCli};
 use rig::agent::AgentBuilder;
 use rig::completion::{Prompt, ToolDefinition};
 use rig::tool::Tool;
-use rig_provider::ClaudeModel;
+use rig_cli_provider::ClaudeModel;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 

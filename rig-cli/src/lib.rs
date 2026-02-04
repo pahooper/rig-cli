@@ -158,14 +158,14 @@ pub mod prelude;
 pub use rig;
 
 // MCP-enforced agent types (from rig-provider)
-pub use rig_provider::mcp_agent::{CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent};
+pub use rig_cli_provider::mcp_agent::{CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent};
 
 /// Re-export of MCP extraction types for structured data extraction workflows.
 ///
 /// These types enable building MCP-enforced extraction pipelines that guarantee
 /// schema-compliant output from CLI agents.
 pub mod extraction {
-    pub use rig_mcp_server::extraction::{
+    pub use rig_cli_mcp::extraction::{
         ExtractionConfig, ExtractionError, ExtractionMetrics, ExtractionOrchestrator,
     };
 }
@@ -175,6 +175,6 @@ pub mod extraction {
 /// These types provide the building blocks for creating JSON schema-based toolkits
 /// and configuring MCP servers for structured agent execution.
 pub mod tools {
-    pub use rig_mcp_server::server::{McpConfig, RigMcpHandler, ToolSetExt};
-    pub use rig_mcp_server::tools::JsonSchemaToolkit;
+    pub use rig_cli_mcp::server::{McpConfig, RigMcpHandler, ToolSetExt};
+    pub use rig_cli_mcp::tools::JsonSchemaToolkit;
 }

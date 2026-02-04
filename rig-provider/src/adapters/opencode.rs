@@ -1,4 +1,4 @@
-use opencode_adapter::{OpenCodeCli, OpenCodeConfig, discover_opencode, RunResult, StreamEvent};
+use rig_cli_opencode::{OpenCodeCli, OpenCodeConfig, discover_opencode, RunResult, StreamEvent};
 use rig::completion::{
     CompletionError, CompletionModel, CompletionRequest, CompletionResponse,
     message::AssistantContent,
@@ -119,7 +119,7 @@ impl OpenCodeTool {
     ///
     /// # Errors
     /// Returns an `OpenCodeError` if discovery or health check fails.
-    pub async fn new() -> Result<Self, opencode_adapter::OpenCodeError> {
+    pub async fn new() -> Result<Self, rig_cli_opencode::OpenCodeError> {
         let path = discover_opencode(None)?;
         let cli = OpenCodeCli::new(path);
         cli.check_health().await?;
@@ -157,7 +157,7 @@ impl Tool for OpenCodeTool {
         let result = self.cli.run(&args.instruction, &config).await?;
         
         if result.exit_code != 0 {
-            return Err(ProviderError::OpenCode(opencode_adapter::OpenCodeError::NonZeroExit {
+            return Err(ProviderError::OpenCode(rig_cli_opencode::OpenCodeError::NonZeroExit {
                 exit_code: result.exit_code,
                 pid: 0,
                 elapsed: std::time::Duration::from_millis(result.duration_ms),

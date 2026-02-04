@@ -1,11 +1,11 @@
 [package]
-name = "rig-mcp-server"
+name = "rig-cli-mcp"
 version = "0.1.0"
 edition = "2024"
 description = "MCP server integration for Rig CLI providers"
 license = "MIT"
 repository = "https://github.com/pnod/rig-cli"
-readme = "README.md"
+readme = "../README.md"
 keywords = ["mcp", "rig", "server", "tools"]
 categories = ["development-tools"]
 

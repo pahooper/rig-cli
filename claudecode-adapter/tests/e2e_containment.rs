@@ -30,7 +30,7 @@
 //! Note: Tests may be flaky due to LLM non-determinism. They verify the
 //! containment *mechanism* works, not specific model responses.
 
-use claudecode_adapter::{
+use rig_cli_claude::{
     init, run_claude, BuiltinToolSet, ClaudeCli, RunConfig, ToolPolicy,
 };
 use std::time::Duration;
@@ -214,7 +214,7 @@ async fn e2e_disable_slash_commands() {
         }
         Err(e) => {
             // Timeout is acceptable, but spawn failure indicates flag rejection
-            if let claudecode_adapter::ClaudeError::SpawnFailed { .. } = e {
+            if let rig_cli_claude::ClaudeError::SpawnFailed { .. } = e {
                 panic!("CLI rejected --disable-slash-commands flag: {e}");
             }
         }
@@ -255,7 +255,7 @@ async fn e2e_timeout_graceful_shutdown() {
             // Fast response is fine - model may have cached response
             eprintln!("Note: CLI responded before timeout");
         }
-        Err(claudecode_adapter::ClaudeError::Timeout {
+        Err(rig_cli_claude::ClaudeError::Timeout {
             elapsed,
             pid,
             partial_stdout,

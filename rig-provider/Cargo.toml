@@ -1,5 +1,5 @@
 [package]
-name = "rig-provider"
+name = "rig-cli-provider"
 version = "0.1.0"
 edition = "2021"
 description = "Rig provider turning CLI agents into idiomatic Rig CompletionModel and Tool implementations"
@@ -10,7 +10,7 @@ keywords = ["rig", "cli", "provider", "llm"]
 categories = ["development-tools"]
 
 [dependencies]
-rig-mcp-server = { path = "../mcp" }
+rig-cli-mcp = { path = "../mcp" }
 rig = { package = "rig-core", version = "0.29.0" }
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -23,9 +23,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 clap = { version = "4.5", features = ["derive"] }
 tempfile = "3.10"
 semver = "1.0"
-claudecode-adapter = { path = "../claudecode-adapter" }
-codex-adapter = { path = "../codex-adapter" }
-opencode-adapter = { path = "../opencode-adapter" }
+rig-cli-claude = { path = "../claudecode-adapter" }
+rig-cli-codex = { path = "../codex-adapter" }
+rig-cli-opencode = { path = "../opencode-adapter" }
 tokio-stream = "0.1.18"
 futures = "0.3.31"
 uuid = { version = "1.20.0", features = ["v4"] }
@@ -35,5 +35,5 @@ dirs = "5.0"
 workspace = true
 
 [[bin]]
-name = "rig-provider"
+name = "rig-cli-provider"
 path = "src/main.rs"

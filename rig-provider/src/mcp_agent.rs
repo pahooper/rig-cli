@@ -237,7 +237,7 @@ pub struct McpToolAgentBuilder {
     payload: Option<String>,
     instruction_template: Option<String>,
     builtin_tools: Option<Vec<String>>,
-    sandbox_mode: Option<codex_adapter::SandboxMode>,
+    sandbox_mode: Option<rig_cli_codex::SandboxMode>,
     working_dir: Option<std::path::PathBuf>,
 }
 
@@ -253,7 +253,7 @@ impl McpToolAgentBuilder {
             payload: None,
             instruction_template: None,
             builtin_tools: None,
-            sandbox_mode: Some(codex_adapter::SandboxMode::ReadOnly),
+            sandbox_mode: Some(rig_cli_codex::SandboxMode::ReadOnly),
             working_dir: None,
         }
     }
@@ -347,7 +347,7 @@ impl McpToolAgentBuilder {
     /// Default: `SandboxMode::ReadOnly` (most restrictive).
     /// Only affects Codex adapter; Claude Code and `OpenCode` ignore this setting.
     #[must_use]
-    pub const fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
+    pub const fn sandbox_mode(mut self, mode: rig_cli_codex::SandboxMode) -> Self {
         self.sandbox_mode = Some(mode);
         self
     }
@@ -407,7 +407,7 @@ impl McpToolAgentBuilder {
         let instruction_template = self.instruction_template;
         let system_prompt = self.system_prompt;
         let builtin_tools = self.builtin_tools;
-        let sandbox_mode = self.sandbox_mode.unwrap_or(codex_adapter::SandboxMode::ReadOnly);
+        let sandbox_mode = self.sandbox_mode.unwrap_or(rig_cli_codex::SandboxMode::ReadOnly);
         let server_name = self.server_name.clone();
 
         // Create temp dir if working_dir not provided (CONT-04)
@@ -427,7 +427,7 @@ impl McpToolAgentBuilder {
         // 3. Build McpConfig
         let exe = std::env::current_exe()
             .map_err(|e| ProviderError::McpToolAgent(format!("Failed to get current exe: {e}")))?;
-        let mcp_config = rig_mcp_server::server::McpConfig {
+        let mcp_config = rig_cli_mcp::server::McpConfig {
             name: server_name.clone(),
             command: exe.to_string_lossy().to_string(),
             args: vec![],
@@ -505,7 +505,7 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
     /// This method:
     /// 1. Validates required fields (toolset, prompt, adapter)
     /// 2. Gets tool definitions from the toolset
-    /// 3. Builds an [`McpConfig`](rig_mcp_server::server::McpConfig) for the target adapter
+    /// 3. Builds an [`McpConfig`](rig_cli_mcp::server::McpConfig) for the target adapter
     /// 4. Computes allowed tool names as `mcp__<server>__<tool>`
     /// 5. Writes the config to a temp file in the adapter's format
     /// 6. Discovers and launches the CLI with correct flags
@@ -530,7 +530,7 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
         let instruction_template = self.instruction_template;
         let system_prompt = self.system_prompt;
         let builtin_tools = self.builtin_tools;
-        let sandbox_mode = self.sandbox_mode.unwrap_or(codex_adapter::SandboxMode::ReadOnly);
+        let sandbox_mode = self.sandbox_mode.unwrap_or(rig_cli_codex::SandboxMode::ReadOnly);
 
         // Create temp dir if working_dir not provided (CONT-04)
         let (_temp_dir, effective_cwd) = if let Some(dir) = self.working_dir { (None, dir) } else {
@@ -549,7 +549,7 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
         // 3. Build McpConfig
         let exe = std::env::current_exe()
             .map_err(|e| ProviderError::McpToolAgent(format!("Failed to get current exe: {e}")))?;
-        let mcp_config = rig_mcp_server::server::McpConfig {
+        let mcp_config = rig_cli_mcp::server::McpConfig {
             name: self.server_name.clone(),
             // Path-to-string for JSON serialization; lossy is acceptable since CLI commands
             // must be valid UTF-8 in JSON config format.
@@ -629,7 +629,7 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
 /// # Example
 ///
 /// ```no_run
-/// use rig_provider::mcp_agent::{CliAgent, CliAdapter};
+/// use rig_cli_provider::mcp_agent::{CliAgent, CliAdapter};
 /// use rig::completion::Prompt;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -652,7 +652,7 @@ pub struct CliAgent {
     payload: Option<String>,
     instruction_template: Option<String>,
     builtin_tools: Option<Vec<String>>,
-    sandbox_mode: Option<codex_adapter::SandboxMode>,
+    sandbox_mode: Option<rig_cli_codex::SandboxMode>,
     working_dir: Option<std::path::PathBuf>,
     server_name: String,
 }
@@ -666,7 +666,7 @@ pub struct CliAgentBuilder {
     payload: Option<String>,
     instruction_template: Option<String>,
     builtin_tools: Option<Vec<String>>,
-    sandbox_mode: Option<codex_adapter::SandboxMode>,
+    sandbox_mode: Option<rig_cli_codex::SandboxMode>,
     working_dir: Option<std::path::PathBuf>,
     server_name: String,
 }
@@ -681,7 +681,7 @@ impl CliAgentBuilder {
             payload: None,
             instruction_template: None,
             builtin_tools: None,
-            sandbox_mode: Some(codex_adapter::SandboxMode::ReadOnly),
+            sandbox_mode: Some(rig_cli_codex::SandboxMode::ReadOnly),
             working_dir: None,
             server_name: "rig_mcp".to_string(),
         }
@@ -742,7 +742,7 @@ impl CliAgentBuilder {
     ///
     /// Default: `SandboxMode::ReadOnly`. Only affects Codex adapter.
     #[must_use]
-    pub const fn sandbox_mode(mut self, mode: codex_adapter::SandboxMode) -> Self {
+    pub const fn sandbox_mode(mut self, mode: rig_cli_codex::SandboxMode) -> Self {
         self.sandbox_mode = Some(mode);
         self
     }
@@ -863,7 +863,7 @@ impl CliAgent {
 
 async fn run_claude_code(
     prompt: &str,
-    mcp_config: &rig_mcp_server::server::McpConfig,
+    mcp_config: &rig_cli_mcp::server::McpConfig,
     allowed_tools: &[String],
     system_prompt: &str,
     timeout: Duration,
@@ -881,30 +881,30 @@ async fn run_claude_code(
     let config_path = config_file.path().to_path_buf();
     let _config_guard = config_file.into_temp_path();
 
-    let report = claudecode_adapter::init(None)
+    let report = rig_cli_claude::init(None)
         .await
         .map_err(|e| ProviderError::McpToolAgent(format!("Claude init failed: {e}")))?;
 
     // Detect and validate CLI version
     detect_and_validate_version(&report.claude_path, &claude_code_version_req()).await;
 
-    let cli = claudecode_adapter::ClaudeCli::new(report.claude_path, report.capabilities);
+    let cli = rig_cli_claude::ClaudeCli::new(report.claude_path, report.capabilities);
 
     // Apply containment: disable all builtins by default, opt-in via builtin_tools
     let builtin_set = builtin_tools.map_or(
-        claudecode_adapter::BuiltinToolSet::None,
-        |tools| claudecode_adapter::BuiltinToolSet::Explicit(tools.clone()),
+        rig_cli_claude::BuiltinToolSet::None,
+        |tools| rig_cli_claude::BuiltinToolSet::Explicit(tools.clone()),
     );
 
-    let config = claudecode_adapter::RunConfig {
-        output_format: Some(claudecode_adapter::OutputFormat::Text),
-        system_prompt: claudecode_adapter::SystemPromptMode::Append(system_prompt.to_string()),
-        mcp: Some(claudecode_adapter::McpPolicy {
+    let config = rig_cli_claude::RunConfig {
+        output_format: Some(rig_cli_claude::OutputFormat::Text),
+        system_prompt: rig_cli_claude::SystemPromptMode::Append(system_prompt.to_string()),
+        mcp: Some(rig_cli_claude::McpPolicy {
             // Temp file paths are always valid UTF-8 (created by tempfile crate).
             configs: vec![config_path.to_string_lossy().to_string()],
             strict: true,
         }),
-        tools: claudecode_adapter::ToolPolicy {
+        tools: rig_cli_claude::ToolPolicy {
             builtin: builtin_set,
             allowed: Some(allowed_tools.to_vec()),
             disallowed: None,
@@ -912,7 +912,7 @@ async fn run_claude_code(
         },
         timeout,
         cwd: Some(cwd.to_path_buf()),
-        ..claudecode_adapter::RunConfig::default()
+        ..rig_cli_claude::RunConfig::default()
     };
 
     let result = cli.run(prompt, &config).await.map_err(ProviderError::Claude)?;
@@ -927,19 +927,19 @@ async fn run_claude_code(
 
 async fn run_codex(
     prompt: &str,
-    mcp_config: &rig_mcp_server::server::McpConfig,
+    mcp_config: &rig_cli_mcp::server::McpConfig,
     system_prompt: &str,
     timeout: Duration,
-    sandbox_mode: &codex_adapter::SandboxMode,
+    sandbox_mode: &rig_cli_codex::SandboxMode,
     cwd: &std::path::Path,
 ) -> Result<McpToolAgentResult, ProviderError> {
-    let path = codex_adapter::discover_codex(None)
+    let path = rig_cli_codex::discover_codex(None)
         .map_err(|e| ProviderError::McpToolAgent(format!("Codex discovery failed: {e}")))?;
 
     // Detect and validate CLI version
     detect_and_validate_version(&path, &codex_version_req()).await;
 
-    let cli = codex_adapter::CodexCli::new(path);
+    let cli = rig_cli_codex::CodexCli::new(path);
 
     // Codex reads MCP server config from its config.toml. Inject via -c overrides.
     let server_name = &mcp_config.name;
@@ -960,7 +960,7 @@ async fn run_codex(
         ));
     }
 
-    let config = codex_adapter::CodexConfig {
+    let config = rig_cli_codex::CodexConfig {
         full_auto: false,
         sandbox: Some(sandbox_mode.clone()),
         skip_git_repo_check: true,
@@ -968,7 +968,7 @@ async fn run_codex(
         system_prompt: Some(system_prompt.to_string()),
         overrides,
         timeout,
-        ..codex_adapter::CodexConfig::default()
+        ..rig_cli_codex::CodexConfig::default()
     };
 
     let result = cli.run(prompt, &config).await.map_err(ProviderError::Codex)?;
@@ -983,18 +983,18 @@ async fn run_codex(
 
 async fn run_opencode(
     prompt: &str,
-    mcp_config: &rig_mcp_server::server::McpConfig,
+    mcp_config: &rig_cli_mcp::server::McpConfig,
     system_prompt: &str,
     timeout: Duration,
     cwd: &std::path::Path,
 ) -> Result<McpToolAgentResult, ProviderError> {
-    let path = opencode_adapter::discover_opencode(None)
+    let path = rig_cli_opencode::discover_opencode(None)
         .map_err(|e| ProviderError::McpToolAgent(format!("OpenCode discovery failed: {e}")))?;
 
     // Detect and validate CLI version
     detect_and_validate_version(&path, &opencode_version_req()).await;
 
-    let cli = opencode_adapter::OpenCodeCli::new(path);
+    let cli = rig_cli_opencode::OpenCodeCli::new(path);
 
     // OpenCode config format: {"mcp": {"name": {"type":"local","command":[...],"environment":{...}}}}
     let mut command = vec![mcp_config.command.clone()];
@@ -1022,13 +1022,13 @@ async fn run_opencode(
     let config_path = config_file.path().to_path_buf();
     let _config_guard = config_file.into_temp_path();
 
-    let config = opencode_adapter::OpenCodeConfig {
+    let config = rig_cli_opencode::OpenCodeConfig {
         model: Some("opencode/big-pickle".to_string()),
         prompt: Some(system_prompt.to_string()),
         mcp_config_path: Some(config_path),
         cwd: Some(cwd.to_path_buf()),
         timeout,
-        ..opencode_adapter::OpenCodeConfig::default()
+        ..rig_cli_opencode::OpenCodeConfig::default()
     };
 
     let result = cli.run(prompt, &config).await.map_err(ProviderError::OpenCode)?;
@@ -1045,7 +1045,7 @@ async fn run_opencode(
 #[allow(clippy::too_many_arguments)]
 async fn run_claude_code_stream(
     prompt: &str,
-    mcp_config: &rig_mcp_server::server::McpConfig,
+    mcp_config: &rig_cli_mcp::server::McpConfig,
     allowed_tools: &[String],
     system_prompt: &str,
     timeout: Duration,
@@ -1064,29 +1064,29 @@ async fn run_claude_code_stream(
     let config_path = config_file.path().to_path_buf();
     let _config_guard = config_file.into_temp_path();
 
-    let report = claudecode_adapter::init(None)
+    let report = rig_cli_claude::init(None)
         .await
         .map_err(|e| ProviderError::McpToolAgent(format!("Claude init failed: {e}")))?;
 
     // Detect and validate CLI version
     detect_and_validate_version(&report.claude_path, &claude_code_version_req()).await;
 
-    let cli = claudecode_adapter::ClaudeCli::new(report.claude_path, report.capabilities);
+    let cli = rig_cli_claude::ClaudeCli::new(report.claude_path, report.capabilities);
 
     // Apply containment: disable all builtins by default, opt-in via builtin_tools
     let builtin_set = builtin_tools.map_or(
-        claudecode_adapter::BuiltinToolSet::None,
-        |tools| claudecode_adapter::BuiltinToolSet::Explicit(tools.clone()),
+        rig_cli_claude::BuiltinToolSet::None,
+        |tools| rig_cli_claude::BuiltinToolSet::Explicit(tools.clone()),
     );
 
-    let config = claudecode_adapter::RunConfig {
-        output_format: Some(claudecode_adapter::OutputFormat::StreamJson),
-        system_prompt: claudecode_adapter::SystemPromptMode::Append(system_prompt.to_string()),
-        mcp: Some(claudecode_adapter::McpPolicy {
+    let config = rig_cli_claude::RunConfig {
+        output_format: Some(rig_cli_claude::OutputFormat::StreamJson),
+        system_prompt: rig_cli_claude::SystemPromptMode::Append(system_prompt.to_string()),
+        mcp: Some(rig_cli_claude::McpPolicy {
             configs: vec![config_path.to_string_lossy().to_string()],
             strict: true,
         }),
-        tools: claudecode_adapter::ToolPolicy {
+        tools: rig_cli_claude::ToolPolicy {
             builtin: builtin_set,
             allowed: Some(allowed_tools.to_vec()),
             disallowed: None,
@@ -1094,11 +1094,11 @@ async fn run_claude_code_stream(
         },
         timeout,
         cwd: Some(cwd.to_path_buf()),
-        ..claudecode_adapter::RunConfig::default()
+        ..rig_cli_claude::RunConfig::default()
     };
 
     // Create internal channel for adapter's native StreamEvent
-    let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<claudecode_adapter::StreamEvent>(100);
+    let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<rig_cli_claude::StreamEvent>(100);
 
     // Clone prompt for 'static lifetime in spawned task
     let prompt_owned = prompt.to_string();
@@ -1111,21 +1111,21 @@ async fn run_claude_code_stream(
         // Convert adapter events to McpStreamEvent
         while let Some(event) = adapter_rx.recv().await {
             let mcp_event = match event {
-                claudecode_adapter::StreamEvent::Text { text } => McpStreamEvent::Text(text),
-                claudecode_adapter::StreamEvent::ToolCall { name, input } => {
+                rig_cli_claude::StreamEvent::Text { text } => McpStreamEvent::Text(text),
+                rig_cli_claude::StreamEvent::ToolCall { name, input } => {
                     McpStreamEvent::ToolCall {
                         name,
                         input: input.to_string()
                     }
                 },
-                claudecode_adapter::StreamEvent::ToolResult { name, output } => {
+                rig_cli_claude::StreamEvent::ToolResult { name, output } => {
                     McpStreamEvent::ToolResult {
                         tool_use_id: name,
                         content: output
                     }
                 },
-                claudecode_adapter::StreamEvent::Error { message } => McpStreamEvent::Error(message),
-                claudecode_adapter::StreamEvent::Unknown(_) => continue, // skip unknowns
+                rig_cli_claude::StreamEvent::Error { message } => McpStreamEvent::Error(message),
+                rig_cli_claude::StreamEvent::Unknown(_) => continue, // skip unknowns
             };
 
             // Send converted event (ignore if receiver dropped)
@@ -1138,20 +1138,20 @@ async fn run_claude_code_stream(
 
 async fn run_codex_stream(
     prompt: &str,
-    mcp_config: &rig_mcp_server::server::McpConfig,
+    mcp_config: &rig_cli_mcp::server::McpConfig,
     system_prompt: &str,
     timeout: Duration,
-    sandbox_mode: &codex_adapter::SandboxMode,
+    sandbox_mode: &rig_cli_codex::SandboxMode,
     cwd: &std::path::Path,
     tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
 ) -> Result<(), ProviderError> {
-    let path = codex_adapter::discover_codex(None)
+    let path = rig_cli_codex::discover_codex(None)
         .map_err(|e| ProviderError::McpToolAgent(format!("Codex discovery failed: {e}")))?;
 
     // Detect and validate CLI version
     detect_and_validate_version(&path, &codex_version_req()).await;
 
-    let cli = codex_adapter::CodexCli::new(path);
+    let cli = rig_cli_codex::CodexCli::new(path);
 
     // Codex reads MCP server config from its config.toml. Inject via -c overrides.
     let server_name = &mcp_config.name;
@@ -1172,7 +1172,7 @@ async fn run_codex_stream(
         ));
     }
 
-    let config = codex_adapter::CodexConfig {
+    let config = rig_cli_codex::CodexConfig {
         full_auto: false,
         sandbox: Some(sandbox_mode.clone()),
         skip_git_repo_check: true,
@@ -1180,11 +1180,11 @@ async fn run_codex_stream(
         system_prompt: Some(system_prompt.to_string()),
         overrides,
         timeout,
-        ..codex_adapter::CodexConfig::default()
+        ..rig_cli_codex::CodexConfig::default()
     };
 
     // Create internal channel for adapter's native StreamEvent
-    let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<codex_adapter::StreamEvent>(100);
+    let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<rig_cli_codex::StreamEvent>(100);
 
     // Clone prompt for 'static lifetime in spawned task
     let prompt_owned = prompt.to_string();
@@ -1197,9 +1197,9 @@ async fn run_codex_stream(
         // Convert adapter events to McpStreamEvent
         while let Some(event) = adapter_rx.recv().await {
             let mcp_event = match event {
-                codex_adapter::StreamEvent::Text { text } => McpStreamEvent::Text(text),
-                codex_adapter::StreamEvent::Error { message } => McpStreamEvent::Error(message),
-                codex_adapter::StreamEvent::Unknown(_) => continue, // skip unknowns
+                rig_cli_codex::StreamEvent::Text { text } => McpStreamEvent::Text(text),
+                rig_cli_codex::StreamEvent::Error { message } => McpStreamEvent::Error(message),
+                rig_cli_codex::StreamEvent::Unknown(_) => continue, // skip unknowns
             };
 
             // Send converted event (ignore if receiver dropped)
@@ -1212,19 +1212,19 @@ async fn run_codex_stream(
 
 async fn run_opencode_stream(
     prompt: &str,
-    mcp_config: &rig_mcp_server::server::McpConfig,
+    mcp_config: &rig_cli_mcp::server::McpConfig,
     system_prompt: &str,
     timeout: Duration,
     cwd: &std::path::Path,
     tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
 ) -> Result<(), ProviderError> {
-    let path = opencode_adapter::discover_opencode(None)
+    let path = rig_cli_opencode::discover_opencode(None)
         .map_err(|e| ProviderError::McpToolAgent(format!("OpenCode discovery failed: {e}")))?;
 
     // Detect and validate CLI version
     detect_and_validate_version(&path, &opencode_version_req()).await;
 
-    let cli = opencode_adapter::OpenCodeCli::new(path);
+    let cli = rig_cli_opencode::OpenCodeCli::new(path);
 
     // OpenCode config format: {"mcp": {"name": {"type":"local","command":[...],"environment":{...}}}}
     let mut command = vec![mcp_config.command.clone()];
@@ -1252,17 +1252,17 @@ async fn run_opencode_stream(
     let config_path = config_file.path().to_path_buf();
     let _config_guard = config_file.into_temp_path();
 
-    let config = opencode_adapter::OpenCodeConfig {
+    let config = rig_cli_opencode::OpenCodeConfig {
         model: Some("opencode/big-pickle".to_string()),
         prompt: Some(system_prompt.to_string()),
         mcp_config_path: Some(config_path),
         cwd: Some(cwd.to_path_buf()),
         timeout,
-        ..opencode_adapter::OpenCodeConfig::default()
+        ..rig_cli_opencode::OpenCodeConfig::default()
     };
 
     // Create internal channel for adapter's native StreamEvent
-    let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<opencode_adapter::StreamEvent>(100);
+    let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<rig_cli_opencode::StreamEvent>(100);
 
     // Clone prompt for 'static lifetime in spawned task
     let prompt_owned = prompt.to_string();
@@ -1275,9 +1275,9 @@ async fn run_opencode_stream(
         // Convert adapter events to McpStreamEvent
         while let Some(event) = adapter_rx.recv().await {
             let mcp_event = match event {
-                opencode_adapter::StreamEvent::Text { text } => McpStreamEvent::Text(text),
-                opencode_adapter::StreamEvent::Error { message } => McpStreamEvent::Error(message),
-                opencode_adapter::StreamEvent::Unknown(_) => continue, // skip unknowns
+                rig_cli_opencode::StreamEvent::Text { text } => McpStreamEvent::Text(text),
+                rig_cli_opencode::StreamEvent::Error { message } => McpStreamEvent::Error(message),
+                rig_cli_opencode::StreamEvent::Unknown(_) => continue, // skip unknowns
             };
 
             // Send converted event (ignore if receiver dropped)
