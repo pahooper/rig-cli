@@ -1555,6 +1555,7 @@ dependencies = [
 name = "rig-cli"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "claudecode-adapter",
  "codex-adapter",
  "futures",
