@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 11 IN PROGRESS. Documentation and examples phase - foundation documentation complete with README rewrite and enhanced lib.rs rustdoc.
+**Current focus:** Phase 11 COMPLETE. Documentation and examples phase - all documentation lints enabled across workspace with zero warnings.
 
 ## Current Position
 
 Phase: 11 of 11 (Documentation & Examples)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-04 — Completed 11-01-PLAN.md (Foundation Documentation)
+Plan: 2 of 2 in current phase - PHASE COMPLETE
+Status: Phase 11 complete (Documentation & Examples)
+Last activity: 2026-02-04 — Completed 11-02-PLAN.md (Missing Docs Lint)
 
-Progress: [██████████████████████] 36/37 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2, Phase 11: 1/2)
+Progress: [██████████████████████] 37/37 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2, Phase 11: 2/2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 36
+- Total plans completed: 37
 - Average duration: 2.6 min
-- Total execution time: 2.26 hours
+- Total execution time: 2.31 hours
 
 **By Phase:**
 
@@ -38,11 +38,11 @@ Progress: [██████████████████████] 3
 | 08-claude-code-adapter | 4 | 24min | 6min |
 | 09-codex-adapter | 2 | 4.5min | 2.25min |
 | 10-opencode-adapter | 2 | 5min | 2.5min |
-| 11-documentation-examples | 1 | 2min | 2min |
+| 11-documentation-examples | 2 | 5min | 2.5min |
 
 **Recent Trend:**
-- Last 5 plans: 11-01 (2min), 10-02 (2min), 10-01 (3min), 09-02 (1.5min), 09-01 (3min)
-- Trend: Phase 11 started - Foundation documentation complete
+- Last 5 plans: 11-02 (3min), 11-01 (2min), 10-02 (2min), 10-01 (3min), 09-02 (1.5min)
+- Trend: ALL PHASES COMPLETE - Project v1.0 ready
 
 *Updated after each plan completion*
 
@@ -162,6 +162,8 @@ Recent decisions affecting current work:
 - README uses concept-first structure: What -> Quick Start -> Features -> Comparison (11-01)
 - Adapter comparison table covers MCP, streaming, sandbox, system prompt differences (11-01)
 - lib.rs rustdoc includes Module Overview table for discoverability (11-01)
+- Enable warn(missing_docs) not deny(missing_docs) for adapter crates - allows development flexibility while surfacing gaps (11-02)
+- Fix broken intra-doc link by using plain text instead of making constant public - internal implementation details stay private (11-02)
 
 ### Pending Todos
 
@@ -173,7 +175,6 @@ None.
 
 ### Blockers/Concerns
 
-- Pre-existing ~265 missing-docs clippy warnings across adapter crates (not blocking, future documentation pass)
 - Codex Issue #4152: MCP tools bypass Landlock sandbox restrictions (known external limitation, documented inline)
 
 ### Quick Tasks Completed
@@ -186,6 +187,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-04T00:41:12Z
-Stopped at: Completed Phase 11 Plan 01 (Foundation Documentation) - 2 tasks committed, SUMMARY created
+Last session: 2026-02-04T00:42:00Z
+Stopped at: Completed Phase 11 Plan 02 (Missing Docs Lint) - 2 tasks committed, SUMMARY created, ALL PHASES COMPLETE
 Resume file: None
