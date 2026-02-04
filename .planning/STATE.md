@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 10 COMPLETE. OpenCode adapter fully implemented with documentation, flag combination tests, and E2E containment tests matching Claude/Codex quality.
+**Current focus:** Phase 11 IN PROGRESS. Documentation and examples phase - foundation documentation complete with README rewrite and enhanced lib.rs rustdoc.
 
 ## Current Position
 
-Phase: 10 of 11 (OpenCode Adapter)
-Plan: 2 of 2 in current phase - PHASE COMPLETE
-Status: Phase 10 complete (OpenCode Adapter)
-Last activity: 2026-02-03 — Completed 10-02-PLAN.md (E2E Containment Tests)
+Phase: 11 of 11 (Documentation & Examples)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-02-04 — Completed 11-01-PLAN.md (Foundation Documentation)
 
-Progress: [██████████████████████] 35/35 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2)
+Progress: [██████████████████████] 36/37 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2, Phase 11: 1/2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 35
+- Total plans completed: 36
 - Average duration: 2.6 min
-- Total execution time: 2.23 hours
+- Total execution time: 2.26 hours
 
 **By Phase:**
 
@@ -38,10 +38,11 @@ Progress: [██████████████████████] 3
 | 08-claude-code-adapter | 4 | 24min | 6min |
 | 09-codex-adapter | 2 | 4.5min | 2.25min |
 | 10-opencode-adapter | 2 | 5min | 2.5min |
+| 11-documentation-examples | 1 | 2min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 10-02 (2min), 10-01 (3min), 09-02 (1.5min), 09-01 (3min), 08-04 (2min)
-- Trend: Phase 10 COMPLETE - OpenCode adapter with E2E containment tests
+- Last 5 plans: 11-01 (2min), 10-02 (2min), 10-01 (3min), 09-02 (1.5min), 09-01 (3min)
+- Trend: Phase 11 started - Foundation documentation complete
 
 *Updated after each plan completion*
 
@@ -158,6 +159,9 @@ Recent decisions affecting current work:
 - E2E tests marked #[ignore] for CI safety with helper function pattern for CLI discovery (10-02)
 - Accept timeout/error as valid containment test outcome due to LLM non-determinism (10-02)
 - Test containment behavior (working directory, timeout, MCP config, system prompt) not just flag generation (10-02)
+- README uses concept-first structure: What -> Quick Start -> Features -> Comparison (11-01)
+- Adapter comparison table covers MCP, streaming, sandbox, system prompt differences (11-01)
+- lib.rs rustdoc includes Module Overview table for discoverability (11-01)
 
 ### Pending Todos
 
@@ -182,6 +186,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-03T23:40:24Z
-Stopped at: Completed Phase 10 Plan 02 (E2E Containment Tests) - 2 tasks committed, SUMMARY created, Phase 10 COMPLETE
+Last session: 2026-02-04T00:41:12Z
+Stopped at: Completed Phase 11 Plan 01 (Foundation Documentation) - 2 tasks committed, SUMMARY created
 Resume file: None
