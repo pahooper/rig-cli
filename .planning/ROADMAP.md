@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Claude Code Adapter** - Production hardening for primary adapter
 - [x] **Phase 9: Codex Adapter** - Production hardening for secondary adapter
 - [x] **Phase 10: OpenCode Adapter** - Production hardening for third adapter (full parity)
-- [ ] **Phase 11: Documentation & Examples** - End-to-end examples and comprehensive doc comments
+- [x] **Phase 11: Documentation & Examples** - End-to-end examples and comprehensive doc comments
 
 ## Phase Details
 
@@ -223,11 +223,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — README + crate-level docs rewrite (concept-first, adapter comparison)
-- [ ] 11-02-PLAN.md — Enable #![warn(missing_docs)] on adapters + MCP, fix gaps
-- [ ] 11-03-PLAN.md — User story examples 1-4 (chat_mcp, one_shot, agent_mcp, agent_extra_tools)
-- [ ] 11-04-PLAN.md — User story examples 5-8 (multiagent, extraction, payload_chat, mcp_deterministic)
-- [ ] 11-05-PLAN.md — Error handling example + final verification
+- [x] 11-01-PLAN.md — README + crate-level docs rewrite (concept-first, adapter comparison)
+- [x] 11-02-PLAN.md — Enable #![warn(missing_docs)] on adapters + MCP, fix gaps
+- [x] 11-03-PLAN.md — User story examples 1-4 (chat_mcp, one_shot, agent_mcp, agent_extra_tools)
+- [x] 11-04-PLAN.md — User story examples 5-8 (multiagent, extraction, payload_chat, mcp_deterministic)
+- [x] 11-05-PLAN.md — Error handling example + final verification
 
 ## Progress
 
@@ -247,4 +247,4 @@ Phases execute in numeric order: 1 → 2 → 2.1 → 3 → 4 → 5 → 6 → 7 �
 | 8. Claude Code Adapter | 4/4 | Complete | 2026-02-03 |
 | 9. Codex Adapter | 2/2 | Complete | 2026-02-03 |
 | 10. OpenCode Adapter | 2/2 | Complete | 2026-02-03 |
-| 11. Documentation & Examples | 0/5 | Not started | - |
+| 11. Documentation & Examples | 5/5 | Complete | 2026-02-04 |

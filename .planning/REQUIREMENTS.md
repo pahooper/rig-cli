@@ -47,8 +47,8 @@ Requirements for v1.0 production release. Each maps to roadmap phases.
 
 - [x] **QUAL-01**: Passes clippy pedantic with zero warnings — root causes fixed, not suppressed with `#[allow]`
 - [x] **QUAL-02**: API surface is simple and obvious for Rust developers — feels like a native Rig extension
-- [ ] **QUAL-03**: End-to-end examples demonstrate extraction workflow with real CLI agents
-- [ ] **QUAL-04**: Doc comments on all public types and methods
+- [x] **QUAL-03**: End-to-end examples demonstrate extraction workflow with real CLI agents
+- [x] **QUAL-04**: Doc comments on all public types and methods
 
 ### Adapters
 
@@ -117,8 +117,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | QUAL-01 | Phase 8 | Complete |
 | ADPT-02 | Phase 9 | Complete |
 | ADPT-03 | Phase 10 | Complete |
-| QUAL-03 | Phase 11 | Pending |
-| QUAL-04 | Phase 11 | Pending |
+| QUAL-03 | Phase 11 | Complete |
+| QUAL-04 | Phase 11 | Complete |
 
 **Coverage:**
 - v1 requirements: 28 total
@@ -127,4 +127,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-03 after Phase 10 completion*
+*Last updated: 2026-02-04 after Phase 11 completion - ALL v1 REQUIREMENTS COMPLETE*
