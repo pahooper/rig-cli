@@ -2,13 +2,14 @@
 //!
 //! Turn CLI-based AI agents into idiomatic Rig 0.29 providers.
 //!
-//! This crate provides a Rig-idiomatic facade over CLI-based AI agents (Claude Code, Codex, `OpenCode`),
-//! allowing you to use them with the same patterns you use for cloud API providers like `OpenAI` or Anthropic.
+//! This crate provides a Rig-idiomatic facade over CLI-based AI agents (Claude Code, Codex, OpenCode),
+//! allowing you to use them with the same patterns you use for cloud API providers like OpenAI or Anthropic.
 //!
 //! ## Quick Start
 //!
 //! ```no_run
-//! # use rig_cli::prelude::*;
+//! use rig_cli::prelude::*;
+//!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // Create a client (discovers CLI automatically)
 //! let client = rig_cli::claude::Client::new().await?;
@@ -24,6 +25,36 @@
 //! # }
 //! ```
 //!
+//! ## Feature Flags
+//!
+//! | Feature | Default | Description |
+//! |---------|---------|-------------|
+//! | `claude` | Yes | Enable Claude Code provider |
+//! | `codex` | Yes | Enable Codex provider |
+//! | `opencode` | Yes | Enable OpenCode provider |
+//! | `debug-output` | No | Include raw CLI output in error messages |
+//!
+//! Enable specific providers:
+//!
+//! ```toml
+//! [dependencies]
+//! rig-cli = { version = "0.1", default-features = false, features = ["claude"] }
+//! ```
+//!
+//! ## Module Overview
+//!
+//! | Module | Purpose |
+//! |--------|---------|
+//! | [`claude`] | Claude Code provider with `CompletionModel` |
+//! | [`codex`] | Codex provider with `CompletionModel` |
+//! | [`opencode`] | OpenCode provider with `CompletionModel` |
+//! | [`extraction`] | MCP extraction types (re-exported from rig-mcp-server) |
+//! | [`tools`] | MCP tool types (re-exported from rig-mcp-server) |
+//! | [`prelude`] | Common imports for quick start |
+//! | [`config`] | Shared client configuration |
+//! | [`errors`] | Public error types |
+//! | [`response`] | Shared response type |
+//!
 //! ## Two Execution Paths
 //!
 //! rig-cli provides two ways to interact with CLI agents:
@@ -32,6 +63,16 @@
 //! |--------|-------------|
 //! | `client.agent("model")` | Simple prompts, chat, streaming - direct CLI execution |
 //! | `client.mcp_agent("model")` | Structured extraction - MCP-enforced tool use |
+//!
+//! **Decision tree:**
+//!
+//! ```text
+//! Need structured output? ─── Yes ──> mcp_agent()
+//!         │
+//!         No
+//!         │
+//!         └─> agent()
+//! ```
 //!
 //! For structured data extraction where the agent MUST respond via tool calls
 //! (not freeform text), use `mcp_agent()`:
@@ -50,6 +91,8 @@
 //!
 //! ```ignore
 //! use rig_cli::prelude::*;
+//! use rig_cli::tools::JsonSchemaToolkit;
+//! use rig_cli::extraction::ExtractionOrchestrator;
 //! use serde::{Deserialize, Serialize};
 //!
 //! #[derive(Debug, Deserialize, Serialize)]
@@ -74,16 +117,16 @@
 //!         "Extract person info: Alice is 30 years old"
 //!     )
 //!     .await?;
-//!
-//! println!("{:?}", result);
 //! ```
 //!
-//! ## Feature Flags
+//! ## Adapter Comparison
 //!
-//! - `claude` (default): Enable Claude Code provider
-//! - `codex` (default): Enable Codex provider
-//! - `opencode` (default): Enable `OpenCode` provider
-//! - `debug-output` (opt-in): Include raw CLI output in error messages for debugging
+//! | Feature | Claude Code | Codex | OpenCode |
+//! |---------|-------------|-------|----------|
+//! | MCP support | Yes | Yes | Yes |
+//! | Streaming events | Full (ToolCall/ToolResult) | Text/Error only | Text/Error only |
+//! | Sandbox | `--tools ""` | `--sandbox` | None |
+//! | System prompt | `--system-prompt` | Prepend | Prepend |
 
 #![deny(missing_docs)]
 
@@ -115,7 +158,7 @@ pub mod prelude;
 pub use rig;
 
 // MCP-enforced agent types (from rig-provider)
-pub use rig_provider::mcp_agent::{CliAgent, CliAgentBuilder, CliAdapter, McpStreamEvent};
+pub use rig_provider::mcp_agent::{CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent};
 
 /// Re-export of MCP extraction types for structured data extraction workflows.
 ///
