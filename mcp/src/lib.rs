@@ -2,6 +2,8 @@
 //!
 //! This crate provides a bridge between the Rig toolset and the Model Context Protocol (MCP).
 
+#![warn(missing_docs)]
+
 pub mod extraction;
 pub mod server;
 pub mod tools;
