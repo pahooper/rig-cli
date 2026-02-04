@@ -2,190 +2,60 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-01)
+See: .planning/PROJECT.md (updated 2026-02-03)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** PROJECT COMPLETE. All 11 phases and 40 plans executed successfully.
+**Current focus:** v1.0 shipped. Planning next milestone.
 
 ## Current Position
 
-Phase: 11 of 11 (Documentation & Examples) - COMPLETE
-Plan: 5 of 5 in current phase - COMPLETE
-Status: Complete
-Last activity: 2026-02-04 — Completed 11-05-PLAN.md (Error Handling Example & Final Verification)
+Phase: Milestone complete
+Plan: Not started
+Status: Ready to plan next milestone
+Last activity: 2026-02-03 — v1.0 milestone complete
 
-Progress: [████████████████████████] 40/40 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2, Phase 11: 5/5)
+Progress: v1.0 shipped (12 phases, 40 plans)
 
-## Performance Metrics
+## v1.0 Milestone Summary
 
-**Velocity:**
-- Total plans completed: 40
-- Average duration: 2.7 min
-- Total execution time: 2.6 hours
+**Shipped:** 2026-02-03
+**Archive:** .planning/milestones/v1.0-ROADMAP.md
+**Requirements:** .planning/milestones/v1.0-REQUIREMENTS.md
 
-**By Phase:**
+### Stats
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-resource-management-foundation | 5 | 23min | 5min |
-| 02-retry-validation-loop | 2 | 6min | 3min |
-| 02.1-transparent-mcp-tool-agent | 3 | 8min | 3min |
-| 03-payload-instruction-system | 2 | 4.5min | 2.25min |
-| 04-agent-containment | 2 | 4.4min | 2.2min |
-| 05-observability-infrastructure | 2 | 5.5min | 2.75min |
-| 06-platform-hardening | 4 | 8.7min | 2.2min |
-| 07-rig-integration-polish | 7 | 31.5min | 4.5min |
-| 08-claude-code-adapter | 4 | 24min | 6min |
-| 09-codex-adapter | 2 | 4.5min | 2.25min |
-| 10-opencode-adapter | 2 | 5min | 2.5min |
-| 11-documentation-examples | 5 | 18min | 3.6min |
+- 12 phases, 40 plans
+- 33,447 lines of Rust
+- 162 files modified
+- 153 commits
+- 3 days (Feb 1-3, 2026)
 
-**Recent Trend:**
-- Last 5 plans: 11-05 (3min), 11-04 (5min), 11-03 (5min), 11-02 (3min), 11-01 (2min)
-- Trend: PROJECT COMPLETE - all documentation and examples finished
+### Key Accomplishments
 
-*Updated after each plan completion*
+- Resource management with bounded channels, JoinSet, graceful shutdown
+- Self-correcting extraction via retry loop with validation feedback
+- MCP tool containment forcing schema-validated JSON output
+- Cross-platform support (Linux + Windows)
+- rig-cli facade with CompletionClient integration
+- Production-hardened adapters for Claude Code, Codex, OpenCode
+- 9 comprehensive examples
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- Force structured output via MCP tools rather than prompt-only (gives schema enforcement at protocol level)
-- Three-tool pattern (submit/validate/example) for workflow guidance
-- Adapter-per-CLI crate structure (clean separation of concerns)
-- Best-effort containment per CLI (document limitations rather than refuse to support)
-- Deprioritize OpenCode for v1.0 (focus on getting two adapters rock solid)
-- Apply resource management fixes to opencode-adapter despite deprioritization (infrastructure-level stability concern)
-- Use same bounded channel architecture across all adapters for consistency (01-01, 01-02, 01-03)
-- Standardize on 100-message channel capacity, 10MB output limit, 5s grace period across all adapters
-- Use pid: 0 placeholder in rig-provider NonZeroExit since RunResult doesn't carry PID (01-04)
-- Match claudecode-adapter's graceful_shutdown pattern exactly across all adapters (01-05)
-- Use chars().count() not len() for token estimation to handle UTF-8 correctly (02-01)
-- ExtractionError::MaxRetriesExceeded holds complete history, raw output, and metrics (02-01)
-- Validation feedback includes schema, submission echo, all errors, and attempt counter (02-01)
-- Orchestrator not generic over T - works with serde_json::Value, caller deserializes (02-02)
-- Conversation continuation strategy: append feedback to prompt for retry context (02-02)
-- Parse failures count against same retry budget as validation failures (02-02)
-- McpToolAgent uses free functions (not &self methods) for per-adapter execution to avoid partial-move issues (02.1-02)
-- Env var detection (RIG_MCP_SERVER=1) for server mode instead of --server CLI flag (02.1-03)
-- Codex and OpenCode lack --system-prompt flag; prepend system prompt to user prompt instead (E2E testing)
-- Each adapter manages its own MCP config delivery: Claude uses file path, Codex uses -c overrides (CodexConfig.overrides), OpenCode uses env var + file with different JSON format (E2E testing)
-- OpenCode uses opencode/big-pickle model for MCP agent execution (E2E testing)
-- Default to MCP-only mode: disable all builtin tools unless developer explicitly opts in (04-01)
-- Temp directory by default: agents execute in isolated temp dir with RAII cleanup (04-01)
-- Codex full_auto: false preserves sandbox and approval safety layers (04-01)
-- Claude Code strict: true forces MCP-only config, ignores global MCP configs (04-01)
-- Best-effort per-CLI containment: use each CLI's native flags to full extent, document limitations (04-01)
-- Unit tests use windows(2) pattern to find adjacent flag-value pairs in CLI args (04-02)
-- Default config tests verify full_auto absence to ensure containment posture (04-02)
-- Codex MCP sandbox bypass limitation documented inline as known external issue (04-02)
-- Codex CLI v0.91.0 dropped --ask-for-approval flag; removed ApprovalPolicy enum and ask_for_approval field from codex-adapter (E2E testing)
-- Codex requires --skip-git-repo-check for non-git temp directory containment; added skip_git_repo_check field to CodexConfig (E2E testing)
-- OpenCode adapter now has 6 unit tests for CLI arg generation in cmd.rs (E2E testing)
-- Use #[tracing::instrument] with skip_all to avoid logging closures and prompts (security-first observability) (05-01)
-- Emit flat events with attempt=N field instead of nested per-attempt spans (avoids async Span::enter() pitfalls) (05-01)
-- Log only character counts (prompt_chars, output_chars), never prompt or response content at any level (05-01)
-- Event message strings match event field values for machine-parseable grep/filter (05-01)
-- Version requirements are hardcoded const functions per adapter, not developer-configurable (05-02)
-- Version detection warns and continues on mismatch, never blocks execution (fail-open policy) (05-02)
-- Distinct warning events: version_unsupported (below min) vs version_untested (above max_tested) (05-02)
-- Version detection is stateless, runs once per agent execution (no caching) (05-02)
-- Use cfg(unix)/cfg(windows) conditional compilation for platform-specific code, not runtime detection (06-01)
-- Windows graceful shutdown uses immediate Child::kill() (TerminateProcess) - documented platform limitation (06-01)
-- Platform-neutral error types use String descriptions instead of Unix-specific errno types (06-01)
-- Nix crate imports moved inside cfg(unix) function bodies, gated behind [target.'cfg(unix)'.dependencies] (06-01)
-- Include cargo audit in check recipe for continuous security validation (06-04)
-- Provide standalone audit, audit-update, and outdated targets for developer convenience (06-04)
-- cargo-outdated is optional tooling, target defined but installation not required (06-04)
-- All adapters follow 5-step discovery: explicit path, env var, PATH, fallback locations, helpful error (06-02)
-- Use dirs::home_dir() for cross-platform home directory resolution instead of HOME env var (06-02, 06-03)
-- Platform-specific fallback locations use cfg(unix)/cfg(windows) compilation flags (06-02)
-- Windows npm installs use .cmd wrappers, Go binaries use .exe extension in fallback paths (06-02)
-- Keep paths as PathBuf/&Path as long as possible, convert to String only at serialization boundaries (06-03)
-- Use display().to_string() over to_string_lossy() for idiomatic path-to-string conversion (06-03)
-- Document all to_string_lossy() usage with inline comments explaining why conversion is acceptable (06-03)
-- Feature flags control module compilation not dependency compilation - adapters always compile, user picks which to use (07-01)
-- Error enum wraps ProviderError with #[from] for automatic conversion while providing actionable Display messages (07-01)
-- ClientConfig defaults: 300s timeout, 100 message channel capacity, auto-discovery for binary path (07-01)
-- Workspace facade pattern preserves existing adapter separation and provides clean public API (07-01)
-- CliResponse is rig-cli-owned type, not adapter-internal RunResult - shared across all providers (07-02, 07-03)
-- Tool routing: direct CLI for simple prompts (backward compatible), MCP path prepared for extractor pattern (07-02)
-- For v1, completion_with_mcp falls back to direct CLI since ToolDefinition -> Tool trait object conversion is complex (07-02)
-- MCP enforcement via extractor pattern (Plan 07-04) rather than completion() interception (07-02)
-- Client wraps ClaudeCli directly, not ClaudeModel (facade, not delegation) (07-02)
-- All three providers (Claude, Codex, OpenCode) follow identical implementation pattern for API consistency (07-03)
-- Codex and OpenCode StreamEvent enums have fewer variants (Text/Error/Unknown only, no ToolCall/ToolResult) (07-03)
-- Payload field stored but unused in Model pending future MCP integration (07-03)
-- Prelude exports minimal set: Client types (feature-gated), Error, Rig traits (Prompt, Chat), MCP types (07-04)
-- Escape hatches return CLI handle directly (not internal Model) for adapter-specific access (07-04)
-- debug-output feature is opt-in only, not in default features (production safety) (07-04)
-- Re-export rig crate at lib root for user access to Rig types via rig_cli::rig::... (07-04)
-- MCP types re-exported through extraction and tools modules for discoverability (07-04)
-- McpStreamEvent enum unified across all adapters (Claude has ToolCall/ToolResult, Codex/OpenCode have Text/Error only) (07-05)
-- Streaming helpers spawn tokio tasks for background execution with channel-based event forwarding (07-05)
-- CliAgent prompt() and chat() methods consume self since ToolSet lacks Clone (07-05)
-- CliAgent provides methods, not Rig Prompt/Chat trait implementations (trait signatures incompatible) (07-05)
-- mcp_agent() uses CliAgent::builder() factory method not CliAgentBuilder::new() (private constructor) (07-06)
-- mcp_agent() conceptual examples marked as 'ignore' since they require user-supplied ToolSet (07-06)
-- Removed completion_with_mcp/completion_without_mcp routing - clean separation via agent() vs mcp_agent() (07-06)
-- CompletionClient trait added to prelude for consistent agent() access in doctests (07-06)
-- Payload wraps prompts with XML <context>/<task> structure for instruction/data separation (07-07)
-- Codex uses system_prompt field, OpenCode uses prompt field for preamble (adapter-specific naming) (07-07)
-- Remove duplicate CliResponse from claude.rs, use shared type from response.rs (07-07)
-- model_name field allowed as dead_code with justification (API consistency, CLI agents don't use per-request model selection) (07-07)
-- Use saturating cast pattern u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX) for safe u128→u64 duration conversion (08-01)
-- Mark simple getters/builders as const fn for compile-time evaluation optimization (08-01)
-- Use Option<&T> instead of &Option<T> for idiomatic Rust and better borrow checker integration (08-01)
-- All #[allow(clippy::...)] attributes require inline justification comments (08-01)
-- Module-level CLI flag documentation includes Flag Reference, Combinations, Version Notes, and Known Limitations sections (08-02)
-- Flag combination tests verify complete arg structure using windows(2) pattern, not just presence (08-02)
-- Document both valid and invalid flag combinations for production awareness (08-02)
-- E2E tests marked #[ignore] to prevent CI failures without Claude CLI (08-03)
-- Test containment behavior not just flag generation (08-03)
-- Accept timeout/error as valid containment test outcome (agent may loop without tools) (08-03)
-- E2E test pattern: marked #[ignore], module docstring with requirements, helper function for CLI discovery (08-03)
-- Allow jsonschema library permissiveness on invalid types (not all versions reject them) (08-04)
-- ApprovalPolicy::default() returns Untrusted for containment-first operation (09-01)
-- ask_for_approval field is Option<ApprovalPolicy> - None means no flag, Some passes explicit policy (09-01)
-- Document full-auto override behavior in tests (full-auto overrides sandbox and approval at CLI level) (09-01)
-- E2E tests marked #[ignore] for CI safety - run with --ignored flag (09-02)
-- MCP sandbox bypass (Issue #4152) documented as known limitation, not assertion failure (09-02)
-- Accept timeout/error as valid containment test outcome due to LLM non-determinism (09-02)
-- OpenCode adapter module documentation matches Claude/Codex pattern with Containment Comparison table (10-01)
-- Flag combination tests document OpenCode containment model via test_containment_flags_absent test (10-01)
-- E2E tests marked #[ignore] for CI safety with helper function pattern for CLI discovery (10-02)
-- Accept timeout/error as valid containment test outcome due to LLM non-determinism (10-02)
-- Test containment behavior (working directory, timeout, MCP config, system prompt) not just flag generation (10-02)
-- README uses concept-first structure: What -> Quick Start -> Features -> Comparison (11-01)
-- Adapter comparison table covers MCP, streaming, sandbox, system prompt differences (11-01)
-- lib.rs rustdoc includes Module Overview table for discoverability (11-01)
-- Enable warn(missing_docs) not deny(missing_docs) for adapter crates - allows development flexibility while surfacing gaps (11-02)
-- Fix broken intra-doc link by using plain text instead of making constant public - internal implementation details stay private (11-02)
-- Example patterns: RIG_MCP_SERVER env var detection, build_toolset() helper, KEY CODE markers (11-03)
-- Custom tool error types must implement std::error::Error for Rig Tool trait (11-03)
-- Use async fn for Tool trait implementations (Rig 0.29 pattern) (11-04)
-- CliAgent::prompt() returns String directly, not struct with raw_output field (11-04)
-- Multi-agent pattern: researcher agent -> summarizer agent coordination (11-04)
-- Payload pattern: with_payload() on Client for context injection (11-04)
-- Error handling example pattern: timeout config, CLI not found matching, graceful fallback recovery (11-05)
-- README example table: direct links, one-line descriptions, run command (11-05)
+Full decision log archived in .planning/milestones/v1.0-ROADMAP.md
 
 ### Pending Todos
 
-None.
-
-### Roadmap Evolution
-
-- Phase 2.1 added (INSERTED): Transparent MCP Tool Agent — McpToolAgent builder that auto-spawns MCP server, generates config, and wires Claude CLI. Inserted between Phase 2 and Phase 3. COMPLETE: 3 plans executed, verified 6/6 must-haves.
+None — fresh state for next milestone.
 
 ### Blockers/Concerns
 
-- Codex Issue #4152: MCP tools bypass Landlock sandbox restrictions (known external limitation, documented inline)
+None — carried forward to v2.0 planning.
 
-### Quick Tasks Completed
+### Quick Tasks Completed (v1.0)
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
@@ -195,22 +65,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-04T00:57:49Z
-Stopped at: Completed 11-05-PLAN.md (Error Handling Example & Final Verification) - PROJECT COMPLETE
+Last session: 2026-02-03
+Stopped at: v1.0 milestone completed and archived
 Resume file: None
-
-## Project Completion Summary
-
-**rig-cli v0.1.0 ready for release**
-
-All 11 phases executed successfully:
-- Phase 1-5: Foundation, MCP, Payload, Containment, Observability
-- Phase 6-7: Platform Hardening, Rig Integration
-- Phase 8-10: Claude, Codex, OpenCode Adapters
-- Phase 11: Documentation & Examples (9 examples, full docs)
-
-Final verification:
-- All 9 examples compile
-- All doc tests pass
-- Zero documentation warnings
-- All crates have missing_docs lint enabled
