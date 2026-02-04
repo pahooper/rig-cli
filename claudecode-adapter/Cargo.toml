@@ -6,7 +6,7 @@ authors = ["Claude"]
 description = "Rust adapter for Claude Code CLI subprocess execution"
 license = "MIT"
 repository = "https://github.com/pnod/rig-cli"
-readme = "README.md"
+readme = "../README.md"
 keywords = ["claude", "cli", "adapter", "subprocess"]
 categories = ["development-tools"]
 

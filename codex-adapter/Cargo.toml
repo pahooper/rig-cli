@@ -5,7 +5,7 @@ edition = "2021"
 description = "Rust adapter for OpenAI Codex CLI subprocess execution"
 license = "MIT"
 repository = "https://github.com/pnod/rig-cli"
-readme = "README.md"
+readme = "../README.md"
 keywords = ["codex", "cli", "adapter", "subprocess"]
 categories = ["development-tools"]
 
