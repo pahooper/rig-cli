@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 11 COMPLETE. Documentation and examples phase - all documentation lints enabled across workspace with zero warnings.
+**Current focus:** Phase 11 in progress. Documentation and examples phase - adding MCP examples.
 
 ## Current Position
 
 Phase: 11 of 11 (Documentation & Examples)
-Plan: 2 of 2 in current phase - PHASE COMPLETE
-Status: Phase 11 complete (Documentation & Examples)
-Last activity: 2026-02-04 — Completed 11-02-PLAN.md (Missing Docs Lint)
+Plan: 3 of 4 in current phase
+Status: In progress (11-03 complete, 11-04 pending)
+Last activity: 2026-02-04 — Completed 11-03-PLAN.md (MCP Examples Wave 1)
 
-Progress: [██████████████████████] 37/37 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2, Phase 11: 2/2)
+Progress: [██████████████████████] 38/40 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2, Phase 11: 3/4)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 37
+- Total plans completed: 38
 - Average duration: 2.6 min
-- Total execution time: 2.31 hours
+- Total execution time: 2.4 hours
 
 **By Phase:**
 
@@ -38,11 +38,11 @@ Progress: [██████████████████████] 3
 | 08-claude-code-adapter | 4 | 24min | 6min |
 | 09-codex-adapter | 2 | 4.5min | 2.25min |
 | 10-opencode-adapter | 2 | 5min | 2.5min |
-| 11-documentation-examples | 2 | 5min | 2.5min |
+| 11-documentation-examples | 3 | 10min | 3.3min |
 
 **Recent Trend:**
-- Last 5 plans: 11-02 (3min), 11-01 (2min), 10-02 (2min), 10-01 (3min), 09-02 (1.5min)
-- Trend: ALL PHASES COMPLETE - Project v1.0 ready
+- Last 5 plans: 11-03 (5min), 11-02 (3min), 11-01 (2min), 10-02 (2min), 10-01 (3min)
+- Trend: Adding MCP examples for developer documentation
 
 *Updated after each plan completion*
 
@@ -164,6 +164,8 @@ Recent decisions affecting current work:
 - lib.rs rustdoc includes Module Overview table for discoverability (11-01)
 - Enable warn(missing_docs) not deny(missing_docs) for adapter crates - allows development flexibility while surfacing gaps (11-02)
 - Fix broken intra-doc link by using plain text instead of making constant public - internal implementation details stay private (11-02)
+- Example patterns: RIG_MCP_SERVER env var detection, build_toolset() helper, KEY CODE markers (11-03)
+- Custom tool error types must implement std::error::Error for Rig Tool trait (11-03)
 
 ### Pending Todos
 
@@ -187,6 +189,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-04T00:42:00Z
-Stopped at: Completed Phase 11 Plan 02 (Missing Docs Lint) - 2 tasks committed, SUMMARY created, ALL PHASES COMPLETE
+Last session: 2026-02-04T00:51:00Z
+Stopped at: Completed 11-03-PLAN.md (MCP Examples) - 2 tasks committed, SUMMARY created
 Resume file: None
