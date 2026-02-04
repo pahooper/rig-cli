@@ -130,17 +130,19 @@ println!("{:?}", result); // PersonInfo { name: "Alice", age: 30 }
 
 ## Examples
 
-Examples will be available in [`rig-cli/examples/`](./rig-cli/examples/):
+Run any example with: `cargo run -p rig-cli --example <name>`
 
 | Example | Description |
 |---------|-------------|
-| `simple_prompt.rs` | Basic prompt/response |
-| `streaming.rs` | Real-time event streaming |
-| `extraction.rs` | MCP-enforced structured extraction |
-| `chat.rs` | Multi-turn conversation |
-| `payload.rs` | Context injection with Payload |
-
-*Note: Examples are being added in documentation phase.*
+| [`chat_mcp.rs`](./rig-cli/examples/chat_mcp.rs) | Multi-turn conversation with MCP tools |
+| [`one_shot_mcp.rs`](./rig-cli/examples/one_shot_mcp.rs) | Single prompt with structured response |
+| [`agent_mcp.rs`](./rig-cli/examples/agent_mcp.rs) | Standard 3-tool pattern (example/validate/submit) |
+| [`agent_extra_tools.rs`](./rig-cli/examples/agent_extra_tools.rs) | 3-tool pattern with custom tools |
+| [`multiagent.rs`](./rig-cli/examples/multiagent.rs) | Multiple agents coordinating |
+| [`extraction.rs`](./rig-cli/examples/extraction.rs) | Structured data extraction from text |
+| [`payload_chat.rs`](./rig-cli/examples/payload_chat.rs) | File content analysis via payload |
+| [`mcp_deterministic.rs`](./rig-cli/examples/mcp_deterministic.rs) | MCP + deterministic date tool |
+| [`error_handling.rs`](./rig-cli/examples/error_handling.rs) | Error recovery patterns |
 
 ## Documentation
 
