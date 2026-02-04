@@ -1562,6 +1562,7 @@ dependencies = [
  "rig-core",
  "rig-mcp-server",
  "rig-provider",
+ "schemars",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
