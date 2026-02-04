@@ -4,6 +4,8 @@
 //! `claude` command-line tool, with support for streaming, structured
 //! output, and graceful timeout handling.
 
+#![warn(missing_docs)]
+
 /// Command-line argument construction for Claude CLI invocations.
 pub mod cmd;
 /// Discovery and resolution of the Claude CLI executable path.

@@ -28,7 +28,7 @@ struct OutputState {
 /// Runs `OpenCode` as a child process, optionally streaming events.
 ///
 /// If `sender` is provided, parsed events are forwarded in real time.
-/// Output is bounded to [`MAX_OUTPUT_BYTES`] per stream.
+/// Output is bounded to 10MB per stream to prevent memory exhaustion.
 ///
 /// # Errors
 ///

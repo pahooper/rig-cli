@@ -67,6 +67,8 @@
 //! - Equivalent test coverage (unit + E2E)
 //! - Zero clippy pedantic warnings
 
+#![warn(missing_docs)]
+
 pub mod cmd;
 pub mod discovery;
 pub mod error;

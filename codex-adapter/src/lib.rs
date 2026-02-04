@@ -3,6 +3,8 @@
 //! Provides types, discovery, and process management for invoking the
 //! Codex CLI as a child process with streaming and timeout support.
 
+#![warn(missing_docs)]
+
 /// Command-line argument building utilities.
 pub mod cmd;
 /// Codex binary discovery on the host system.
