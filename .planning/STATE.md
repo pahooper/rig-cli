@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** When a developer passes a struct and data to a CLI agent, they get validated typed output back reliably — the agent is forced through MCP tool constraints to submit conforming JSON rather than freeform text.
-**Current focus:** Phase 11 in progress. Documentation and examples phase - adding advanced MCP examples.
+**Current focus:** PROJECT COMPLETE. All 11 phases and 40 plans executed successfully.
 
 ## Current Position
 
-Phase: 11 of 11 (Documentation & Examples)
-Plan: 4 of 5 in current phase
-Status: In progress (11-04 complete, 11-05 pending)
-Last activity: 2026-02-04 — Completed 11-04-PLAN.md (Advanced Examples)
+Phase: 11 of 11 (Documentation & Examples) - COMPLETE
+Plan: 5 of 5 in current phase - COMPLETE
+Status: Complete
+Last activity: 2026-02-04 — Completed 11-05-PLAN.md (Error Handling Example & Final Verification)
 
-Progress: [██████████████████████] 39/40 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2, Phase 11: 4/5)
+Progress: [████████████████████████] 40/40 plans complete (Phase 1: 5/5, Phase 2: 2/2, Phase 2.1: 3/3, Phase 3: 2/2, Phase 4: 2/2, Phase 5: 2/2, Phase 6: 4/4, Phase 7: 7/7, Phase 8: 4/4, Phase 9: 2/2, Phase 10: 2/2, Phase 11: 5/5)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 39
+- Total plans completed: 40
 - Average duration: 2.7 min
-- Total execution time: 2.5 hours
+- Total execution time: 2.6 hours
 
 **By Phase:**
 
@@ -38,11 +38,11 @@ Progress: [██████████████████████] 3
 | 08-claude-code-adapter | 4 | 24min | 6min |
 | 09-codex-adapter | 2 | 4.5min | 2.25min |
 | 10-opencode-adapter | 2 | 5min | 2.5min |
-| 11-documentation-examples | 4 | 15min | 3.75min |
+| 11-documentation-examples | 5 | 18min | 3.6min |
 
 **Recent Trend:**
-- Last 5 plans: 11-04 (5min), 11-03 (5min), 11-02 (3min), 11-01 (2min), 10-02 (2min)
-- Trend: Completing documentation examples suite
+- Last 5 plans: 11-05 (3min), 11-04 (5min), 11-03 (5min), 11-02 (3min), 11-01 (2min)
+- Trend: PROJECT COMPLETE - all documentation and examples finished
 
 *Updated after each plan completion*
 
@@ -170,6 +170,8 @@ Recent decisions affecting current work:
 - CliAgent::prompt() returns String directly, not struct with raw_output field (11-04)
 - Multi-agent pattern: researcher agent -> summarizer agent coordination (11-04)
 - Payload pattern: with_payload() on Client for context injection (11-04)
+- Error handling example pattern: timeout config, CLI not found matching, graceful fallback recovery (11-05)
+- README example table: direct links, one-line descriptions, run command (11-05)
 
 ### Pending Todos
 
@@ -193,6 +195,22 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-04T00:51:22Z
-Stopped at: Completed 11-04-PLAN.md (Advanced Examples) - 2 tasks committed, SUMMARY created
+Last session: 2026-02-04T00:57:49Z
+Stopped at: Completed 11-05-PLAN.md (Error Handling Example & Final Verification) - PROJECT COMPLETE
 Resume file: None
+
+## Project Completion Summary
+
+**rig-cli v0.1.0 ready for release**
+
+All 11 phases executed successfully:
+- Phase 1-5: Foundation, MCP, Payload, Containment, Observability
+- Phase 6-7: Platform Hardening, Rig Integration
+- Phase 8-10: Claude, Codex, OpenCode Adapters
+- Phase 11: Documentation & Examples (9 examples, full docs)
+
+Final verification:
+- All 9 examples compile
+- All doc tests pass
+- Zero documentation warnings
+- All crates have missing_docs lint enabled
