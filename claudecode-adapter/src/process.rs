@@ -214,8 +214,16 @@ async fn drain_stdout_bounded(
         if format == Some(OutputFormat::StreamJson) {
             if let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) {
                 if let Some(ref stream_tx) = sender {
-                    if let Ok(event) = serde_json::from_value::<crate::types::StreamEvent>(val) {
-                        let _ = stream_tx.send(event).await;
+                    // Try v1.x flat format first, fall back to v2.x envelope format
+                    match serde_json::from_value::<crate::types::StreamEvent>(val.clone()) {
+                        Ok(event) => {
+                            let _ = stream_tx.send(event).await;
+                        }
+                        Err(_) => {
+                            for event in crate::types::extract_v2_events(&val) {
+                                let _ = stream_tx.send(event).await;
+                            }
+                        }
                     }
                 }
             }

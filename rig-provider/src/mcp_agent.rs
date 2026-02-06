@@ -22,7 +22,7 @@ struct VersionRequirement {
 const fn claude_code_version_req() -> VersionRequirement {
     VersionRequirement {
         min_version: semver::Version::new(1, 0, 0),
-        max_tested: semver::Version::new(1, 99, 0),
+        max_tested: semver::Version::new(2, 99, 0),
         cli_name: "Claude Code",
     }
 }
@@ -195,6 +195,16 @@ pub enum CliAdapter {
     Codex,
     /// Use the `OpenCode` CLI (`opencode run`).
     OpenCode,
+}
+
+impl std::fmt::Display for CliAdapter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ClaudeCode => write!(f, "ClaudeCode"),
+            Self::Codex => write!(f, "Codex"),
+            Self::OpenCode => write!(f, "OpenCode"),
+        }
+    }
 }
 
 /// Result of an [`McpToolAgent`] execution.
@@ -484,16 +494,19 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
         let (tx, rx) = tokio::sync::mpsc::channel::<McpStreamEvent>(100);
 
         // 10. Execute per adapter
+        // NOTE: _temp_dir MUST be moved into the adapter function so it stays alive
+        // for the duration of the spawned task. If dropped here, the cwd is deleted
+        // before the CLI process starts, causing ENOENT on spawn.
         match adapter {
             CliAdapter::ClaudeCode => {
-                run_claude_code_stream(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, builtin_tools.as_ref(), &effective_cwd, tx)
+                run_claude_code_stream(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, builtin_tools.as_ref(), &effective_cwd, _temp_dir, tx)
                     .await?;
             }
             CliAdapter::Codex => {
-                run_codex_stream(&final_prompt, &mcp_config, &full_system_prompt, timeout, &sandbox_mode, &effective_cwd, tx).await?;
+                run_codex_stream(&final_prompt, &mcp_config, &full_system_prompt, timeout, &sandbox_mode, &effective_cwd, _temp_dir, tx).await?;
             }
             CliAdapter::OpenCode => {
-                run_opencode_stream(&final_prompt, &mcp_config, &full_system_prompt, timeout, &effective_cwd, tx).await?;
+                run_opencode_stream(&final_prompt, &mcp_config, &full_system_prompt, timeout, &effective_cwd, _temp_dir, tx).await?;
             }
         }
 
@@ -1051,6 +1064,7 @@ async fn run_claude_code_stream(
     timeout: Duration,
     builtin_tools: Option<&Vec<String>>,
     cwd: &std::path::Path,
+    temp_dir_guard: Option<tempfile::TempDir>,
     tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
 ) -> Result<(), ProviderError> {
     // Write Claude Code MCP config JSON to temp file
@@ -1062,7 +1076,7 @@ async fn run_claude_code_stream(
         .write_all(json.as_bytes())
         .map_err(|e| ProviderError::McpToolAgent(format!("Failed to write config: {e}")))?;
     let config_path = config_file.path().to_path_buf();
-    let _config_guard = config_file.into_temp_path();
+    let config_guard = config_file.into_temp_path();
 
     let report = rig_cli_claude::init(None)
         .await
@@ -1103,10 +1117,25 @@ async fn run_claude_code_stream(
     // Clone prompt for 'static lifetime in spawned task
     let prompt_owned = prompt.to_string();
 
-    // Spawn task to run CLI and convert events
+    // Spawn task to run CLI and convert events.
+    // Move temp file guards into the task to keep them alive for the CLI's duration.
     tokio::spawn(async move {
+        let _keep_cwd = temp_dir_guard;
+        let _keep_config = config_guard;
+
         // Run the CLI with streaming
-        let _result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
+        let result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
+
+        // Drop the sender to close the channel - this signals to the receiver
+        // that no more events will arrive. Without this, recv() never returns None.
+        drop(adapter_tx);
+
+        // Propagate CLI execution errors as McpStreamEvent::Error
+        if let Err(e) = result {
+            tracing::error!(event = "claude_stream_failed", error = %e, "Claude Code stream execution failed");
+            let _ = tx.send(McpStreamEvent::Error(format!("CLI stream failed: {e}"))).await;
+            return;
+        }
 
         // Convert adapter events to McpStreamEvent
         while let Some(event) = adapter_rx.recv().await {
@@ -1143,6 +1172,7 @@ async fn run_codex_stream(
     timeout: Duration,
     sandbox_mode: &rig_cli_codex::SandboxMode,
     cwd: &std::path::Path,
+    temp_dir_guard: Option<tempfile::TempDir>,
     tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
 ) -> Result<(), ProviderError> {
     let path = rig_cli_codex::discover_codex(None)
@@ -1189,10 +1219,24 @@ async fn run_codex_stream(
     // Clone prompt for 'static lifetime in spawned task
     let prompt_owned = prompt.to_string();
 
-    // Spawn task to run CLI and convert events
+    // Spawn task to run CLI and convert events.
+    // Move temp dir guard into the task to keep cwd alive.
     tokio::spawn(async move {
+        let _keep_cwd = temp_dir_guard;
+
         // Run the CLI with streaming
-        let _result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
+        let result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
+
+        // Drop the sender to close the channel - this signals to the receiver
+        // that no more events will arrive. Without this, recv() never returns None.
+        drop(adapter_tx);
+
+        // Propagate CLI execution errors as McpStreamEvent::Error
+        if let Err(e) = result {
+            tracing::error!(event = "codex_stream_failed", error = %e, "Codex stream execution failed");
+            let _ = tx.send(McpStreamEvent::Error(format!("CLI stream failed: {e}"))).await;
+            return;
+        }
 
         // Convert adapter events to McpStreamEvent
         while let Some(event) = adapter_rx.recv().await {
@@ -1216,6 +1260,7 @@ async fn run_opencode_stream(
     system_prompt: &str,
     timeout: Duration,
     cwd: &std::path::Path,
+    temp_dir_guard: Option<tempfile::TempDir>,
     tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
 ) -> Result<(), ProviderError> {
     let path = rig_cli_opencode::discover_opencode(None)
@@ -1250,7 +1295,7 @@ async fn run_opencode_stream(
         .map_err(|e| ProviderError::McpToolAgent(format!("Failed to write config: {e}")))?;
 
     let config_path = config_file.path().to_path_buf();
-    let _config_guard = config_file.into_temp_path();
+    let config_guard = config_file.into_temp_path();
 
     let config = rig_cli_opencode::OpenCodeConfig {
         model: Some("opencode/big-pickle".to_string()),
@@ -1267,10 +1312,25 @@ async fn run_opencode_stream(
     // Clone prompt for 'static lifetime in spawned task
     let prompt_owned = prompt.to_string();
 
-    // Spawn task to run CLI and convert events
+    // Spawn task to run CLI and convert events.
+    // Move temp file guards into the task to keep them alive for the CLI's duration.
     tokio::spawn(async move {
+        let _keep_cwd = temp_dir_guard;
+        let _keep_config = config_guard;
+
         // Run the CLI with streaming
-        let _result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
+        let result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
+
+        // Drop the sender to close the channel - this signals to the receiver
+        // that no more events will arrive. Without this, recv() never returns None.
+        drop(adapter_tx);
+
+        // Propagate CLI execution errors as McpStreamEvent::Error
+        if let Err(e) = result {
+            tracing::error!(event = "opencode_stream_failed", error = %e, "OpenCode stream execution failed");
+            let _ = tx.send(McpStreamEvent::Error(format!("CLI stream failed: {e}"))).await;
+            return;
+        }
 
         // Convert adapter events to McpStreamEvent
         while let Some(event) = adapter_rx.recv().await {
@@ -1340,7 +1400,7 @@ mod tests {
         let req = claude_code_version_req();
         let below_min = semver::Version::new(0, 0, 1);
         let in_range = semver::Version::new(1, 5, 0);
-        let above_max = semver::Version::new(2, 0, 0);
+        let above_max = semver::Version::new(3, 0, 0);
 
         assert!(below_min < req.min_version);
         assert!(in_range >= req.min_version && in_range <= req.max_tested);

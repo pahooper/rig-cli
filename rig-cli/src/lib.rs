@@ -145,6 +145,9 @@ pub mod opencode;
 /// Shared client configuration.
 pub mod config;
 
+/// Unified CLI binary discovery across all adapters.
+pub mod discovery;
+
 /// Public error types.
 pub mod errors;
 
@@ -158,7 +161,9 @@ pub mod prelude;
 pub use rig;
 
 // MCP-enforced agent types (from rig-provider)
-pub use rig_cli_provider::mcp_agent::{CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent};
+pub use rig_cli_provider::mcp_agent::{
+    CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent, McpToolAgent, McpToolAgentBuilder,
+};
 
 /// Re-export of MCP extraction types for structured data extraction workflows.
 ///
@@ -176,5 +181,5 @@ pub mod extraction {
 /// and configuring MCP servers for structured agent execution.
 pub mod tools {
     pub use rig_cli_mcp::server::{McpConfig, RigMcpHandler, ToolSetExt};
-    pub use rig_cli_mcp::tools::JsonSchemaToolkit;
+    pub use rig_cli_mcp::tools::{DynamicJsonSchemaToolkit, JsonSchemaToolkit};
 }

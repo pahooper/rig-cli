@@ -75,7 +75,11 @@ pub fn build_args(prompt: &str, config: &RunConfig) -> Vec<OsString> {
         match format {
             OutputFormat::Text => args.push(OsString::from("text")),
             OutputFormat::Json => args.push(OsString::from("json")),
-            OutputFormat::StreamJson => args.push(OsString::from("stream-json")),
+            OutputFormat::StreamJson => {
+                args.push(OsString::from("stream-json"));
+                // Claude Code requires --verbose when using --print with stream-json
+                args.push(OsString::from("--verbose"));
+            }
         }
     }
 

@@ -14,5 +14,5 @@ pub mod prelude {
         ExtractionConfig, ExtractionError, ExtractionMetrics, ExtractionOrchestrator,
     };
     pub use crate::server::{McpConfig, RigMcpHandler, ToolSetExt};
-    pub use crate::tools::JsonSchemaToolkit;
+    pub use crate::tools::{DynamicJsonSchemaToolkit, JsonSchemaToolkit};
 }

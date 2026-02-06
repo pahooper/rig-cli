@@ -219,3 +219,82 @@ pub enum StreamEvent {
     /// An unrecognized event type.
     Unknown(serde_json::Value),
 }
+
+/// Extracts [`StreamEvent`]s from Claude Code v2.x stream-json envelope format.
+///
+/// Claude Code v2.x wraps content in message envelopes:
+/// - `{"type":"assistant","message":{"content":[{"type":"text",...},{"type":"tool_use",...}]}}`
+/// - `{"type":"result","result":"...","is_error":false}`
+/// - `{"type":"system",...}` (informational, skipped)
+///
+/// This function unwraps those envelopes into the flat [`StreamEvent`] variants
+/// that downstream consumers expect, providing backward compatibility.
+pub fn extract_v2_events(val: &serde_json::Value) -> Vec<StreamEvent> {
+    let mut events = Vec::new();
+
+    match val.get("type").and_then(serde_json::Value::as_str) {
+        Some("assistant") => {
+            if let Some(content) = val
+                .pointer("/message/content")
+                .and_then(serde_json::Value::as_array)
+            {
+                for block in content {
+                    match block.get("type").and_then(serde_json::Value::as_str) {
+                        Some("text") => {
+                            if let Some(text) = block.get("text").and_then(serde_json::Value::as_str)
+                            {
+                                events.push(StreamEvent::Text {
+                                    text: text.to_string(),
+                                });
+                            }
+                        }
+                        Some("tool_use") => {
+                            if let (Some(name), Some(input)) = (
+                                block.get("name").and_then(serde_json::Value::as_str),
+                                block.get("input"),
+                            ) {
+                                events.push(StreamEvent::ToolCall {
+                                    name: name.to_string(),
+                                    input: input.clone(),
+                                });
+                            }
+                        }
+                        Some("tool_result") => {
+                            if let Some(tool_use_id) =
+                                block.get("tool_use_id").and_then(serde_json::Value::as_str)
+                            {
+                                let output = block
+                                    .get("content")
+                                    .and_then(serde_json::Value::as_str)
+                                    .unwrap_or("")
+                                    .to_string();
+                                events.push(StreamEvent::ToolResult {
+                                    name: tool_use_id.to_string(),
+                                    output,
+                                });
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        Some("result") => {
+            if val.get("is_error") == Some(&serde_json::Value::Bool(true)) {
+                let msg = val
+                    .get("error")
+                    .and_then(serde_json::Value::as_str)
+                    .or_else(|| val.get("result").and_then(serde_json::Value::as_str))
+                    .unwrap_or("Unknown error")
+                    .to_string();
+                events.push(StreamEvent::Error { message: msg });
+            }
+        }
+        Some("system") => {
+            // System events (hooks, init) are informational — skip.
+        }
+        _ => {}
+    }
+
+    events
+}

@@ -371,3 +371,241 @@ impl Tool for JsonExampleTool {
         Ok(self.example.to_string())
     }
 }
+
+// ---------------------------------------------------------------------------
+// Dynamic (runtime-schema) toolkit
+// ---------------------------------------------------------------------------
+
+/// Type alias for the dynamic submission callback.
+type DynamicSubmitCallback = Arc<dyn Fn(Value) -> String + Send + Sync>;
+
+/// A toolkit for JSON-based workflows using runtime-provided schemas.
+///
+/// Unlike [`JsonSchemaToolkit`] which derives schemas at compile time via
+/// `schemars::schema_for!()`, this toolkit accepts raw JSON Schema values
+/// at runtime. This enables dynamic agent definitions where schemas are
+/// stored in a database or configuration file rather than as Rust types.
+///
+/// Produces the same three-tool pattern (submit, validate, example) as
+/// `JsonSchemaToolkit`, but with `serde_json::Value` as the submission type.
+pub struct DynamicJsonSchemaToolkit {
+    schema: Arc<Value>,
+    example: String,
+    on_submit: Option<DynamicSubmitCallback>,
+    success_message: String,
+    submit_tool_name: String,
+    submit_tool_description: String,
+    validate_tool_name: String,
+    validate_tool_description: String,
+    example_tool_name: String,
+    example_tool_description: String,
+}
+
+impl DynamicJsonSchemaToolkit {
+    /// Returns a new builder for configuring the toolkit with a runtime schema.
+    #[must_use]
+    pub fn builder() -> DynamicJsonSchemaToolkitBuilder {
+        DynamicJsonSchemaToolkitBuilder::default()
+    }
+
+    /// Consumes the toolkit and returns the trio of configured tools.
+    #[must_use]
+    pub fn build_tools(self) -> (DynamicSubmitTool, ValidateJsonTool, JsonExampleTool) {
+        let example = Arc::new(self.example);
+        let success_message = Arc::new(self.success_message);
+
+        (
+            DynamicSubmitTool {
+                name: self.submit_tool_name,
+                description: self.submit_tool_description,
+                schema: self.schema.clone(),
+                on_submit: self.on_submit,
+                success_message,
+            },
+            ValidateJsonTool {
+                name: self.validate_tool_name,
+                description: self.validate_tool_description,
+                schema: self.schema.clone(),
+            },
+            JsonExampleTool {
+                name: self.example_tool_name,
+                description: self.example_tool_description,
+                example,
+            },
+        )
+    }
+}
+
+/// Builder for [`DynamicJsonSchemaToolkit`].
+#[derive(Default)]
+pub struct DynamicJsonSchemaToolkitBuilder {
+    schema: Option<Value>,
+    example: Option<Value>,
+    on_submit: Option<DynamicSubmitCallback>,
+    success_message: Option<String>,
+    submit_tool_name: Option<String>,
+    submit_tool_description: Option<String>,
+    validate_tool_name: Option<String>,
+    validate_tool_description: Option<String>,
+    example_tool_name: Option<String>,
+    example_tool_description: Option<String>,
+}
+
+impl DynamicJsonSchemaToolkitBuilder {
+    /// Sets the JSON Schema for validation (required).
+    ///
+    /// This should be a valid JSON Schema object that describes the expected
+    /// output structure for the agent.
+    #[must_use]
+    pub fn schema(mut self, schema: Value) -> Self {
+        self.schema = Some(schema);
+        self
+    }
+
+    /// Sets the example JSON value shown to the agent.
+    #[must_use]
+    pub fn example(mut self, example: Value) -> Self {
+        self.example = Some(example);
+        self
+    }
+
+    /// Sets the message returned upon successful submission.
+    #[must_use]
+    pub fn on_success(mut self, message: impl Into<String>) -> Self {
+        self.success_message = Some(message.into());
+        self
+    }
+
+    /// Sets a callback executed when the submit tool is called.
+    /// The callback receives the validated JSON value and returns a success message.
+    #[must_use]
+    pub fn on_submit<F>(mut self, callback: F) -> Self
+    where
+        F: Fn(Value) -> String + Send + Sync + 'static,
+    {
+        self.on_submit = Some(Arc::new(callback));
+        self
+    }
+
+    /// Customizes the submit tool name and description.
+    #[must_use]
+    pub fn customize_submit(
+        mut self,
+        name: impl Into<String>,
+        description: impl Into<String>,
+    ) -> Self {
+        self.submit_tool_name = Some(name.into());
+        self.submit_tool_description = Some(description.into());
+        self
+    }
+
+    /// Customizes the validate tool name and description.
+    #[must_use]
+    pub fn customize_validate(
+        mut self,
+        name: impl Into<String>,
+        description: impl Into<String>,
+    ) -> Self {
+        self.validate_tool_name = Some(name.into());
+        self.validate_tool_description = Some(description.into());
+        self
+    }
+
+    /// Customizes the example tool name and description.
+    #[must_use]
+    pub fn customize_example(
+        mut self,
+        name: impl Into<String>,
+        description: impl Into<String>,
+    ) -> Self {
+        self.example_tool_name = Some(name.into());
+        self.example_tool_description = Some(description.into());
+        self
+    }
+
+    /// Builds the toolkit.
+    ///
+    /// # Panics
+    /// Panics if `schema` was not provided.
+    #[must_use]
+    pub fn build(self) -> DynamicJsonSchemaToolkit {
+        DynamicJsonSchemaToolkit {
+            schema: Arc::new(self.schema.expect("schema is required for DynamicJsonSchemaToolkit")),
+            example: self
+                .example
+                .map_or_else(|| "{}".to_string(), |v| {
+                    serde_json::to_string_pretty(&v).unwrap_or_else(|_| v.to_string())
+                }),
+            on_submit: self.on_submit,
+            success_message: self
+                .success_message
+                .unwrap_or_else(|| "Successfully submitted.".to_string()),
+            submit_tool_name: self.submit_tool_name.unwrap_or_else(|| "submit".to_string()),
+            submit_tool_description: self.submit_tool_description.unwrap_or_else(|| {
+                "Submit the structured data. This will perform final validation and processing."
+                    .to_string()
+            }),
+            validate_tool_name: self
+                .validate_tool_name
+                .unwrap_or_else(|| "validate_json".to_string()),
+            validate_tool_description: self.validate_tool_description.unwrap_or_else(|| {
+                "Validate JSON against the configured schema. Use this to check your format before submitting."
+                    .to_string()
+            }),
+            example_tool_name: self
+                .example_tool_name
+                .unwrap_or_else(|| "json_example".to_string()),
+            example_tool_description: self.example_tool_description.unwrap_or_else(|| {
+                "Get an example of the expected JSON format.".to_string()
+            }),
+        }
+    }
+}
+
+/// Tool for submitting work in JSON format with runtime schema validation.
+///
+/// Unlike [`SubmitTool`] which deserializes into a concrete type `T`,
+/// this tool accepts `serde_json::Value` and validates against an injected
+/// JSON Schema at runtime. This enables dynamic agent definitions.
+pub struct DynamicSubmitTool {
+    pub(crate) name: String,
+    pub(crate) description: String,
+    schema: Arc<Value>,
+    on_submit: Option<DynamicSubmitCallback>,
+    success_message: Arc<String>,
+}
+
+impl Tool for DynamicSubmitTool {
+    const NAME: &'static str = "submit";
+    type Error = ToolError;
+    type Args = Value;
+    type Output = String;
+
+    async fn definition(&self, _prompt: String) -> ToolDefinition {
+        ToolDefinition {
+            name: self.name.clone(),
+            description: self.description.clone(),
+            parameters: (*self.schema).clone(),
+        }
+    }
+
+    async fn call(&self, args: Value) -> Result<String, ToolError> {
+        // Validate against the runtime schema before accepting
+        let validator =
+            Validator::new(&self.schema).map_err(|e| ToolError::Validation(e.to_string()))?;
+
+        let errors: Vec<_> = validator.iter_errors(&args).collect();
+        if !errors.is_empty() {
+            let mut feedback = String::from("Submission validation failed:\n");
+            for error in &errors {
+                let _ = writeln!(feedback, "  - At '{}': {}", error.instance_path, error);
+            }
+            return Err(ToolError::Validation(feedback));
+        }
+
+        self.on_submit.as_ref().map_or_else(
+            || Ok(self.success_message.to_string()),
+            |callback| Ok(callback(args)),
+        )
+    }
+}
