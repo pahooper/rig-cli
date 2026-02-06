@@ -2,8 +2,8 @@
 //!
 //! Turn CLI-based AI agents into idiomatic Rig 0.29 providers.
 //!
-//! This crate provides a Rig-idiomatic facade over CLI-based AI agents (Claude Code, Codex, OpenCode),
-//! allowing you to use them with the same patterns you use for cloud API providers like OpenAI or Anthropic.
+//! This crate provides a Rig-idiomatic facade over CLI-based AI agents (`Claude Code`, `Codex`, `OpenCode`),
+//! allowing you to use them with the same patterns you use for cloud API providers like `OpenAI` or Anthropic.
 //!
 //! ## Quick Start
 //!
@@ -31,7 +31,7 @@
 //! |---------|---------|-------------|
 //! | `claude` | Yes | Enable Claude Code provider |
 //! | `codex` | Yes | Enable Codex provider |
-//! | `opencode` | Yes | Enable OpenCode provider |
+//! | `opencode` | Yes | Enable `OpenCode` provider |
 //! | `debug-output` | No | Include raw CLI output in error messages |
 //!
 //! Enable specific providers:
@@ -47,7 +47,7 @@
 //! |--------|---------|
 //! | [`claude`] | Claude Code provider with `CompletionModel` |
 //! | [`codex`] | Codex provider with `CompletionModel` |
-//! | [`opencode`] | OpenCode provider with `CompletionModel` |
+//! | [`opencode`] | `OpenCode` provider with `CompletionModel` |
 //! | [`extraction`] | MCP extraction types (re-exported from rig-mcp-server) |
 //! | [`tools`] | MCP tool types (re-exported from rig-mcp-server) |
 //! | [`prelude`] | Common imports for quick start |
@@ -162,7 +162,8 @@ pub use rig;
 
 // MCP-enforced agent types (from rig-provider)
 pub use rig_cli_provider::mcp_agent::{
-    CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent, McpToolAgent, McpToolAgentBuilder,
+    CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent, McpStreamHandle, McpToolAgent,
+    McpToolAgentBuilder,
 };
 
 /// Re-export of MCP extraction types for structured data extraction workflows.

@@ -23,6 +23,6 @@ pub mod utils;
 pub mod mcp_agent;
 
 pub use mcp_agent::{
-    CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent, McpToolAgent, McpToolAgentBuilder,
-    McpToolAgentResult, DEFAULT_WORKFLOW_TEMPLATE,
+    CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent, McpStreamHandle, McpToolAgent,
+    McpToolAgentBuilder, McpToolAgentResult, DEFAULT_WORKFLOW_TEMPLATE,
 };

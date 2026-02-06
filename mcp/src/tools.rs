@@ -260,8 +260,14 @@ where
     }
 
     async fn call(&self, args: T) -> Result<String, ToolError> {
-        // Since we are using T as Args, Rig already handles deserialization.
-        // However, we still have the JSON schema for the MCP definition.
+        // Write validated result to the file path specified by RIG_MCP_RESULT_PATH.
+        // This is the primary result channel — the parent process reads this file
+        // after the stream ends, rather than relying on stream ToolCall events.
+        if let (Ok(result_path), Ok(json_str)) =
+            (std::env::var("RIG_MCP_RESULT_PATH"), serde_json::to_string(&args))
+        {
+            let _ = std::fs::write(&result_path, json_str.as_bytes());
+        }
 
         self.on_submit.as_ref().map_or_else(
             || Ok(self.success_message.to_string()),
@@ -525,12 +531,12 @@ impl DynamicJsonSchemaToolkitBuilder {
 
     /// Builds the toolkit.
     ///
-    /// # Panics
-    /// Panics if `schema` was not provided.
-    #[must_use]
-    pub fn build(self) -> DynamicJsonSchemaToolkit {
-        DynamicJsonSchemaToolkit {
-            schema: Arc::new(self.schema.expect("schema is required for DynamicJsonSchemaToolkit")),
+    /// # Errors
+    /// Returns an error if `schema` was not provided.
+    pub fn build(self) -> Result<DynamicJsonSchemaToolkit, String> {
+        let schema = self.schema.ok_or("schema is required for DynamicJsonSchemaToolkit")?;
+        Ok(DynamicJsonSchemaToolkit {
+            schema: Arc::new(schema),
             example: self
                 .example
                 .map_or_else(|| "{}".to_string(), |v| {
@@ -558,7 +564,7 @@ impl DynamicJsonSchemaToolkitBuilder {
             example_tool_description: self.example_tool_description.unwrap_or_else(|| {
                 "Get an example of the expected JSON format.".to_string()
             }),
-        }
+        })
     }
 }
 
@@ -601,6 +607,16 @@ impl Tool for DynamicSubmitTool {
                 let _ = writeln!(feedback, "  - At '{}': {}", error.instance_path, error);
             }
             return Err(ToolError::Validation(feedback));
+        }
+
+        // Write validated result to the file path specified by RIG_MCP_RESULT_PATH.
+        // This is the primary result channel — the parent process reads this file
+        // after the stream ends, rather than relying on stream ToolCall events.
+        if let Ok(result_path) = std::env::var("RIG_MCP_RESULT_PATH") {
+            let json_str = serde_json::to_string(&args)
+                .map_err(|e| ToolError::Validation(format!("Failed to serialize result: {e}")))?;
+            std::fs::write(&result_path, json_str.as_bytes())
+                .map_err(|e| ToolError::Validation(format!("Failed to write result file: {e}")))?;
         }
 
         self.on_submit.as_ref().map_or_else(

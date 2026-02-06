@@ -218,6 +218,42 @@ pub struct McpToolAgentResult {
     pub exit_code: i32,
     /// Wall-clock duration in milliseconds.
     pub duration_ms: u64,
+    /// Structured JSON from the MCP server's submit tool, if available.
+    /// This is the primary result channel — populated from the result file
+    /// that the MCP server writes via `RIG_MCP_RESULT_PATH`.
+    pub submit_result: Option<String>,
+}
+
+/// Handle returned by [`McpToolAgentBuilder::stream`].
+///
+/// Bundles the event receiver with the result file path. After draining all
+/// events from the receiver, call [`read_result`](Self::read_result) to get
+/// the structured JSON that the MCP server's submit tool wrote.
+pub struct McpStreamHandle {
+    /// Receiver for streaming progress events.
+    pub rx: tokio::sync::mpsc::Receiver<McpStreamEvent>,
+    /// Path to the temp file where the MCP server writes the submit result.
+    result_path: std::path::PathBuf,
+    /// Keep the temp file alive until this handle is dropped.
+    _result_file: tempfile::NamedTempFile,
+}
+
+impl McpStreamHandle {
+    /// Reads the submit result from the MCP server's result file.
+    ///
+    /// Call this after the stream receiver is fully drained (returns `None`).
+    /// Returns `None` if the agent never called a submit tool.
+    ///
+    /// # Errors
+    /// Returns an error if the file exists but cannot be read or parsed.
+    pub fn read_result(&self) -> Result<Option<String>, std::io::Error> {
+        match std::fs::read_to_string(&self.result_path) {
+            Ok(content) if content.is_empty() => Ok(None),
+            Ok(content) => Ok(Some(content)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
 }
 
 /// MCP-backed CLI agent that transparently handles MCP config generation,
@@ -401,7 +437,7 @@ impl McpToolAgentBuilder {
     ///
     /// # Errors
     /// Returns error if validation fails before spawning.
-    pub async fn stream(self) -> Result<tokio::sync::mpsc::Receiver<McpStreamEvent>, ProviderError> {
+    pub async fn stream(self) -> Result<McpStreamHandle, ProviderError> {
         // 1. Validate required fields
         let toolset = self
             .toolset
@@ -421,7 +457,7 @@ impl McpToolAgentBuilder {
         let server_name = self.server_name.clone();
 
         // Create temp dir if working_dir not provided (CONT-04)
-        let (_temp_dir, effective_cwd) = if let Some(dir) = self.working_dir { (None, dir) } else {
+        let (temp_dir_guard, effective_cwd) = if let Some(dir) = self.working_dir { (None, dir) } else {
             let td = tempfile::TempDir::new()
                 .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp dir: {e}")))?;
             let path = td.path().to_path_buf();
@@ -434,7 +470,13 @@ impl McpToolAgentBuilder {
             .await
             .map_err(|e| ProviderError::McpToolAgent(format!("Failed to get tool definitions: {e}")))?;
 
-        // 3. Build McpConfig
+        // 3. Create result file for MCP server to write submit output into.
+        // This is the primary result channel — stream events are progress only.
+        let result_file = tempfile::NamedTempFile::new()
+            .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create result file: {e}")))?;
+        let result_path = result_file.path().to_path_buf();
+
+        // 4. Build McpConfig with result path injected as env var
         let exe = std::env::current_exe()
             .map_err(|e| ProviderError::McpToolAgent(format!("Failed to get current exe: {e}")))?;
         let mcp_config = rig_cli_mcp::server::McpConfig {
@@ -444,73 +486,62 @@ impl McpToolAgentBuilder {
             env: {
                 let mut env = std::collections::HashMap::new();
                 env.insert("RIG_MCP_SERVER".to_string(), "1".to_string());
+                env.insert("RIG_MCP_RESULT_PATH".to_string(), result_path.to_string_lossy().to_string());
                 env
             },
         };
 
-        // 4. Compute allowed tool names
+        // 5. Compute allowed tool names
         let allowed_tools: Vec<String> = definitions
             .iter()
             .map(|def| format!("mcp__{}__{}",  server_name, def.name))
             .collect();
 
-        // 5. Build workflow template (custom or default)
-        let workflow_instructions = instruction_template.as_deref()
-            .unwrap_or(DEFAULT_WORKFLOW_TEMPLATE);
-
-        // 6. Build MCP instruction with workflow enforcement
-        let mcp_instruction = format!(
-            "{workflow_instructions}\n\nAvailable MCP tools: {}\n\n\
-             You MUST use ONLY these MCP tools. Do NOT output raw JSON text as your response.",
-            allowed_tools.join(", ")
+        // 6-9. Assemble system prompt and user prompt
+        let (full_system_prompt, final_prompt) = assemble_prompts(
+            instruction_template.as_deref(),
+            system_prompt.as_deref(),
+            &allowed_tools,
+            &prompt,
+            payload.as_deref(),
         );
 
-        // 7. Build full system prompt
-        let full_system_prompt = match system_prompt {
-            Some(sp) => format!("{sp}\n\n{mcp_instruction}"),
-            None => mcp_instruction,
-        };
-
-        // 8. Build final user prompt (4-block XML if payload present)
-        let final_prompt = if let Some(data) = payload {
-            format!(
-                r"<context>
-{data}
-</context>
-
-<task>
-{prompt}
-</task>
-
-<output_format>
-Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via the 'submit' tool.
-</output_format>"
-            )
-        } else {
-            prompt
-        };
-
-        // 9. Create channel for streaming events
+        // 10. Create channel for streaming events
         let (tx, rx) = tokio::sync::mpsc::channel::<McpStreamEvent>(100);
 
-        // 10. Execute per adapter
-        // NOTE: _temp_dir MUST be moved into the adapter function so it stays alive
+        // 11. Execute per adapter
+        // NOTE: temp_dir_guard MUST be moved into the adapter function so it stays alive
         // for the duration of the spawned task. If dropped here, the cwd is deleted
         // before the CLI process starts, causing ENOENT on spawn.
         match adapter {
             CliAdapter::ClaudeCode => {
-                run_claude_code_stream(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, builtin_tools.as_ref(), &effective_cwd, _temp_dir, tx)
-                    .await?;
+                let ctx = StreamRunCtx {
+                    prompt: &final_prompt, mcp_config: &mcp_config, system_prompt: &full_system_prompt,
+                    timeout, cwd: &effective_cwd, temp_dir_guard, tx,
+                };
+                run_claude_code_stream(ctx, &allowed_tools, builtin_tools.as_ref()).await?;
             }
             CliAdapter::Codex => {
-                run_codex_stream(&final_prompt, &mcp_config, &full_system_prompt, timeout, &sandbox_mode, &effective_cwd, _temp_dir, tx).await?;
+                let ctx = StreamRunCtx {
+                    prompt: &final_prompt, mcp_config: &mcp_config, system_prompt: &full_system_prompt,
+                    timeout, cwd: &effective_cwd, temp_dir_guard, tx,
+                };
+                run_codex_stream(ctx, &sandbox_mode).await?;
             }
             CliAdapter::OpenCode => {
-                run_opencode_stream(&final_prompt, &mcp_config, &full_system_prompt, timeout, &effective_cwd, _temp_dir, tx).await?;
+                let ctx = StreamRunCtx {
+                    prompt: &final_prompt, mcp_config: &mcp_config, system_prompt: &full_system_prompt,
+                    timeout, cwd: &effective_cwd, temp_dir_guard, tx,
+                };
+                run_opencode_stream(ctx).await?;
             }
         }
 
-        Ok(rx)
+        Ok(McpStreamHandle {
+            rx,
+            result_path,
+            _result_file: result_file,
+        })
     }
 
     /// Executes the MCP tool agent, returning the CLI output.
@@ -545,8 +576,9 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
         let builtin_tools = self.builtin_tools;
         let sandbox_mode = self.sandbox_mode.unwrap_or(rig_cli_codex::SandboxMode::ReadOnly);
 
-        // Create temp dir if working_dir not provided (CONT-04)
-        let (_temp_dir, effective_cwd) = if let Some(dir) = self.working_dir { (None, dir) } else {
+        // Create temp dir if working_dir not provided (CONT-04).
+        // Guard must live until CLI process completes to keep the directory alive.
+        let (temp_dir_guard, effective_cwd) = if let Some(dir) = self.working_dir { (None, dir) } else {
             let td = tempfile::TempDir::new()
                 .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp dir: {e}")))?;
             let path = td.path().to_path_buf();
@@ -559,7 +591,12 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
             .await
             .map_err(|e| ProviderError::McpToolAgent(format!("Failed to get tool definitions: {e}")))?;
 
-        // 3. Build McpConfig
+        // 3. Create result file for MCP server to write submit output into
+        let result_file = tempfile::NamedTempFile::new()
+            .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create result file: {e}")))?;
+        let result_path = result_file.path().to_path_buf();
+
+        // 4. Build McpConfig with result path injected as env var
         let exe = std::env::current_exe()
             .map_err(|e| ProviderError::McpToolAgent(format!("Failed to get current exe: {e}")))?;
         let mcp_config = rig_cli_mcp::server::McpConfig {
@@ -571,6 +608,7 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
             env: {
                 let mut env = std::collections::HashMap::new();
                 env.insert("RIG_MCP_SERVER".to_string(), "1".to_string());
+                env.insert("RIG_MCP_RESULT_PATH".to_string(), result_path.to_string_lossy().to_string());
                 env
             },
         };
@@ -581,55 +619,39 @@ Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via
             .map(|def| format!("mcp__{}__{}",  self.server_name, def.name))
             .collect();
 
-        // 5. Build workflow template (custom or default)
-        let workflow_instructions = instruction_template.as_deref()
-            .unwrap_or(DEFAULT_WORKFLOW_TEMPLATE);
-
-        // 6. Build MCP instruction with workflow enforcement
-        let mcp_instruction = format!(
-            "{workflow_instructions}\n\nAvailable MCP tools: {}\n\n\
-             You MUST use ONLY these MCP tools. Do NOT output raw JSON text as your response.",
-            allowed_tools.join(", ")
+        // 5-8. Assemble system prompt and user prompt
+        let (full_system_prompt, final_prompt) = assemble_prompts(
+            instruction_template.as_deref(),
+            system_prompt.as_deref(),
+            &allowed_tools,
+            &prompt,
+            payload.as_deref(),
         );
 
-        // 7. Build full system prompt
-        let full_system_prompt = match system_prompt {
-            Some(sp) => format!("{sp}\n\n{mcp_instruction}"),
-            None => mcp_instruction,
-        };
-
-        // 8. Build final user prompt (4-block XML if payload present)
-        let final_prompt = if let Some(data) = payload {
-            format!(
-                r"<context>
-{data}
-</context>
-
-<task>
-{prompt}
-</task>
-
-<output_format>
-Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via the 'submit' tool.
-</output_format>"
-            )
-        } else {
-            prompt
-        };
-
         // 9. Execute per adapter
-        match adapter {
+        let mut result = match adapter {
             CliAdapter::ClaudeCode => {
                 run_claude_code(&final_prompt, &mcp_config, &allowed_tools, &full_system_prompt, timeout, builtin_tools.as_ref(), &effective_cwd)
-                    .await
+                    .await?
             }
             CliAdapter::Codex => {
-                run_codex(&final_prompt, &mcp_config, &full_system_prompt, timeout, &sandbox_mode, &effective_cwd).await
+                run_codex(&final_prompt, &mcp_config, &full_system_prompt, timeout, &sandbox_mode, &effective_cwd).await?
             }
             CliAdapter::OpenCode => {
-                run_opencode(&final_prompt, &mcp_config, &full_system_prompt, timeout, &effective_cwd).await
+                run_opencode(&final_prompt, &mcp_config, &full_system_prompt, timeout, &effective_cwd).await?
             }
-        }
+        };
+
+        // Read the structured result from the MCP server's result file.
+        // This is the primary result path — stdout is a progress channel.
+        result.submit_result = std::fs::read_to_string(&result_path)
+            .ok()
+            .filter(|s| !s.is_empty());
+
+        // Explicitly drop temp dir guard after CLI completes
+        drop(temp_dir_guard);
+
+        Ok(result)
     }
 }
 
@@ -874,6 +896,52 @@ impl CliAgent {
     }
 }
 
+/// Assembles the final system prompt and user prompt from workflow template, MCP tools, and payload.
+fn assemble_prompts(
+    instruction_template: Option<&str>,
+    system_prompt: Option<&str>,
+    allowed_tools: &[String],
+    prompt: &str,
+    payload: Option<&str>,
+) -> (String, String) {
+    let workflow_instructions = instruction_template.unwrap_or(DEFAULT_WORKFLOW_TEMPLATE);
+
+    let mcp_instruction = format!(
+        "{workflow_instructions}\n\nAvailable MCP tools: {}\n\n\
+         You MUST use ONLY these MCP tools. Do NOT output raw JSON text as your response.",
+        allowed_tools.join(", ")
+    );
+
+    let full_system_prompt = match system_prompt {
+        Some(sp) => format!("{sp}\n\n{mcp_instruction}"),
+        None => mcp_instruction,
+    };
+
+    let final_prompt = payload.map_or_else(
+        || prompt.to_string(),
+        |data| format!(
+            "<context>\n{data}\n</context>\n\n\
+             <task>\n{prompt}\n</task>\n\n\
+             <output_format>\n\
+             Use ONLY the MCP tools listed in the system prompt. Final submission MUST be via the 'submit' tool.\n\
+             </output_format>"
+        ),
+    );
+
+    (full_system_prompt, final_prompt)
+}
+
+/// Shared parameters for stream-based adapter execution.
+struct StreamRunCtx<'a> {
+    prompt: &'a str,
+    mcp_config: &'a rig_cli_mcp::server::McpConfig,
+    system_prompt: &'a str,
+    timeout: Duration,
+    cwd: &'a std::path::Path,
+    temp_dir_guard: Option<tempfile::TempDir>,
+    tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
+}
+
 async fn run_claude_code(
     prompt: &str,
     mcp_config: &rig_cli_mcp::server::McpConfig,
@@ -935,6 +1003,7 @@ async fn run_claude_code(
         stderr: result.stderr,
         exit_code: result.exit_code,
         duration_ms: result.duration_ms,
+        submit_result: None,
     })
 }
 
@@ -991,6 +1060,7 @@ async fn run_codex(
         stderr: result.stderr,
         exit_code: result.exit_code,
         duration_ms: result.duration_ms,
+        submit_result: None,
     })
 }
 
@@ -1051,26 +1121,19 @@ async fn run_opencode(
         stderr: result.stderr,
         exit_code: result.exit_code,
         duration_ms: result.duration_ms,
+        submit_result: None,
     })
 }
 
-// Multiple parameters required by Claude Code CLI API (config, system, tools, builtins, timeout, cwd, channel)
-#[allow(clippy::too_many_arguments)]
 async fn run_claude_code_stream(
-    prompt: &str,
-    mcp_config: &rig_cli_mcp::server::McpConfig,
+    ctx: StreamRunCtx<'_>,
     allowed_tools: &[String],
-    system_prompt: &str,
-    timeout: Duration,
     builtin_tools: Option<&Vec<String>>,
-    cwd: &std::path::Path,
-    temp_dir_guard: Option<tempfile::TempDir>,
-    tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
 ) -> Result<(), ProviderError> {
     // Write Claude Code MCP config JSON to temp file
     let mut config_file = tempfile::NamedTempFile::new()
         .map_err(|e| ProviderError::McpToolAgent(format!("Failed to create temp file: {e}")))?;
-    let json = serde_json::to_string_pretty(&mcp_config.to_claude_json())
+    let json = serde_json::to_string_pretty(&ctx.mcp_config.to_claude_json())
         .map_err(|e| ProviderError::McpToolAgent(format!("Failed to serialize config: {e}")))?;
     config_file
         .write_all(json.as_bytes())
@@ -1095,7 +1158,7 @@ async fn run_claude_code_stream(
 
     let config = rig_cli_claude::RunConfig {
         output_format: Some(rig_cli_claude::OutputFormat::StreamJson),
-        system_prompt: rig_cli_claude::SystemPromptMode::Append(system_prompt.to_string()),
+        system_prompt: rig_cli_claude::SystemPromptMode::Append(ctx.system_prompt.to_string()),
         mcp: Some(rig_cli_claude::McpPolicy {
             configs: vec![config_path.to_string_lossy().to_string()],
             strict: true,
@@ -1106,8 +1169,8 @@ async fn run_claude_code_stream(
             disallowed: None,
             disable_slash_commands: true,
         },
-        timeout,
-        cwd: Some(cwd.to_path_buf()),
+        timeout: ctx.timeout,
+        cwd: Some(ctx.cwd.to_path_buf()),
         ..rig_cli_claude::RunConfig::default()
     };
 
@@ -1115,12 +1178,13 @@ async fn run_claude_code_stream(
     let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<rig_cli_claude::StreamEvent>(100);
 
     // Clone prompt for 'static lifetime in spawned task
-    let prompt_owned = prompt.to_string();
+    let prompt_owned = ctx.prompt.to_string();
+    let tx = ctx.tx;
 
     // Spawn task to run CLI and convert events.
     // Move temp file guards into the task to keep them alive for the CLI's duration.
     tokio::spawn(async move {
-        let _keep_cwd = temp_dir_guard;
+        let _keep_cwd = ctx.temp_dir_guard;
         let _keep_config = config_guard;
 
         // Run the CLI with streaming
@@ -1166,14 +1230,8 @@ async fn run_claude_code_stream(
 }
 
 async fn run_codex_stream(
-    prompt: &str,
-    mcp_config: &rig_cli_mcp::server::McpConfig,
-    system_prompt: &str,
-    timeout: Duration,
+    ctx: StreamRunCtx<'_>,
     sandbox_mode: &rig_cli_codex::SandboxMode,
-    cwd: &std::path::Path,
-    temp_dir_guard: Option<tempfile::TempDir>,
-    tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
 ) -> Result<(), ProviderError> {
     let path = rig_cli_codex::discover_codex(None)
         .map_err(|e| ProviderError::McpToolAgent(format!("Codex discovery failed: {e}")))?;
@@ -1184,18 +1242,18 @@ async fn run_codex_stream(
     let cli = rig_cli_codex::CodexCli::new(path);
 
     // Codex reads MCP server config from its config.toml. Inject via -c overrides.
-    let server_name = &mcp_config.name;
+    let server_name = &ctx.mcp_config.name;
     let mut overrides = vec![
         (
             format!("mcp_servers.{server_name}.command"),
-            format!("\"{}\"", mcp_config.command),
+            format!("\"{}\"", ctx.mcp_config.command),
         ),
         (
             format!("mcp_servers.{server_name}.args"),
-            format!("{:?}", mcp_config.args),
+            format!("{:?}", ctx.mcp_config.args),
         ),
     ];
-    for (k, v) in &mcp_config.env {
+    for (k, v) in &ctx.mcp_config.env {
         overrides.push((
             format!("mcp_servers.{server_name}.env.{k}"),
             format!("\"{v}\""),
@@ -1206,10 +1264,10 @@ async fn run_codex_stream(
         full_auto: false,
         sandbox: Some(sandbox_mode.clone()),
         skip_git_repo_check: true,
-        cd: Some(cwd.to_path_buf()),
-        system_prompt: Some(system_prompt.to_string()),
+        cd: Some(ctx.cwd.to_path_buf()),
+        system_prompt: Some(ctx.system_prompt.to_string()),
         overrides,
-        timeout,
+        timeout: ctx.timeout,
         ..rig_cli_codex::CodexConfig::default()
     };
 
@@ -1217,12 +1275,13 @@ async fn run_codex_stream(
     let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<rig_cli_codex::StreamEvent>(100);
 
     // Clone prompt for 'static lifetime in spawned task
-    let prompt_owned = prompt.to_string();
+    let prompt_owned = ctx.prompt.to_string();
+    let tx = ctx.tx;
 
     // Spawn task to run CLI and convert events.
     // Move temp dir guard into the task to keep cwd alive.
     tokio::spawn(async move {
-        let _keep_cwd = temp_dir_guard;
+        let _keep_cwd = ctx.temp_dir_guard;
 
         // Run the CLI with streaming
         let result = cli.stream(&prompt_owned, &config, adapter_tx.clone()).await;
@@ -1255,13 +1314,7 @@ async fn run_codex_stream(
 }
 
 async fn run_opencode_stream(
-    prompt: &str,
-    mcp_config: &rig_cli_mcp::server::McpConfig,
-    system_prompt: &str,
-    timeout: Duration,
-    cwd: &std::path::Path,
-    temp_dir_guard: Option<tempfile::TempDir>,
-    tx: tokio::sync::mpsc::Sender<McpStreamEvent>,
+    ctx: StreamRunCtx<'_>,
 ) -> Result<(), ProviderError> {
     let path = rig_cli_opencode::discover_opencode(None)
         .map_err(|e| ProviderError::McpToolAgent(format!("OpenCode discovery failed: {e}")))?;
@@ -1272,16 +1325,16 @@ async fn run_opencode_stream(
     let cli = rig_cli_opencode::OpenCodeCli::new(path);
 
     // OpenCode config format: {"mcp": {"name": {"type":"local","command":[...],"environment":{...}}}}
-    let mut command = vec![mcp_config.command.clone()];
-    command.extend(mcp_config.args.iter().cloned());
+    let mut command = vec![ctx.mcp_config.command.clone()];
+    command.extend(ctx.mcp_config.args.iter().cloned());
 
     let opencode_cfg = serde_json::json!({
         "$schema": "https://opencode.ai/config.json",
         "mcp": {
-            &mcp_config.name: {
+            &ctx.mcp_config.name: {
                 "type": "local",
                 "command": command,
-                "environment": &mcp_config.env,
+                "environment": &ctx.mcp_config.env,
             }
         }
     });
@@ -1299,10 +1352,10 @@ async fn run_opencode_stream(
 
     let config = rig_cli_opencode::OpenCodeConfig {
         model: Some("opencode/big-pickle".to_string()),
-        prompt: Some(system_prompt.to_string()),
+        prompt: Some(ctx.system_prompt.to_string()),
         mcp_config_path: Some(config_path),
-        cwd: Some(cwd.to_path_buf()),
-        timeout,
+        cwd: Some(ctx.cwd.to_path_buf()),
+        timeout: ctx.timeout,
         ..rig_cli_opencode::OpenCodeConfig::default()
     };
 
@@ -1310,12 +1363,13 @@ async fn run_opencode_stream(
     let (adapter_tx, mut adapter_rx) = tokio::sync::mpsc::channel::<rig_cli_opencode::StreamEvent>(100);
 
     // Clone prompt for 'static lifetime in spawned task
-    let prompt_owned = prompt.to_string();
+    let prompt_owned = ctx.prompt.to_string();
+    let tx = ctx.tx;
 
     // Spawn task to run CLI and convert events.
     // Move temp file guards into the task to keep them alive for the CLI's duration.
     tokio::spawn(async move {
-        let _keep_cwd = temp_dir_guard;
+        let _keep_cwd = ctx.temp_dir_guard;
         let _keep_config = config_guard;
 
         // Run the CLI with streaming

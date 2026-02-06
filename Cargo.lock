@@ -1505,7 +1505,7 @@ dependencies = [
 
 [[package]]
 name = "rig-cli"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "futures",
@@ -1527,7 +1527,7 @@ dependencies = [
 
 [[package]]
 name = "rig-cli-claude"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1545,7 +1545,7 @@ dependencies = [
 
 [[package]]
 name = "rig-cli-codex"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1560,7 +1560,7 @@ dependencies = [
 
 [[package]]
 name = "rig-cli-mcp"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "futures",
@@ -1578,7 +1578,7 @@ dependencies = [
 
 [[package]]
 name = "rig-cli-opencode"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1593,7 +1593,7 @@ dependencies = [
 
 [[package]]
 name = "rig-cli-provider"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",

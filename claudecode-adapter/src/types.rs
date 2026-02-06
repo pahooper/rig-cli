@@ -290,9 +290,7 @@ pub fn extract_v2_events(val: &serde_json::Value) -> Vec<StreamEvent> {
                 events.push(StreamEvent::Error { message: msg });
             }
         }
-        Some("system") => {
-            // System events (hooks, init) are informational — skip.
-        }
+        // System events (hooks, init) and other unknown types are informational — skip.
         _ => {}
     }
 
