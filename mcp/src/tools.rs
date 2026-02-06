@@ -251,6 +251,10 @@ where
     type Args = T;
     type Output = String;
 
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
             name: self.name.clone(),
@@ -295,6 +299,10 @@ impl Tool for ValidateJsonTool {
     type Error = ToolError;
     type Args = ValidateJsonArgs;
     type Output = String;
+
+    fn name(&self) -> String {
+        self.name.clone()
+    }
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -361,6 +369,10 @@ impl Tool for JsonExampleTool {
     type Error = ToolError;
     type Args = JsonExampleArgs;
     type Output = String;
+
+    fn name(&self) -> String {
+        self.name.clone()
+    }
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -586,6 +598,10 @@ impl Tool for DynamicSubmitTool {
     type Error = ToolError;
     type Args = Value;
     type Output = String;
+
+    fn name(&self) -> String {
+        self.name.clone()
+    }
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {

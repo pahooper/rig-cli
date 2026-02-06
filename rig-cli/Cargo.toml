@@ -1,6 +1,6 @@
 [package]
 name = "rig-cli"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Turn CLI-based AI agents into idiomatic Rig 0.29 providers"
 license = "MIT"
@@ -17,11 +17,11 @@ opencode = []
 debug-output = []
 
 [dependencies]
-rig-cli-provider = { version = "0.2.0", path = "../rig-provider", registry = "kellnr" }
-rig-cli-mcp = { version = "0.2.0", path = "../mcp", registry = "kellnr" }
-rig-cli-claude = { version = "0.2.0", path = "../claudecode-adapter", registry = "kellnr" }
-rig-cli-codex = { version = "0.2.0", path = "../codex-adapter", registry = "kellnr" }
-rig-cli-opencode = { version = "0.2.0", path = "../opencode-adapter", registry = "kellnr" }
+rig-cli-provider = { version = "0.3.0", path = "../rig-provider", registry = "kellnr" }
+rig-cli-mcp = { version = "0.3.0", path = "../mcp", registry = "kellnr" }
+rig-cli-claude = { version = "0.3.0", path = "../claudecode-adapter", registry = "kellnr" }
+rig-cli-codex = { version = "0.3.0", path = "../codex-adapter", registry = "kellnr" }
+rig-cli-opencode = { version = "0.3.0", path = "../opencode-adapter", registry = "kellnr" }
 rig = { package = "rig-core", version = "0.29.0" }
 thiserror = "1.0"
 tokio = { version = "1.0", features = ["full"] }
