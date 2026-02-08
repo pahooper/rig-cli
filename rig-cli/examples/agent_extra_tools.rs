@@ -32,7 +32,7 @@ struct DateExtractorOutput {
     dates: Vec<String>,
 }
 
-/// Error type for the DateExtractor tool.
+/// Error type for the `DateExtractor` tool.
 #[derive(Debug)]
 struct DateExtractorError(String);
 
@@ -110,7 +110,7 @@ struct EventInfo {
     summary: String,
 }
 
-/// Builds a ToolSet with extraction tools plus the custom DateExtractor.
+/// Builds a `ToolSet` with extraction tools plus the custom `DateExtractor`.
 fn build_toolset() -> ToolSet {
     let mut toolset = ToolSet::default();
 
@@ -139,7 +139,8 @@ fn build_toolset() -> ToolSet {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // MCP server mode: serves tools over stdio when RIG_MCP_SERVER=1
     if std::env::var("RIG_MCP_SERVER").is_ok() {
-        return Ok(build_toolset().into_handler().await?.serve_stdio().await?);
+        build_toolset().into_handler().await?.serve_stdio().await?;
+        return Ok(());
     }
 
     let client = rig_cli::claude::Client::new().await?;

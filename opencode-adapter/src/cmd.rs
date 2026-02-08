@@ -105,12 +105,12 @@ mod tests {
 
         assert_eq!(args_str[0], "run", "First arg must be 'run' subcommand");
         assert_eq!(
-            args_str.last().unwrap(),
+            args_str.last().expect("args should not be empty"),
             &"test prompt",
             "Last arg must be the prompt"
         );
         // Default config should only produce: run <prompt>
-        assert_eq!(args_str.len(), 2, "Default config should produce exactly 2 args: {:?}", args_str);
+        assert_eq!(args_str.len(), 2, "Default config should produce exactly 2 args: {args_str:?}");
     }
 
     #[test]
@@ -124,8 +124,7 @@ mod tests {
 
         assert!(
             args_str.windows(2).any(|w| w[0] == "--model" && w[1] == "opencode/big-pickle"),
-            "Expected '--model opencode/big-pickle' but got: {:?}",
-            args_str
+            "Expected '--model opencode/big-pickle' but got: {args_str:?}",
         );
     }
 
@@ -138,16 +137,14 @@ mod tests {
         let args = build_args("Extract this data.", &config);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
-        let last = args_str.last().unwrap();
+        let last = args_str.last().expect("args should not be empty");
         assert!(
             last.starts_with("You are a data extractor."),
-            "System prompt must be prepended: {:?}",
-            last
+            "System prompt must be prepended: {last:?}",
         );
         assert!(
             last.ends_with("Extract this data."),
-            "User message must follow system prompt: {:?}",
-            last
+            "User message must follow system prompt: {last:?}",
         );
     }
 
@@ -315,7 +312,7 @@ mod tests {
 
         assert!(args_str.windows(2).any(|w| w[0] == "--model" && w[1] == "opencode/fast"));
         // System prompt is prepended, so last arg should contain both
-        let last = args_str.last().unwrap();
+        let last = args_str.last().expect("args should not be empty");
         assert!(last.contains("Extract JSON only."), "System prompt should be prepended");
         assert!(last.contains("Parse this: {}"), "User message should follow");
     }

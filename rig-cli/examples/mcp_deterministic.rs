@@ -1,7 +1,7 @@
 //! Example: MCP Agent + deterministic tool
 //!
 //! Demonstrates combining MCP extraction with a deterministic (non-LLM) tool.
-//! The CurrentDateTool returns the actual system date, showing how to mix
+//! The `CurrentDateTool` returns the actual system date, showing how to mix
 //! AI and deterministic operations.
 //!
 //! This example shows FULL tool definition, not assuming the tool exists.
@@ -112,7 +112,8 @@ fn build_toolset() -> ToolSet {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("RIG_MCP_SERVER").is_ok() {
-        return Ok(build_toolset().into_handler().await?.serve_stdio().await?);
+        build_toolset().into_handler().await?.serve_stdio().await?;
+        return Ok(());
     }
 
     let client = rig_cli::claude::Client::new().await?;
@@ -133,7 +134,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     // --- END KEY CODE ---
 
-    println!("Scheduled event info:\n{}", result);
+    println!("Scheduled event info:\n{result}");
 
     Ok(())
 }

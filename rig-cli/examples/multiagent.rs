@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let research_output = researcher
         .prompt("Research: What are the benefits of Rust's ownership system?")
         .await?;
-    println!("Research output:\n{}\n", research_output);
+    println!("Research output:\n{research_output}\n");
     // --- END KEY CODE ---
 
     // --- KEY CODE: Agent 2 - Summarizer ---
@@ -97,11 +97,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Pass research output to summarizer
     let summary_output = summarizer
         .prompt(&format!(
-            "Summarize this research into one line:\n{}",
-            research_output
+            "Summarize this research into one line:\n{research_output}",
         ))
         .await?;
-    println!("Summary:\n{}", summary_output);
+    println!("Summary:\n{summary_output}");
     // --- END KEY CODE ---
 
     Ok(())
