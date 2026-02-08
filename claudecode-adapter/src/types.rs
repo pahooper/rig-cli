@@ -145,6 +145,12 @@ pub struct RunConfig {
     pub cwd: Option<PathBuf>,
     /// Extra environment variables passed to the subprocess.
     pub env: Vec<(String, String)>,
+    /// Disable session persistence to avoid version-lock conflicts.
+    ///
+    /// When `true`, adds `--no-session-persistence` to the CLI invocation.
+    /// This prevents hanging when another Claude Code session is already
+    /// running (which holds a version lock file).
+    pub no_session_persistence: bool,
 }
 
 impl Default for RunConfig {
@@ -165,6 +171,7 @@ impl Default for RunConfig {
             timeout: Duration::from_secs(300),
             cwd: None,
             env: Vec::new(),
+            no_session_persistence: false,
         }
     }
 }

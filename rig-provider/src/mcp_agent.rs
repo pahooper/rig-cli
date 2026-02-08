@@ -993,6 +993,7 @@ async fn run_claude_code(
         },
         timeout,
         cwd: Some(cwd.to_path_buf()),
+        no_session_persistence: true,
         ..rig_cli_claude::RunConfig::default()
     };
 
@@ -1171,6 +1172,7 @@ async fn run_claude_code_stream(
         },
         timeout: ctx.timeout,
         cwd: Some(ctx.cwd.to_path_buf()),
+        no_session_persistence: true,
         ..rig_cli_claude::RunConfig::default()
     };
 

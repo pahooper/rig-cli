@@ -143,6 +143,10 @@ pub fn build_args(prompt: &str, config: &RunConfig) -> Vec<OsString> {
         }
     }
 
+    if config.no_session_persistence {
+        args.push(OsString::from("--no-session-persistence"));
+    }
+
     args.push(OsString::from(prompt));
 
     args
@@ -454,5 +458,33 @@ mod tests {
         assert_eq!(args_str[1], "--output-format");
         assert_eq!(args_str[2], "text");
         assert_eq!(args_str[3], "test prompt");
+    }
+
+    #[test]
+    fn test_no_session_persistence_flag() {
+        let config = RunConfig {
+            no_session_persistence: true,
+            ..RunConfig::default()
+        };
+        let args = build_args("test", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.contains(&"--no-session-persistence"),
+            "Expected '--no-session-persistence' but got: {:?}",
+            args_str
+        );
+    }
+
+    #[test]
+    fn test_no_session_persistence_default_off() {
+        let config = RunConfig::default();
+        let args = build_args("test", &config);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            !args_str.contains(&"--no-session-persistence"),
+            "Default config should NOT include --no-session-persistence"
+        );
     }
 }
