@@ -65,8 +65,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mode = std::env::var("RIG_MCP_MODE").ok();
     if std::env::var("RIG_MCP_SERVER").is_ok() {
         return match mode.as_deref() {
-            Some("summary") => Ok(summary_toolset().into_handler().await?.serve_stdio().await?),
-            _ => Ok(research_toolset().into_handler().await?.serve_stdio().await?),
+            Some("summary") => Ok(summary_toolset()
+                .into_handler()
+                .await?
+                .serve_stdio()
+                .await?),
+            _ => Ok(research_toolset()
+                .into_handler()
+                .await?
+                .serve_stdio()
+                .await?),
         };
     }
 

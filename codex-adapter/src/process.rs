@@ -46,14 +46,10 @@ pub async fn run_codex(
     let mut tasks = JoinSet::new();
 
     // Stdout reader task
-    tasks.spawn(async move {
-        drain_stream_bounded(stdout, sender, "stdout").await
-    });
+    tasks.spawn(async move { drain_stream_bounded(stdout, sender, "stdout").await });
 
     // Stderr reader task
-    tasks.spawn(async move {
-        drain_stream_bounded(stderr, None, "stderr").await
-    });
+    tasks.spawn(async move { drain_stream_bounded(stderr, None, "stderr").await });
 
     let process_result = timeout(config.timeout, collect_output(&mut child, &mut tasks)).await;
     let duration = start_time.elapsed();

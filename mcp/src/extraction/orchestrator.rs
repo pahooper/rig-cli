@@ -5,8 +5,10 @@ use tokio::time::Instant;
 
 use super::config::ExtractionConfig;
 use super::error::{AttemptRecord, ExtractionError};
-use super::feedback::{build_parse_error_feedback, build_validation_feedback, collect_validation_errors};
-use super::metrics::{estimate_tokens, ExtractionMetrics};
+use super::feedback::{
+    build_parse_error_feedback, build_validation_feedback, collect_validation_errors,
+};
+use super::metrics::{ExtractionMetrics, estimate_tokens};
 
 /// Orchestrator for running bounded retry loops with validation feedback.
 ///
@@ -99,7 +101,8 @@ impl ExtractionOrchestrator {
                         event = "extraction_outcome",
                         success = false,
                         total_attempts = attempt,
-                        total_duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
+                        total_duration_ms =
+                            u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
                         error_kind = "agent_error",
                         "extraction_outcome"
                     );
@@ -188,7 +191,8 @@ impl ExtractionOrchestrator {
                     event = "extraction_outcome",
                     success = true,
                     total_attempts = attempt,
-                    total_duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
+                    total_duration_ms =
+                        u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
                     "extraction_outcome"
                 );
 
@@ -294,24 +298,24 @@ impl ExtractionOrchestrator {
     {
         let (value, metrics) = self.extract(agent_fn, initial_prompt).await?;
 
-        let typed = serde_json::from_value(value.clone()).map_err(|e| {
-            ExtractionError::ParseError {
+        let typed =
+            serde_json::from_value(value.clone()).map_err(|e| ExtractionError::ParseError {
                 message: format!("Deserialization to target type failed: {e}"),
                 raw_text: serde_json::to_string(&value).unwrap_or_else(|_| value.to_string()),
                 attempt: metrics.total_attempts,
-            }
-        })?;
+            })?;
 
         Ok((typed, metrics))
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
     use serde_json::json;
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     #[tokio::test]
     async fn test_extract_emits_tracing_events() {
@@ -326,11 +330,11 @@ mod tests {
 
         let orchestrator = ExtractionOrchestrator::new(schema).max_attempts(1);
 
-        let agent_fn = |_prompt: String| async {
-            Ok(r#"{"name": "test"}"#.to_string())
-        };
+        let agent_fn = |_prompt: String| async { Ok(r#"{"name": "test"}"#.to_string()) };
 
-        let result = orchestrator.extract(agent_fn, "initial prompt".to_string()).await;
+        let result = orchestrator
+            .extract(agent_fn, "initial prompt".to_string())
+            .await;
         assert!(result.is_ok());
         let (parsed, metrics) = result.unwrap();
         assert_eq!(parsed["name"], "test");
@@ -367,7 +371,9 @@ mod tests {
             }
         };
 
-        let result = orchestrator.extract(agent_fn, "initial prompt".to_string()).await;
+        let result = orchestrator
+            .extract(agent_fn, "initial prompt".to_string())
+            .await;
         assert!(result.is_ok());
         let (parsed, metrics) = result.unwrap();
         assert_eq!(parsed["name"], "fixed");
@@ -387,11 +393,11 @@ mod tests {
 
         let orchestrator = ExtractionOrchestrator::new(schema).max_attempts(1);
 
-        let agent_fn = |_prompt: String| async {
-            Err("agent failed".to_string())
-        };
+        let agent_fn = |_prompt: String| async { Err("agent failed".to_string()) };
 
-        let result = orchestrator.extract(agent_fn, "initial prompt".to_string()).await;
+        let result = orchestrator
+            .extract(agent_fn, "initial prompt".to_string())
+            .await;
         assert!(result.is_err());
         match result {
             Err(ExtractionError::AgentError(msg)) => {
@@ -448,8 +454,14 @@ mod tests {
                 // Verify each attempt record
                 for (i, record) in history.iter().enumerate() {
                     assert_eq!(record.attempt_number, i + 1, "Attempt number mismatch");
-                    assert!(!record.validation_errors.is_empty(), "Should have validation errors");
-                    assert!(!record.raw_agent_output.is_empty(), "Should capture raw output");
+                    assert!(
+                        !record.validation_errors.is_empty(),
+                        "Should have validation errors"
+                    );
+                    assert!(
+                        !record.raw_agent_output.is_empty(),
+                        "Should capture raw output"
+                    );
                 }
 
                 // Verify metrics
@@ -477,7 +489,7 @@ mod tests {
                 let count = counter.fetch_add(1, Ordering::SeqCst);
                 match count {
                     0 => Ok("not valid json at all".to_string()), // Parse failure
-                    _ => Ok(r#"{"x": "string"}"#.to_string()), // Valid JSON but wrong type
+                    _ => Ok(r#"{"x": "string"}"#.to_string()),    // Valid JSON but wrong type
                 }
             }
         };
@@ -572,9 +584,7 @@ mod tests {
 
         let orchestrator = ExtractionOrchestrator::new(schema).max_attempts(3);
 
-        let agent_fn = |_prompt: String| async {
-            Ok(r#"{"value": "success"}"#.to_string())
-        };
+        let agent_fn = |_prompt: String| async { Ok(r#"{"value": "success"}"#.to_string()) };
 
         let result = orchestrator.extract(agent_fn, "initial".to_string()).await;
 
@@ -613,8 +623,12 @@ mod tests {
         // This test validates the schema validation path exists
         match result {
             Err(ExtractionError::SchemaError(msg)) => {
-                assert!(msg.len() > 0, "Should have error message");
-                assert_eq!(call_count.load(Ordering::SeqCst), 0, "Agent should not be called");
+                assert!(!msg.is_empty(), "Should have error message");
+                assert_eq!(
+                    call_count.load(Ordering::SeqCst),
+                    0,
+                    "Agent should not be called"
+                );
             }
             Ok((_, metrics)) => {
                 // If jsonschema accepts invalid type, that's fine - schema is permissive

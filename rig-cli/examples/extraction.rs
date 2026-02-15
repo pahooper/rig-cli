@@ -46,7 +46,7 @@ fn build_toolset() -> ToolSet {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("RIG_MCP_SERVER").is_ok() {
-        return Ok(build_toolset().into_handler().await?.serve_stdio().await?);
+        return build_toolset().into_handler().await?.serve_stdio().await;
     }
 
     let client = rig_cli::claude::Client::new().await?;
@@ -63,21 +63,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .build()?;
 
-    let unstructured_text = r#"
+    let unstructured_text = r"
         Meet Sarah Chen, a 32-year-old software engineer from Seattle.
         She specializes in Rust, distributed systems, and cloud architecture.
         You can reach her at sarah.chen@techcorp.io for consulting work.
-    "#;
+    ";
 
     let result = agent
         .prompt(&format!(
-            "Extract person information from this text:\n{}",
-            unstructured_text
+            "Extract person information from this text:\n{unstructured_text}"
         ))
         .await?;
     // --- END KEY CODE ---
 
-    println!("Extracted:\n{}", result);
+    println!("Extracted:\n{result}");
 
     // Optionally parse the result
     if let Ok(person) = serde_json::from_str::<PersonInfo>(&result) {

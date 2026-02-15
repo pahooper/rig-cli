@@ -21,8 +21,8 @@ pub use crate::errors::Error;
 
 // Re-export key Rig traits so users don't need separate rig import
 pub use rig::client::CompletionClient;
-pub use rig::completion::Prompt;
 pub use rig::completion::Chat;
+pub use rig::completion::Prompt;
 
 // Re-export key MCP types for structured extraction workflows
 // These are the types users need to build ToolSets for extraction

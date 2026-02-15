@@ -153,6 +153,12 @@ pub fn build_args(prompt: &str, config: &RunConfig) -> Vec<OsString> {
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::needless_collect
+)]
 mod tests {
     use super::*;
     use crate::types::{BuiltinToolSet, McpPolicy, ToolPolicy};
@@ -173,9 +179,10 @@ mod tests {
 
         // Assert --tools "" is present (CONT-01)
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--tools" && w[1] == ""),
-            "Expected '--tools \"\"' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--tools" && w[1].is_empty()),
+            "Expected '--tools \"\"' but got: {args_str:?}",
         );
     }
 
@@ -195,9 +202,10 @@ mod tests {
 
         // Assert --tools "Bash" is present (CONT-02)
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--tools" && w[1] == "Bash"),
-            "Expected '--tools \"Bash\"' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--tools" && w[1] == "Bash"),
+            "Expected '--tools \"Bash\"' but got: {args_str:?}",
         );
     }
 
@@ -218,8 +226,7 @@ mod tests {
         // Assert --disable-slash-commands is present
         assert!(
             args_str.contains(&"--disable-slash-commands"),
-            "Expected '--disable-slash-commands' but got: {:?}",
-            args_str
+            "Expected '--disable-slash-commands' but got: {args_str:?}",
         );
     }
 
@@ -237,14 +244,14 @@ mod tests {
 
         // Assert --mcp-config and --strict-mcp-config are present
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--mcp-config" && w[1] == "test.json"),
-            "Expected '--mcp-config test.json' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--mcp-config" && w[1] == "test.json"),
+            "Expected '--mcp-config test.json' but got: {args_str:?}",
         );
         assert!(
             args_str.contains(&"--strict-mcp-config"),
-            "Expected '--strict-mcp-config' but got: {:?}",
-            args_str
+            "Expected '--strict-mcp-config' but got: {args_str:?}",
         );
     }
 
@@ -264,9 +271,10 @@ mod tests {
 
         // Assert --allowed-tools is present
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--allowed-tools" && w[1] == "mcp__rig__submit"),
-            "Expected '--allowed-tools \"mcp__rig__submit\"' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--allowed-tools" && w[1] == "mcp__rig__submit"),
+            "Expected '--allowed-tools \"mcp__rig__submit\"' but got: {args_str:?}",
         );
     }
 
@@ -293,11 +301,15 @@ mod tests {
 
         // Assert all containment flags are present (CONT-03)
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--tools" && w[1] == ""),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--tools" && w[1].is_empty()),
             "Expected '--tools \"\"' for builtin none"
         );
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--allowed-tools" && w[1] == "mcp__rig__submit"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--allowed-tools" && w[1] == "mcp__rig__submit"),
             "Expected '--allowed-tools mcp__rig__submit'"
         );
         assert!(
@@ -309,7 +321,9 @@ mod tests {
             "Expected '--strict-mcp-config'"
         );
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--mcp-config" && w[1] == "mcp.json"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--mcp-config" && w[1] == "mcp.json"),
             "Expected '--mcp-config mcp.json'"
         );
     }
@@ -337,12 +351,17 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Verify all containment flags present in correct order
-        assert!(args_str.windows(2).any(|w| w[0] == "--tools" && w[1] == ""));
-        assert!(args_str.windows(2).any(|w| w[0] == "--allowed-tools"
-            && w[1] == "mcp__rig__submit,mcp__rig__validate"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--tools" && w[1].is_empty()));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--allowed-tools" && w[1] == "mcp__rig__submit,mcp__rig__validate"));
         assert!(args_str.contains(&"--disable-slash-commands"));
         assert!(args_str.contains(&"--strict-mcp-config"));
-        assert!(args_str.windows(2).any(|w| w[0] == "--mcp-config" && w[1] == "mcp.json"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--mcp-config" && w[1] == "mcp.json"));
     }
 
     #[test]
@@ -365,8 +384,12 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Verify hybrid configuration
-        assert!(args_str.windows(2).any(|w| w[0] == "--tools" && w[1] == "Read"));
-        assert!(args_str.windows(2).any(|w| w[0] == "--allowed-tools" && w[1] == "mcp__rig__submit"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--tools" && w[1] == "Read"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--allowed-tools" && w[1] == "mcp__rig__submit"));
         assert!(!args_str.contains(&"--disable-slash-commands")); // Not set
         assert!(!args_str.contains(&"--strict-mcp-config")); // Not strict
     }
@@ -380,7 +403,9 @@ mod tests {
         };
         let args_replace = build_args("test", &config_replace);
         let args_str: Vec<&str> = args_replace.iter().filter_map(|s| s.to_str()).collect();
-        assert!(args_str.windows(2).any(|w| w[0] == "--system-prompt" && w[1] == "Custom system"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--system-prompt" && w[1] == "Custom system"));
         assert!(!args_str.contains(&"--append-system-prompt"));
 
         // Append mode
@@ -390,7 +415,9 @@ mod tests {
         };
         let args_append = build_args("test", &config_append);
         let args_str: Vec<&str> = args_append.iter().filter_map(|s| s.to_str()).collect();
-        assert!(args_str.windows(2).any(|w| w[0] == "--append-system-prompt" && w[1] == "Extra context"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--append-system-prompt" && w[1] == "Extra context"));
         assert!(!args_str.contains(&"--system-prompt"));
     }
 
@@ -408,7 +435,8 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Both configs should be present with separate --mcp-config flags
-        let mcp_configs: Vec<_> = args_str.windows(2)
+        let mcp_configs: Vec<_> = args_str
+            .windows(2)
             .filter(|w| w[0] == "--mcp-config")
             .map(|w| w[1])
             .collect();
@@ -426,7 +454,9 @@ mod tests {
         let args = build_args("test", &config);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
-        assert!(args_str.windows(2).any(|w| w[0] == "--json-schema" && w[1] == r#"{"type":"object"}"#));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--json-schema" && w[1] == r#"{"type":"object"}"#));
     }
 
     #[test]
@@ -443,7 +473,9 @@ mod tests {
         let args = build_args("test", &config);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
-        assert!(args_str.windows(2).any(|w| w[0] == "--disallowed-tools" && w[1] == "Bash,Write"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--disallowed-tools" && w[1] == "Bash,Write"));
     }
 
     #[test]
@@ -471,8 +503,7 @@ mod tests {
 
         assert!(
             args_str.contains(&"--no-session-persistence"),
-            "Expected '--no-session-persistence' but got: {:?}",
-            args_str
+            "Expected '--no-session-persistence' but got: {args_str:?}",
         );
     }
 

@@ -117,9 +117,7 @@ impl OpenCodeCli {
         } else {
             Err(OpenCodeError::SpawnFailed {
                 stage: "health check validation".to_string(),
-                source: std::io::Error::other(
-                    "OpenCode health check failed",
-                ),
+                source: std::io::Error::other("OpenCode health check failed"),
             })
         }
     }

@@ -28,7 +28,7 @@ struct MovieReview {
     genres: Vec<String>,
 }
 
-/// Builds a ToolSet with the 3-tool extraction pattern.
+/// Builds a `ToolSet` with the 3-tool extraction pattern.
 fn build_toolset() -> ToolSet {
     // --- KEY CODE: 3-tool pattern setup ---
     let mut toolset = ToolSet::default();
@@ -46,9 +46,9 @@ fn build_toolset() -> ToolSet {
         .build_tools();
 
     // Add all three tools to the toolset
-    toolset.add_tool(submit);   // Final submission
+    toolset.add_tool(submit); // Final submission
     toolset.add_tool(validate); // Pre-submission validation
-    toolset.add_tool(example);  // Format reference
+    toolset.add_tool(example); // Format reference
     toolset
     // --- END KEY CODE ---
 }
@@ -57,7 +57,7 @@ fn build_toolset() -> ToolSet {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // MCP server mode: serves tools over stdio when RIG_MCP_SERVER=1
     if std::env::var("RIG_MCP_SERVER").is_ok() {
-        return Ok(build_toolset().into_handler().await?.serve_stdio().await?);
+        return build_toolset().into_handler().await?.serve_stdio().await;
     }
 
     let client = rig_cli::claude::Client::new().await?;

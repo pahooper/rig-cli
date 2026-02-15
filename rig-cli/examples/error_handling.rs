@@ -125,5 +125,8 @@ async fn try_get_response() -> Result<String, Error> {
     // If we get here, client is ready
     // In a real app, you'd make actual requests
     let config = client.config();
-    Ok(format!("Client ready with {}s timeout", config.timeout.as_secs()))
+    Ok(format!(
+        "Client ready with {}s timeout",
+        config.timeout.as_secs()
+    ))
 }

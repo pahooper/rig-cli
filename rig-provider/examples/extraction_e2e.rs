@@ -1,9 +1,9 @@
-//! End-to-end test of the ExtractionOrchestrator using a real Claude Code CLI.
+//! End-to-end test of the `ExtractionOrchestrator` using a real Claude Code CLI.
 //!
 //! This example verifies the full extraction pipeline:
 //! 1. Discovers and initializes Claude Code CLI
-//! 2. Creates an ExtractionOrchestrator with a JSON schema
-//! 3. Wraps the Claude CLI as the agent_fn closure
+//! 2. Creates an `ExtractionOrchestrator` with a JSON schema
+//! 3. Wraps the Claude CLI as the `agent_fn` closure
 //! 4. Extracts structured data and validates the result
 //!
 //! Run with: `cargo run --example extraction_e2e`
@@ -76,10 +76,7 @@ async fn main() -> anyhow::Result<()> {
     match result {
         Ok((value, metrics)) => {
             println!("=== EXTRACTION SUCCEEDED ===\n");
-            println!(
-                "Extracted JSON:\n{}",
-                serde_json::to_string_pretty(&value)?
-            );
+            println!("Extracted JSON:\n{}", serde_json::to_string_pretty(&value)?);
             println!("\nMetrics:");
             println!("  Attempts: {}", metrics.total_attempts);
             println!("  Wall time: {:?}", metrics.wall_time);
@@ -106,32 +103,30 @@ async fn main() -> anyhow::Result<()> {
         Err(e) => {
             println!("=== EXTRACTION FAILED ===\n");
             println!("Error: {e}");
-            match &e {
-                rig_cli_mcp::extraction::ExtractionError::MaxRetriesExceeded {
-                    history,
-                    metrics,
-                    ..
-                } => {
-                    println!("\nAttempt history:");
-                    for record in history {
-                        println!(
-                            "  Attempt {}: {} errors",
-                            record.attempt_number,
-                            record.validation_errors.len()
-                        );
-                        for err in &record.validation_errors {
-                            println!("    - {err}");
-                        }
-                        println!(
-                            "    Raw output (first 200 chars): {}",
-                            &record.raw_agent_output[..record.raw_agent_output.len().min(200)]
-                        );
+            if let rig_cli_mcp::extraction::ExtractionError::MaxRetriesExceeded {
+                history,
+                metrics,
+                ..
+            } = &e
+            {
+                println!("\nAttempt history:");
+                for record in history {
+                    println!(
+                        "  Attempt {}: {} errors",
+                        record.attempt_number,
+                        record.validation_errors.len()
+                    );
+                    for err in &record.validation_errors {
+                        println!("    - {err}");
                     }
-                    println!("\nMetrics:");
-                    println!("  Attempts: {}", metrics.total_attempts);
-                    println!("  Wall time: {:?}", metrics.wall_time);
+                    println!(
+                        "    Raw output (first 200 chars): {}",
+                        &record.raw_agent_output[..record.raw_agent_output.len().min(200)]
+                    );
                 }
-                _ => {}
+                println!("\nMetrics:");
+                println!("  Attempts: {}", metrics.total_attempts);
+                println!("  Wall time: {:?}", metrics.wall_time);
             }
             std::process::exit(1);
         }

@@ -121,6 +121,7 @@ pub fn build_args(prompt: &str, config: &CodexConfig) -> Vec<OsString> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
     use crate::types::{ApprovalPolicy, CodexConfig, SandboxMode};
@@ -142,9 +143,10 @@ mod tests {
 
         // Assert --sandbox read-only is present (CONT-04)
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
-            "Expected '--sandbox read-only' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            "Expected '--sandbox read-only' but got: {args_str:?}",
         );
     }
 
@@ -159,9 +161,10 @@ mod tests {
 
         // Assert --sandbox workspace-write is present
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "workspace-write"),
-            "Expected '--sandbox workspace-write' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--sandbox" && w[1] == "workspace-write"),
+            "Expected '--sandbox workspace-write' but got: {args_str:?}",
         );
     }
 
@@ -176,9 +179,10 @@ mod tests {
 
         // Assert --cd is present (working directory isolation)
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--cd" && w[1] == "/tmp/sandbox"),
-            "Expected '--cd /tmp/sandbox' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--cd" && w[1] == "/tmp/sandbox"),
+            "Expected '--cd /tmp/sandbox' but got: {args_str:?}",
         );
     }
 
@@ -191,8 +195,7 @@ mod tests {
         // Assert --full-auto is NOT present (CONT-03 audit: full_auto bypasses containment)
         assert!(
             !args_str.contains(&"--full-auto"),
-            "Expected --full-auto to be absent by default, but got: {:?}",
-            args_str
+            "Expected --full-auto to be absent by default, but got: {args_str:?}",
         );
     }
 
@@ -208,8 +211,7 @@ mod tests {
         // Assert --skip-git-repo-check present (needed for temp dir containment)
         assert!(
             args_str.contains(&"--skip-git-repo-check"),
-            "Expected '--skip-git-repo-check' but got: {:?}",
-            args_str
+            "Expected '--skip-git-repo-check' but got: {args_str:?}",
         );
     }
 
@@ -228,15 +230,21 @@ mod tests {
 
         // Assert all containment flags present and --full-auto absent
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
             "Expected '--sandbox read-only'"
         );
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
             "Expected '--ask-for-approval untrusted'"
         );
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--cd" && w[1] == "/tmp/isolated"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--cd" && w[1] == "/tmp/isolated"),
             "Expected '--cd /tmp/isolated'"
         );
         assert!(
@@ -261,9 +269,10 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
-            "Expected '--ask-for-approval untrusted' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            "Expected '--ask-for-approval untrusted' but got: {args_str:?}",
         );
     }
 
@@ -277,9 +286,10 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "never"),
-            "Expected '--ask-for-approval never' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--ask-for-approval" && w[1] == "never"),
+            "Expected '--ask-for-approval never' but got: {args_str:?}",
         );
     }
 
@@ -295,11 +305,15 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
             "Expected '--sandbox read-only'"
         );
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
             "Expected '--ask-for-approval untrusted'"
         );
     }
@@ -320,15 +334,21 @@ mod tests {
 
         // Verify complete containment posture
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
             "Expected '--sandbox read-only'"
         );
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
             "Expected '--ask-for-approval untrusted'"
         );
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--cd" && w[1] == "/tmp/contained"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--cd" && w[1] == "/tmp/contained"),
             "Expected '--cd /tmp/contained'"
         );
         assert!(
@@ -363,11 +383,15 @@ mod tests {
         );
         // These are still generated but will be overridden by --full-auto
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--sandbox" && w[1] == "read-only"),
             "Sandbox flag still generated (but overridden by full-auto)"
         );
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--ask-for-approval" && w[1] == "untrusted"),
             "Approval flag still generated (but overridden by full-auto)"
         );
     }
@@ -382,9 +406,10 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "on-failure"),
-            "Expected '--ask-for-approval on-failure' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--ask-for-approval" && w[1] == "on-failure"),
+            "Expected '--ask-for-approval on-failure' but got: {args_str:?}",
         );
     }
 
@@ -398,9 +423,10 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--ask-for-approval" && w[1] == "on-request"),
-            "Expected '--ask-for-approval on-request' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--ask-for-approval" && w[1] == "on-request"),
+            "Expected '--ask-for-approval on-request' but got: {args_str:?}",
         );
     }
 

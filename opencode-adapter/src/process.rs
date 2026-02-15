@@ -61,7 +61,14 @@ pub async fn run_opencode(
         join_set: JoinSet::new(),
     };
 
-    spawn_readers(&mut state.join_set, stdout, stderr, stdout_tx, stderr_tx, sender);
+    spawn_readers(
+        &mut state.join_set,
+        stdout,
+        stderr,
+        stdout_tx,
+        stderr_tx,
+        sender,
+    );
 
     let execution_result = timeout(
         config.timeout,
@@ -71,9 +78,7 @@ pub async fn run_opencode(
 
     match execution_result {
         Ok(result) => result,
-        Err(_timeout_elapsed) => {
-            handle_timeout(&mut child, pid, &mut state, start_time).await
-        }
+        Err(_timeout_elapsed) => handle_timeout(&mut child, pid, &mut state, start_time).await,
     }
 }
 

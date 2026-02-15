@@ -1,10 +1,12 @@
+//! Demonstrates Claude Code CLI with MCP tools using a self-hosted MCP server.
+
 use clap::Parser;
 use rig::agent::AgentBuilder;
 use rig::completion::Prompt;
 use rig::tool::ToolSet;
+use rig_cli_claude::{init, ClaudeCli};
 use rig_cli_mcp::prelude::ToolSetExt;
 use rig_cli_provider::ClaudeModel;
-use rig_cli_claude::{init, ClaudeCli};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -78,7 +80,10 @@ impl rig::tool::Tool for VerifyTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-        Ok(format!("Verified ID {} version {}", args.id, args.schema_version))
+        Ok(format!(
+            "Verified ID {} version {}",
+            args.id, args.schema_version
+        ))
     }
 }
 
@@ -130,7 +135,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let model = ClaudeModel { cli: cli.clone() };
 
     // 3. Construct System Prompt (We still guide the model, but tools are provided via MCP)
-    let system_prompt = 
+    let system_prompt =
         "You are a helpful assistant. You have access to tools via MCP.\n\
         RULES:\n\
         1. You MUST use the tools in the following order: example -> verify -> submit.\n\
@@ -140,38 +145,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 4. Create Agent and Run
     // Note: We do NOT add tools to the agent here. The OpenCode CLI has them via MCP.
-    let agent = AgentBuilder::new(model)
-        .preamble(system_prompt)
-        .build();
+    let agent = AgentBuilder::new(model).preamble(system_prompt).build();
 
     println!("Sending prompt to Claude Code...");
-    let prompt = "Please generate a user profile example for 'Alice', verify it, and then submit it.";
-    
+    let prompt =
+        "Please generate a user profile example for 'Alice', verify it, and then submit it.";
+
     println!("--- DEBUG: Running via agent ---");
     let response = agent.prompt(prompt).await?;
-    
+
     println!("\n=== Claude Code Response ===");
-    println!("{}", response);
+    println!("{response}");
     println!("=== End Response ===\n");
-    
+
     println!("SUCCESS: Claude Code MCP example completed.");
     println!("MCP server registered at ~/.claude.json as 'claudecode_mcp_example'");
-    
+
     Ok(())
 }
 
 fn register_self_as_mcp() -> Result<(), Box<dyn std::error::Error>> {
     let exe = std::env::current_exe()?;
     let exe_str = exe.to_string_lossy().to_string();
-    let home = dirs::home_dir()
-        .ok_or_else(|| "Could not determine home directory".to_string())?;
+    let home = dirs::home_dir().ok_or_else(|| "Could not determine home directory".to_string())?;
     let path = home.join(".claude.json");
 
     println!("Registering example MCP server at: {}", path.display());
 
     let mut data = if path.exists() {
         let content = fs::read_to_string(&path)?;
-        serde_json::from_str::<serde_json::Value>(&content).unwrap_or(json!({"mcpServers": {}}))
+        serde_json::from_str::<serde_json::Value>(&content)
+            .unwrap_or_else(|_| json!({"mcpServers": {}}))
     } else {
         json!({"mcpServers": {}})
     };
@@ -182,15 +186,19 @@ fn register_self_as_mcp() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let servers = data.get_mut("mcpServers")
+    let servers = data
+        .get_mut("mcpServers")
         .and_then(|v| v.as_object_mut())
         .ok_or("Invalid config format")?;
-    
-    servers.insert("claudecode_mcp_example".to_string(), json!({
-        "command": exe_str,
-        "args": ["--server"],
-        "env": {}
-    }));
+
+    servers.insert(
+        "claudecode_mcp_example".to_string(),
+        json!({
+            "command": exe_str,
+            "args": ["--server"],
+            "env": {}
+        }),
+    );
 
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;

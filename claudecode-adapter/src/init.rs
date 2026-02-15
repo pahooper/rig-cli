@@ -34,11 +34,8 @@ pub async fn init(explicit_path: Option<PathBuf>) -> Result<InitReport, ClaudeEr
             drop(stdin);
         }
 
-        let wait_result = tokio::time::timeout(
-            std::time::Duration::from_secs(5),
-            child.wait_with_output(),
-        )
-        .await;
+        let wait_result =
+            tokio::time::timeout(std::time::Duration::from_secs(5), child.wait_with_output()).await;
 
         match wait_result {
             Ok(Ok(output)) => {
@@ -48,16 +45,8 @@ pub async fn init(explicit_path: Option<PathBuf>) -> Result<InitReport, ClaudeEr
                     output.status.success() || (!stdout.is_empty() && !stderr.contains("error"));
                 (success, stdout, stderr)
             }
-            Ok(Err(e)) => (
-                false,
-                String::new(),
-                format!("Health check IO error: {e}"),
-            ),
-            Err(_) => (
-                false,
-                String::new(),
-                "Health check timed out".to_string(),
-            ),
+            Ok(Err(e)) => (false, String::new(), format!("Health check IO error: {e}")),
+            Err(_) => (false, String::new(), "Health check timed out".to_string()),
         }
     } else {
         (

@@ -1,17 +1,19 @@
-use rig_cli_claude::{init as init_claude, ClaudeCli};
-use rig_cli_codex::{discover_codex, CodexCli};
+//! Demonstrates streaming prompts across multiple CLI adapters.
+
 use rig::agent::{stream_to_stdout, AgentBuilder};
 use rig::streaming::StreamingPrompt;
-use rig_cli_provider::{ClaudeModel, CodexModel, OpenCodeModel};
+use rig_cli_claude::{init as init_claude, ClaudeCli};
+use rig_cli_codex::{discover_codex, CodexCli};
 use rig_cli_opencode::{discover_opencode, OpenCodeCli};
+use rig_cli_provider::{ClaudeModel, CodexModel, OpenCodeModel};
 use std::env;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args: Vec<String> = env::args().collect();
-    let model_type = args.get(1).map(|s| s.as_str()).unwrap_or("claude");
+    let model_type = args.get(1).map_or("claude", |s| s.as_str());
 
-    println!("Starting streaming request with model: {}", model_type);
+    println!("Starting streaming request with model: {model_type}");
 
     // Create an agent using the selected model
     // We have to use dynamic dispatch or conditional compilation if we want to share the AgentBuilder line
@@ -35,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
         let cli = OpenCodeCli::new(path);
         let model = OpenCodeModel { cli };
         let agent = AgentBuilder::new(model).build();
-        
+
         let mut stream = agent
             .stream_prompt("Count from 1 to 5 slowly, explaining each number.")
             .await;

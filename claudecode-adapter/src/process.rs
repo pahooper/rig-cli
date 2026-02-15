@@ -62,7 +62,15 @@ pub async fn run_claude(
     if let Ok(result) = timeout(config.timeout, execution).await {
         result
     } else {
-        handle_timeout(&mut child, pid, &mut stdout_rx, &mut stderr_rx, &mut tasks, config).await
+        handle_timeout(
+            &mut child,
+            pid,
+            &mut stdout_rx,
+            &mut stderr_rx,
+            &mut tasks,
+            config,
+        )
+        .await
     }
 }
 
@@ -198,10 +206,14 @@ async fn drain_stdout_bounded(
     let mut reader = BufReader::new(stdout).lines();
     let mut total_bytes = 0;
 
-    while let Some(line) = reader.next_line().await.map_err(|e| ClaudeError::SpawnFailed {
-        stage: "stdout read".to_string(),
-        source: e,
-    })? {
+    while let Some(line) = reader
+        .next_line()
+        .await
+        .map_err(|e| ClaudeError::SpawnFailed {
+            stage: "stdout read".to_string(),
+            source: e,
+        })?
+    {
         total_bytes += line.len();
 
         if total_bytes > max_bytes {
@@ -246,10 +258,14 @@ async fn drain_stderr_bounded(
     let mut reader = BufReader::new(stderr).lines();
     let mut total_bytes = 0;
 
-    while let Some(line) = reader.next_line().await.map_err(|e| ClaudeError::SpawnFailed {
-        stage: "stderr read".to_string(),
-        source: e,
-    })? {
+    while let Some(line) = reader
+        .next_line()
+        .await
+        .map_err(|e| ClaudeError::SpawnFailed {
+            stage: "stderr read".to_string(),
+            source: e,
+        })?
+    {
         total_bytes += line.len();
 
         if total_bytes > max_bytes {

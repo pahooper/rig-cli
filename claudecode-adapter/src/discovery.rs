@@ -55,7 +55,8 @@ pub fn discover_claude(explicit_path: Option<PathBuf>) -> Result<PathBuf, Claude
     // 5. Helpful error with install instructions
     Err(ClaudeError::ExecutableNotFound(
         "claude not found. Install: npm install -g @anthropic-ai/claude-code\n\
-         Searched: PATH, common npm install locations.".to_string()
+         Searched: PATH, common npm install locations."
+            .to_string(),
     ))
 }
 

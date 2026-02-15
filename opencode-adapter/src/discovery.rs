@@ -55,7 +55,8 @@ pub fn discover_opencode(explicit_path: Option<PathBuf>) -> Result<PathBuf, Open
     // 5. Helpful error
     Err(OpenCodeError::ExecutableNotFound(
         "opencode not found. Install: go install github.com/opencode-ai/opencode@latest\n\
-         Searched: PATH, common install locations.".to_string()
+         Searched: PATH, common install locations."
+            .to_string(),
     ))
 }
 

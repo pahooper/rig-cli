@@ -54,7 +54,9 @@ impl Tool for CurrentDateTool {
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
             name: Self::NAME.to_string(),
-            description: "Returns the current system date and time. Use this for any date-related queries.".to_string(),
+            description:
+                "Returns the current system date and time. Use this for any date-related queries."
+                    .to_string(),
             parameters: serde_json::json!({
                 "type": "object",
                 "properties": {},

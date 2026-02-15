@@ -127,6 +127,61 @@ async fn run_server(output_path: Option<PathBuf>) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
+/// Verify the submitted result file contains valid structured data.
+fn verify_result(result_path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    println!("[5/5] Verifying submitted result...\n");
+
+    let submitted_json = fs::read_to_string(result_path)?;
+
+    if submitted_json.is_empty() {
+        println!("FAIL: No data was submitted.");
+        println!("The agent did not call the submit tool.");
+        println!("Check that:");
+        println!("  - MCP server started successfully (check stderr above)");
+        println!("  - Tool names match: mcp__{MCP_SERVER_NAME}__submit");
+        println!("  - --allowed-tools includes all three MCP tools");
+        std::process::exit(1);
+    }
+
+    println!("Submitted JSON:\n{submitted_json}\n");
+
+    let summary: TextSummary = serde_json::from_str(&submitted_json)
+        .map_err(|e| format!("Failed to deserialize submitted JSON: {e}\nRaw: {submitted_json}"))?;
+
+    println!("=== VERIFIED TextSummary ===");
+    println!("  title:      {}", summary.title);
+    println!("  key_points:");
+    for (i, point) in summary.key_points.iter().enumerate() {
+        println!("    {}: {point}", i + 1);
+    }
+    println!("  sentiment:  {}", summary.sentiment);
+    println!("  word_count: {}", summary.word_count);
+    println!("  entities:   {:?}", summary.entities);
+
+    assert!(!summary.title.is_empty(), "title should not be empty");
+    assert!(
+        summary.key_points.len() >= 2,
+        "should have at least 2 key points, got {}",
+        summary.key_points.len()
+    );
+    assert!(
+        ["positive", "negative", "neutral"].contains(&summary.sentiment.as_str()),
+        "sentiment must be positive/negative/neutral, got: {}",
+        summary.sentiment
+    );
+    assert!(summary.word_count >= 1, "word_count must be >= 1");
+    assert!(
+        !summary.entities.is_empty(),
+        "should have at least 1 entity"
+    );
+
+    println!("\n=== ALL ASSERTIONS PASSED ===");
+    println!("The agent called MCP tools and submitted valid structured data.");
+    println!("Core value verified: structured output via MCP tool constraints.");
+
+    Ok(())
+}
+
 /// Client mode: write MCP config, launch Claude Code, verify result.
 async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
     use rig_cli_claude::{
@@ -176,7 +231,6 @@ async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
     // ── 3. Build prompt ────────────────────────────────────────────────
     println!("[3/5] Building prompt...");
 
-    // MCP tool names as Claude Code sees them: mcp__<server>__<tool>
     let tool_prefix = format!("mcp__{MCP_SERVER_NAME}__");
     let allowed_tools = vec![
         format!("{tool_prefix}submit"),
@@ -213,9 +267,6 @@ async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
             configs: vec![config_path.to_string_lossy().to_string()],
             strict: false,
         }),
-        // --allowed-tools whitelists ONLY the MCP tools.
-        // Do NOT set builtin to None — that disables ALL tools including MCP.
-        // --allowed-tools acts as a whitelist: anything not listed is blocked.
         tools: rig_cli_claude::ToolPolicy {
             builtin: BuiltinToolSet::Default,
             allowed: Some(allowed_tools),
@@ -245,57 +296,5 @@ async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // ── 5. Verify the submitted result ─────────────────────────────────
-    println!("[5/5] Verifying submitted result...\n");
-
-    let submitted_json = fs::read_to_string(&result_path)?;
-
-    if submitted_json.is_empty() {
-        println!("FAIL: No data was submitted.");
-        println!("The agent did not call the submit tool.");
-        println!("Check that:");
-        println!("  - MCP server started successfully (check stderr above)");
-        println!("  - Tool names match: mcp__{MCP_SERVER_NAME}__submit");
-        println!("  - --allowed-tools includes all three MCP tools");
-        std::process::exit(1);
-    }
-
-    println!("Submitted JSON:\n{submitted_json}\n");
-
-    let summary: TextSummary = serde_json::from_str(&submitted_json).map_err(|e| {
-        format!(
-            "Failed to deserialize submitted JSON: {e}\nRaw: {submitted_json}"
-        )
-    })?;
-
-    println!("=== VERIFIED TextSummary ===");
-    println!("  title:      {}", summary.title);
-    println!("  key_points:");
-    for (i, point) in summary.key_points.iter().enumerate() {
-        println!("    {}: {point}", i + 1);
-    }
-    println!("  sentiment:  {}", summary.sentiment);
-    println!("  word_count: {}", summary.word_count);
-    println!("  entities:   {:?}", summary.entities);
-
-    // Assertions
-    assert!(!summary.title.is_empty(), "title should not be empty");
-    assert!(
-        summary.key_points.len() >= 2,
-        "should have at least 2 key points, got {}",
-        summary.key_points.len()
-    );
-    assert!(
-        ["positive", "negative", "neutral"].contains(&summary.sentiment.as_str()),
-        "sentiment must be positive/negative/neutral, got: {}",
-        summary.sentiment
-    );
-    assert!(summary.word_count >= 1, "word_count must be >= 1");
-    assert!(!summary.entities.is_empty(), "should have at least 1 entity");
-
-    println!("\n=== ALL ASSERTIONS PASSED ===");
-    println!("The agent called MCP tools and submitted valid structured data.");
-    println!("Core value verified: structured output via MCP tool constraints.");
-
-    Ok(())
+    verify_result(&result_path)
 }

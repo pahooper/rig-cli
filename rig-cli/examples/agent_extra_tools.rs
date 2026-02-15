@@ -84,9 +84,12 @@ impl Tool for DateExtractor {
             .filter(|word| {
                 word.contains('-')
                     || word.parse::<u32>().is_ok()
-                    || ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
-                        .iter()
-                        .any(|m| word.to_lowercase().starts_with(m))
+                    || [
+                        "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct",
+                        "nov", "dec",
+                    ]
+                    .iter()
+                    .any(|m| word.to_lowercase().starts_with(m))
             })
             .map(String::from)
             .collect();

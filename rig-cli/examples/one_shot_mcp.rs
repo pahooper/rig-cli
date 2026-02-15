@@ -25,7 +25,7 @@ struct WeatherInfo {
     conditions: String,
 }
 
-/// Builds a ToolSet with the 3-tool extraction pattern.
+/// Builds a `ToolSet` with the 3-tool extraction pattern.
 fn build_toolset() -> ToolSet {
     let mut toolset = ToolSet::default();
     let (submit, validate, example) = JsonSchemaToolkit::<WeatherInfo>::builder()
@@ -46,7 +46,7 @@ fn build_toolset() -> ToolSet {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // MCP server mode: serves tools over stdio when RIG_MCP_SERVER=1
     if std::env::var("RIG_MCP_SERVER").is_ok() {
-        return Ok(build_toolset().into_handler().await?.serve_stdio().await?);
+        return build_toolset().into_handler().await?.serve_stdio().await;
     }
 
     // --- KEY CODE: One-shot MCP extraction ---

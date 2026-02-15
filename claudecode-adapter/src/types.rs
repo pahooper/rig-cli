@@ -248,7 +248,8 @@ pub fn extract_v2_events(val: &serde_json::Value) -> Vec<StreamEvent> {
                 for block in content {
                     match block.get("type").and_then(serde_json::Value::as_str) {
                         Some("text") => {
-                            if let Some(text) = block.get("text").and_then(serde_json::Value::as_str)
+                            if let Some(text) =
+                                block.get("text").and_then(serde_json::Value::as_str)
                             {
                                 events.push(StreamEvent::Text {
                                     text: text.to_string(),

@@ -99,7 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let result = McpToolAgent::builder()
         .toolset(build_toolset())
         .prompt("Analyze the provided document and extract structured metadata.")
-        .payload(SOURCE_TEXT)  // Phase 3 feature: inject context data
+        .payload(SOURCE_TEXT) // Phase 3 feature: inject context data
         .adapter(adapter)
         .server_name("rig_extraction")
         .timeout(Duration::from_secs(120))

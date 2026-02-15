@@ -6,7 +6,7 @@
 //! Run: `cargo run -p rig-cli --example chat_mcp`
 //!
 //! This example shows how to use `mcp_agent()` for multiple conversation
-//! turns. Each turn creates a new agent instance (since ToolSet lacks Clone),
+//! turns. Each turn creates a new agent instance (since `ToolSet` lacks Clone),
 //! but demonstrates the pattern for structured chat interactions.
 
 use rig::tool::ToolSet;
@@ -24,7 +24,7 @@ struct ChatResponse {
     sentiment: String,
 }
 
-/// Builds a ToolSet with the 3-tool extraction pattern.
+/// Builds a `ToolSet` with the 3-tool extraction pattern.
 fn build_toolset() -> ToolSet {
     // --- KEY CODE: Build extraction toolkit ---
     let mut toolset = ToolSet::default();
@@ -46,7 +46,7 @@ fn build_toolset() -> ToolSet {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // MCP server mode: serves tools over stdio when RIG_MCP_SERVER=1
     if std::env::var("RIG_MCP_SERVER").is_ok() {
-        return Ok(build_toolset().into_handler().await?.serve_stdio().await?);
+        return build_toolset().into_handler().await?.serve_stdio().await;
     }
 
     // --- KEY CODE: Multi-turn chat with MCP ---
@@ -60,7 +60,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     println!("Turn 1: Sending greeting...");
-    let response1 = agent1.prompt("Hello, I'm excited to try this new library!").await?;
+    let response1 = agent1
+        .prompt("Hello, I'm excited to try this new library!")
+        .await?;
     println!("Response: {response1}");
 
     // Second turn: new agent instance (ToolSet can't be cloned)
@@ -71,7 +73,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     println!("\nTurn 2: Sending complaint...");
-    let response2 = agent2.prompt("This is frustrating, the documentation is confusing.").await?;
+    let response2 = agent2
+        .prompt("This is frustrating, the documentation is confusing.")
+        .await?;
     println!("Response: {response2}");
     // --- END KEY CODE ---
 

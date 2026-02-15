@@ -88,6 +88,7 @@ pub fn build_args(message: &str, config: &OpenCodeConfig) -> Vec<OsString> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
     use crate::types::OpenCodeConfig;
@@ -110,7 +111,11 @@ mod tests {
             "Last arg must be the prompt"
         );
         // Default config should only produce: run <prompt>
-        assert_eq!(args_str.len(), 2, "Default config should produce exactly 2 args: {args_str:?}");
+        assert_eq!(
+            args_str.len(),
+            2,
+            "Default config should produce exactly 2 args: {args_str:?}"
+        );
     }
 
     #[test]
@@ -123,7 +128,9 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--model" && w[1] == "opencode/big-pickle"),
+            args_str
+                .windows(2)
+                .any(|w| w[0] == "--model" && w[1] == "opencode/big-pickle"),
             "Expected '--model opencode/big-pickle' but got: {args_str:?}",
         );
     }
@@ -159,8 +166,7 @@ mod tests {
 
         assert!(
             args_str.contains(&"--print-logs"),
-            "Expected '--print-logs' but got: {:?}",
-            args_str
+            "Expected '--print-logs' but got: {args_str:?}",
         );
     }
 
@@ -174,9 +180,10 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(
-            args_str.windows(2).any(|w| w[0] == "--log-level" && w[1] == "DEBUG"),
-            "Expected '--log-level DEBUG' but got: {:?}",
             args_str
+                .windows(2)
+                .any(|w| w[0] == "--log-level" && w[1] == "DEBUG"),
+            "Expected '--log-level DEBUG' but got: {args_str:?}",
         );
     }
 
@@ -229,15 +236,29 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Verify CLI flags that DO appear
-        assert!(args_str.windows(2).any(|w| w[0] == "--model" && w[1] == "opencode/big-pickle"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--model" && w[1] == "opencode/big-pickle"));
         assert!(args_str.contains(&"--print-logs"));
-        assert!(args_str.windows(2).any(|w| w[0] == "--log-level" && w[1] == "DEBUG"));
-        assert!(args_str.windows(2).any(|w| w[0] == "--port" && w[1] == "8080"));
-        assert!(args_str.windows(2).any(|w| w[0] == "--hostname" && w[1] == "localhost"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--log-level" && w[1] == "DEBUG"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--port" && w[1] == "8080"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--hostname" && w[1] == "localhost"));
 
         // Verify containment via NON-CLI mechanisms (these should NOT appear in args)
-        assert!(!args_str.iter().any(|a| a.contains("/tmp/work")), "cwd should not appear in args");
-        assert!(!args_str.iter().any(|a| a.contains("mcp.json")), "MCP config path should not appear in args");
+        assert!(
+            !args_str.iter().any(|a| a.contains("/tmp/work")),
+            "cwd should not appear in args"
+        );
+        assert!(
+            !args_str.iter().any(|a| a.contains("mcp.json")),
+            "MCP config path should not appear in args"
+        );
     }
 
     #[test]
@@ -251,8 +272,12 @@ mod tests {
         let args = build_args("test prompt", &config);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
-        assert!(args_str.windows(2).any(|w| w[0] == "--port" && w[1] == "9000"));
-        assert!(args_str.windows(2).any(|w| w[0] == "--hostname" && w[1] == "0.0.0.0"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--port" && w[1] == "9000"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--hostname" && w[1] == "0.0.0.0"));
     }
 
     #[test]
@@ -267,7 +292,9 @@ mod tests {
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(args_str.contains(&"--print-logs"));
-        assert!(args_str.windows(2).any(|w| w[0] == "--log-level" && w[1] == "WARN"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--log-level" && w[1] == "WARN"));
     }
 
     #[test]
@@ -310,10 +337,18 @@ mod tests {
         let args = build_args("Parse this: {}", &config);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
-        assert!(args_str.windows(2).any(|w| w[0] == "--model" && w[1] == "opencode/fast"));
+        assert!(args_str
+            .windows(2)
+            .any(|w| w[0] == "--model" && w[1] == "opencode/fast"));
         // System prompt is prepended, so last arg should contain both
         let last = args_str.last().expect("args should not be empty");
-        assert!(last.contains("Extract JSON only."), "System prompt should be prepended");
-        assert!(last.contains("Parse this: {}"), "User message should follow");
+        assert!(
+            last.contains("Extract JSON only."),
+            "System prompt should be prepended"
+        );
+        assert!(
+            last.contains("Parse this: {}"),
+            "User message should follow"
+        );
     }
 }

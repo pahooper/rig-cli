@@ -1,3 +1,11 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::manual_let_else,
+    clippy::single_match_else,
+    clippy::doc_markdown
+)]
 //! End-to-end tests for OpenCode CLI containment features.
 //!
 //! These tests require the OpenCode CLI (`opencode`) to be installed locally.
@@ -35,7 +43,9 @@
 //! - No tool restriction flags (all configured tools are available)
 //! - Containment relies on process isolation, not CLI enforcement
 
-use rig_cli_opencode::{discover_opencode, run_opencode, OpenCodeCli, OpenCodeConfig, OpenCodeError};
+use rig_cli_opencode::{
+    discover_opencode, run_opencode, OpenCodeCli, OpenCodeConfig, OpenCodeError,
+};
 use std::time::Duration;
 use tempfile::TempDir;
 
@@ -193,11 +203,7 @@ async fn e2e_mcp_config_delivery() {
 
     // Create a minimal MCP config file (OpenCode format)
     // Even if invalid, the CLI should accept the env var
-    std::fs::write(
-        &mcp_config_path,
-        r#"{"mcpServers": {}}"#,
-    )
-    .expect("Failed to write MCP config");
+    std::fs::write(&mcp_config_path, r#"{"mcpServers": {}}"#).expect("Failed to write MCP config");
 
     let config = OpenCodeConfig {
         mcp_config_path: Some(mcp_config_path.clone()),
@@ -206,13 +212,7 @@ async fn e2e_mcp_config_delivery() {
     };
 
     // Simple prompt - we just want to verify the CLI starts with the env var
-    let result = run_opencode(
-        &cli.path,
-        "Say 'hello' and nothing else.",
-        &config,
-        None,
-    )
-    .await;
+    let result = run_opencode(&cli.path, "Say 'hello' and nothing else.", &config, None).await;
 
     match result {
         Ok(run_result) => {
@@ -256,25 +256,22 @@ async fn e2e_system_prompt_prepending() {
     };
 
     let config = OpenCodeConfig {
-        prompt: Some("You are a helpful assistant that always starts responses with 'PREAMBLE:'.".to_string()),
+        prompt: Some(
+            "You are a helpful assistant that always starts responses with 'PREAMBLE:'."
+                .to_string(),
+        ),
         timeout: Duration::from_secs(60),
         ..OpenCodeConfig::default()
     };
 
-    let result = run_opencode(
-        &cli.path,
-        "What is 2 + 2?",
-        &config,
-        None,
-    )
-    .await;
+    let result = run_opencode(&cli.path, "What is 2 + 2?", &config, None).await;
 
     match result {
         Ok(run_result) => {
             let output = run_result.stdout;
             // Check if the agent followed the system prompt instruction
-            let followed_instruction = output.contains("PREAMBLE:")
-                || output.to_lowercase().contains("preamble");
+            let followed_instruction =
+                output.contains("PREAMBLE:") || output.to_lowercase().contains("preamble");
 
             eprintln!(
                 "System prompt test: followed_instruction={}, output_preview: {}",

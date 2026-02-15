@@ -1,7 +1,6 @@
 use crate::errors::ProviderError;
 use crate::sessions::SessionManager;
 use crate::utils::format_chat_history;
-use rig_cli_codex::{discover_codex, CodexCli, CodexConfig, RunResult, StreamEvent};
 use futures::StreamExt;
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
@@ -10,6 +9,7 @@ use rig::completion::{
 use rig::streaming::{RawStreamingChoice, StreamingCompletionResponse};
 use rig::tool::Tool;
 use rig::OneOrMany;
+use rig_cli_codex::{discover_codex, CodexCli, CodexConfig, RunResult, StreamEvent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio_stream::wrappers::ReceiverStream;

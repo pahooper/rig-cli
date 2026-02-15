@@ -18,7 +18,9 @@ pub enum Error {
     CodexNotFound,
 
     /// `OpenCode` CLI not found on the system.
-    #[error("OpenCode CLI not found. Install: go install github.com/nicholasgasior/opencode@latest")]
+    #[error(
+        "OpenCode CLI not found. Install: go install github.com/nicholasgasior/opencode@latest"
+    )]
     OpenCodeNotFound,
 
     /// CLI execution failed (non-zero exit, timeout, or process error).

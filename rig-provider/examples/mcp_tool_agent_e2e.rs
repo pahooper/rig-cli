@@ -53,7 +53,7 @@ fn build_toolset() -> ToolSet {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Server mode: MCP tools over stdio
     if std::env::var("RIG_MCP_SERVER").is_ok() {
-        return Ok(build_toolset().into_handler().await?.serve_stdio().await?);
+        return build_toolset().into_handler().await?.serve_stdio().await;
     }
 
     // Parse adapter from CLI args (default: claude)

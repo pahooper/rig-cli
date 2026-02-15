@@ -43,7 +43,6 @@
 use crate::config::ClientConfig;
 use crate::errors::Error;
 use crate::response::CliResponse;
-use rig_cli_claude;
 use futures::StreamExt;
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
@@ -51,6 +50,7 @@ use rig::completion::{
 };
 use rig::streaming::{RawStreamingChoice, RawStreamingToolCall, StreamingCompletionResponse};
 use rig::OneOrMany;
+use rig_cli_claude;
 use rig_cli_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
@@ -335,11 +335,8 @@ impl CompletionModel for Model {
 
         let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
 
-        let cli_response = CliResponse::from_run_result(
-            result.stdout.clone(),
-            result.exit_code,
-            duration_ms,
-        );
+        let cli_response =
+            CliResponse::from_run_result(result.stdout.clone(), result.exit_code, duration_ms);
 
         Ok(CompletionResponse {
             choice: OneOrMany::one(AssistantContent::text(result.stdout)),
@@ -382,8 +379,7 @@ impl CompletionModel for Model {
 
         // If preamble present, append to system prompt
         if let Some(preamble) = &request.preamble {
-            config.system_prompt =
-                rig_cli_claude::SystemPromptMode::Append(preamble.clone());
+            config.system_prompt = rig_cli_claude::SystemPromptMode::Append(preamble.clone());
         }
 
         // If tools provided, wire allowed tools
@@ -401,9 +397,7 @@ impl CompletionModel for Model {
         // Convert the receiver into a stream
         let stream = ReceiverStream::new(rx).map(|event| {
             match event {
-                rig_cli_claude::StreamEvent::Text { text } => {
-                    Ok(RawStreamingChoice::Message(text))
-                }
+                rig_cli_claude::StreamEvent::Text { text } => Ok(RawStreamingChoice::Message(text)),
                 rig_cli_claude::StreamEvent::ToolCall { name, input } => {
                     let id = Uuid::new_v4().to_string();
                     let tool_call = RawStreamingToolCall::new(id, name, input);
@@ -428,8 +422,8 @@ impl CompletionModel for Model {
     }
 }
 
-
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
 

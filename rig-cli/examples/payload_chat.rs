@@ -39,7 +39,7 @@ fn build_toolset() -> ToolSet {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("RIG_MCP_SERVER").is_ok() {
-        return Ok(build_toolset().into_handler().await?.serve_stdio().await?);
+        return build_toolset().into_handler().await?.serve_stdio().await;
     }
 
     // Simulated file content (in practice, use std::fs::read_to_string)
@@ -71,10 +71,8 @@ format = "json"
         .preamble("Analyze the configuration file in <context>")
         .build()?;
 
-    let analysis = agent
-        .prompt("What is this configuration file for?")
-        .await?;
-    println!("Analysis:\n{}\n", analysis);
+    let analysis = agent.prompt("What is this configuration file for?").await?;
+    println!("Analysis:\n{analysis}\n");
     // --- END KEY CODE ---
 
     // --- KEY CODE: Multi-turn pattern with payload ---
@@ -94,7 +92,7 @@ format = "json"
     let followup = agent2
         .prompt("Are there any security concerns with this configuration?")
         .await?;
-    println!("Follow-up:\n{}", followup);
+    println!("Follow-up:\n{followup}");
     // --- END KEY CODE ---
 
     Ok(())

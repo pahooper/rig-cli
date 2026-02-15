@@ -1,3 +1,11 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::manual_let_else,
+    clippy::single_match_else,
+    clippy::doc_markdown
+)]
 //! End-to-end tests for Claude CLI containment features.
 //!
 //! These tests require the Claude CLI (`claude`) to be installed locally.
@@ -30,9 +38,7 @@
 //! Note: Tests may be flaky due to LLM non-determinism. They verify the
 //! containment *mechanism* works, not specific model responses.
 
-use rig_cli_claude::{
-    init, run_claude, BuiltinToolSet, ClaudeCli, RunConfig, ToolPolicy,
-};
+use rig_cli_claude::{init, run_claude, BuiltinToolSet, ClaudeCli, RunConfig, ToolPolicy};
 use std::time::Duration;
 use tempfile::TempDir;
 
@@ -94,8 +100,8 @@ async fn e2e_containment_no_builtins() {
                 || output.contains("not able");
 
             // The response should NOT contain evidence of successful tool use
-            let no_tool_evidence = !output.contains("directory listing")
-                && !output.contains("files found");
+            let no_tool_evidence =
+                !output.contains("directory listing") && !output.contains("files found");
 
             assert!(
                 indicates_limitation || no_tool_evidence,

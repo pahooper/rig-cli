@@ -1,3 +1,11 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::manual_let_else,
+    clippy::single_match_else,
+    clippy::doc_markdown
+)]
 //! End-to-end tests for Codex CLI containment features.
 //!
 //! These tests require the Codex CLI (`codex`) to be installed locally.
@@ -33,7 +41,9 @@
 //!   Tests document this limitation rather than expecting perfect isolation.
 //! - Tests may be flaky due to LLM non-determinism.
 
-use rig_cli_codex::{discover_codex, run_codex, ApprovalPolicy, CodexCli, CodexConfig, SandboxMode};
+use rig_cli_codex::{
+    discover_codex, run_codex, ApprovalPolicy, CodexCli, CodexConfig, SandboxMode,
+};
 use std::time::Duration;
 use tempfile::TempDir;
 

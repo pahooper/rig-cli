@@ -24,13 +24,13 @@ use crate::config::ClientConfig;
 use crate::errors::Error;
 use crate::response::CliResponse;
 use futures::StreamExt;
-use rig_cli_opencode::{discover_opencode, OpenCodeCli, OpenCodeConfig};
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
     CompletionResponse, Usage,
 };
 use rig::streaming::{RawStreamingChoice, StreamingCompletionResponse};
 use rig::OneOrMany;
+use rig_cli_opencode::{discover_opencode, OpenCodeCli, OpenCodeConfig};
 use rig_cli_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
 use rig_cli_provider::utils::format_chat_history;
 use tokio_stream::wrappers::ReceiverStream;
@@ -80,7 +80,8 @@ impl Client {
     /// Returns `Error::OpenCodeNotFound` if the CLI binary cannot be found.
     /// Returns `Error::Provider` if the health check fails.
     pub async fn from_config(config: ClientConfig) -> Result<Self, Error> {
-        let path = discover_opencode(config.binary_path.clone()).map_err(|_| Error::OpenCodeNotFound)?;
+        let path =
+            discover_opencode(config.binary_path.clone()).map_err(|_| Error::OpenCodeNotFound)?;
         let cli = OpenCodeCli::new(path);
         cli.check_health()
             .await
@@ -205,8 +206,11 @@ impl CompletionModel for Model {
                 }
             })?;
 
-        let cli_response =
-            CliResponse::from_run_result(result.stdout.clone(), result.exit_code, result.duration_ms);
+        let cli_response = CliResponse::from_run_result(
+            result.stdout.clone(),
+            result.exit_code,
+            result.duration_ms,
+        );
 
         Ok(CompletionResponse {
             choice: OneOrMany::one(AssistantContent::text(result.stdout)),
@@ -262,7 +266,9 @@ impl CompletionModel for Model {
             rig_cli_opencode::StreamEvent::Error { message } => {
                 Err(CompletionError::ProviderError(message))
             }
-            rig_cli_opencode::StreamEvent::Unknown(_) => Ok(RawStreamingChoice::Message(String::new())),
+            rig_cli_opencode::StreamEvent::Unknown(_) => {
+                Ok(RawStreamingChoice::Message(String::new()))
+            }
         });
 
         Ok(StreamingCompletionResponse::stream(Box::pin(stream)))

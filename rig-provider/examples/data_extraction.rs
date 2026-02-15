@@ -1,6 +1,8 @@
-use rig_cli_opencode::{discover_opencode, OpenCodeCli};
+//! Demonstrates structured data extraction using the `OpenCode` CLI adapter.
+
 use rig::agent::AgentBuilder;
 use rig::completion::Prompt;
+use rig_cli_opencode::{discover_opencode, OpenCodeCli};
 use rig_cli_provider::OpenCodeModel;
 
 #[tokio::main]
@@ -20,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
 
     let response = agent.prompt(prompt).await?;
 
-    println!("\nExtracted Data:\n{}", response);
+    println!("\nExtracted Data:\n{response}");
 
     Ok(())
 }

@@ -23,7 +23,6 @@
 use crate::config::ClientConfig;
 use crate::errors::Error;
 use crate::response::CliResponse;
-use rig_cli_codex::{discover_codex, CodexCli, CodexConfig};
 use futures::StreamExt;
 use rig::completion::{
     message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
@@ -31,6 +30,7 @@ use rig::completion::{
 };
 use rig::streaming::{RawStreamingChoice, StreamingCompletionResponse};
 use rig::OneOrMany;
+use rig_cli_codex::{discover_codex, CodexCli, CodexConfig};
 use rig_cli_provider::mcp_agent::{CliAdapter, CliAgentBuilder};
 use rig_cli_provider::utils::format_chat_history;
 use tokio_stream::wrappers::ReceiverStream;
@@ -205,8 +205,11 @@ impl CompletionModel for Model {
                 }
             })?;
 
-        let cli_response =
-            CliResponse::from_run_result(result.stdout.clone(), result.exit_code, result.duration_ms);
+        let cli_response = CliResponse::from_run_result(
+            result.stdout.clone(),
+            result.exit_code,
+            result.duration_ms,
+        );
 
         Ok(CompletionResponse {
             choice: OneOrMany::one(AssistantContent::text(result.stdout)),
@@ -262,7 +265,9 @@ impl CompletionModel for Model {
             rig_cli_codex::StreamEvent::Error { message } => {
                 Err(CompletionError::ProviderError(message))
             }
-            rig_cli_codex::StreamEvent::Unknown(_) => Ok(RawStreamingChoice::Message(String::new())),
+            rig_cli_codex::StreamEvent::Unknown(_) => {
+                Ok(RawStreamingChoice::Message(String::new()))
+            }
         });
 
         Ok(StreamingCompletionResponse::stream(Box::pin(stream)))

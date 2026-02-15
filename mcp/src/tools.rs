@@ -267,9 +267,10 @@ where
         // Write validated result to the file path specified by RIG_MCP_RESULT_PATH.
         // This is the primary result channel — the parent process reads this file
         // after the stream ends, rather than relying on stream ToolCall events.
-        if let (Ok(result_path), Ok(json_str)) =
-            (std::env::var("RIG_MCP_RESULT_PATH"), serde_json::to_string(&args))
-        {
+        if let (Ok(result_path), Ok(json_str)) = (
+            std::env::var("RIG_MCP_RESULT_PATH"),
+            serde_json::to_string(&args),
+        ) {
             let _ = std::fs::write(&result_path, json_str.as_bytes());
         }
 
@@ -342,8 +343,8 @@ impl Tool for ValidateJsonTool {
             feedback.push_str(&schema_str);
 
             feedback.push_str("\n\nYour submission:\n");
-            let submission_str = serde_json::to_string_pretty(&args.json)
-                .unwrap_or_else(|_| args.json.to_string());
+            let submission_str =
+                serde_json::to_string_pretty(&args.json).unwrap_or_else(|_| args.json.to_string());
             feedback.push_str(&submission_str);
 
             feedback.push_str("\n\nPlease fix all errors above and resubmit using the validate_json tool, then call submit.");
@@ -546,7 +547,9 @@ impl DynamicJsonSchemaToolkitBuilder {
     /// # Errors
     /// Returns an error if `schema` was not provided.
     pub fn build(self) -> Result<DynamicJsonSchemaToolkit, String> {
-        let schema = self.schema.ok_or("schema is required for DynamicJsonSchemaToolkit")?;
+        let schema = self
+            .schema
+            .ok_or("schema is required for DynamicJsonSchemaToolkit")?;
         Ok(DynamicJsonSchemaToolkit {
             schema: Arc::new(schema),
             example: self

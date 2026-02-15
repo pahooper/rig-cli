@@ -45,14 +45,13 @@ pub fn build_validation_feedback(
 
     // Add expected schema
     feedback.push_str("\nExpected schema:\n");
-    let schema_str = serde_json::to_string_pretty(schema)
-        .unwrap_or_else(|_| schema.to_string());
+    let schema_str = serde_json::to_string_pretty(schema).unwrap_or_else(|_| schema.to_string());
     feedback.push_str(&schema_str);
 
     // Echo back the invalid submission
     feedback.push_str("\n\nYour submission:\n");
-    let instance_str = serde_json::to_string_pretty(instance)
-        .unwrap_or_else(|_| instance.to_string());
+    let instance_str =
+        serde_json::to_string_pretty(instance).unwrap_or_else(|_| instance.to_string());
     feedback.push_str(&instance_str);
 
     feedback.push_str("\n\nPlease fix all errors and resubmit.");
@@ -87,12 +86,10 @@ pub fn build_validation_feedback(
 #[must_use]
 pub fn collect_validation_errors(schema: &Value, instance: &Value) -> Vec<String> {
     match jsonschema::Validator::new(schema) {
-        Ok(validator) => {
-            validator
-                .iter_errors(instance)
-                .map(|error| format!("At path '{}': {}", error.instance_path, error))
-                .collect()
-        }
+        Ok(validator) => validator
+            .iter_errors(instance)
+            .map(|error| format!("At path '{}': {}", error.instance_path, error))
+            .collect(),
         Err(e) => {
             // Schema compilation failed
             vec![format!("Schema compilation error: {}", e)]
@@ -131,9 +128,8 @@ pub fn build_parse_error_feedback(
     max_attempts: usize,
     schema: &Value,
 ) -> String {
-    let mut feedback = format!(
-        "Attempt {attempt}/{max_attempts}: Could not parse your response as JSON.\n\n"
-    );
+    let mut feedback =
+        format!("Attempt {attempt}/{max_attempts}: Could not parse your response as JSON.\n\n");
 
     // Add parse error
     feedback.push_str("Parse error: ");
@@ -151,8 +147,7 @@ pub fn build_parse_error_feedback(
 
     // Add expected schema
     feedback.push_str("\n\nExpected schema:\n");
-    let schema_str = serde_json::to_string_pretty(schema)
-        .unwrap_or_else(|_| schema.to_string());
+    let schema_str = serde_json::to_string_pretty(schema).unwrap_or_else(|_| schema.to_string());
     feedback.push_str(&schema_str);
 
     feedback.push_str("\n\nPlease respond with valid JSON matching the schema above.");
@@ -161,6 +156,7 @@ pub fn build_parse_error_feedback(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
     use serde_json::json;

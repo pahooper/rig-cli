@@ -1,19 +1,17 @@
-use rig_cli_opencode::{OpenCodeCli, OpenCodeConfig, discover_opencode, RunResult, StreamEvent};
-use rig::completion::{
-    CompletionError, CompletionModel, CompletionRequest, CompletionResponse,
-    message::AssistantContent,
-    ToolDefinition,
-    GetTokenUsage, Usage,
-};
-use rig::OneOrMany;
-use rig::streaming::{StreamingCompletionResponse, RawStreamingChoice};
-use rig::tool::Tool;
-use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
-use crate::sessions::SessionManager;
 use crate::errors::ProviderError;
+use crate::sessions::SessionManager;
 use crate::utils::format_chat_history;
 use futures::StreamExt;
+use rig::completion::{
+    message::AssistantContent, CompletionError, CompletionModel, CompletionRequest,
+    CompletionResponse, GetTokenUsage, ToolDefinition, Usage,
+};
+use rig::streaming::{RawStreamingChoice, StreamingCompletionResponse};
+use rig::tool::Tool;
+use rig::OneOrMany;
+use rig_cli_opencode::{discover_opencode, OpenCodeCli, OpenCodeConfig, RunResult, StreamEvent};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use tokio_stream::wrappers::ReceiverStream;
 
 /// Arguments for the `OpenCode` tool.
@@ -48,7 +46,9 @@ impl CompletionModel for OpenCodeModel {
     type Client = OpenCodeCli;
 
     fn make(client: &Self::Client, _model: impl Into<String>) -> Self {
-        Self { cli: client.clone() }
+        Self {
+            cli: client.clone(),
+        }
     }
 
     async fn completion(
@@ -58,7 +58,10 @@ impl CompletionModel for OpenCodeModel {
         let prompt_str = format_chat_history(&request);
 
         let config = OpenCodeConfig::default();
-        let result = self.cli.run(&prompt_str, &config).await
+        let result = self
+            .cli
+            .run(&prompt_str, &config)
+            .await
             .map_err(|e| CompletionError::ProviderError(e.to_string()))?;
 
         Ok(CompletionResponse {
@@ -87,20 +90,11 @@ impl CompletionModel for OpenCodeModel {
         });
 
         // Convert the receiver into a stream
-        let stream = ReceiverStream::new(rx)
-            .map(|event| {
-                match event {
-                    StreamEvent::Text { text } => {
-                        Ok(RawStreamingChoice::Message(text))
-                    }
-                    StreamEvent::Error { message } => {
-                        Err(CompletionError::ProviderError(message))
-                    }
-                    StreamEvent::Unknown(_) => {
-                        Ok(RawStreamingChoice::Message(String::new()))
-                    }
-                }
-            });
+        let stream = ReceiverStream::new(rx).map(|event| match event {
+            StreamEvent::Text { text } => Ok(RawStreamingChoice::Message(text)),
+            StreamEvent::Error { message } => Err(CompletionError::ProviderError(message)),
+            StreamEvent::Unknown(_) => Ok(RawStreamingChoice::Message(String::new())),
+        });
 
         Ok(StreamingCompletionResponse::stream(Box::pin(stream)))
     }
@@ -123,7 +117,7 @@ impl OpenCodeTool {
         let path = discover_opencode(None)?;
         let cli = OpenCodeCli::new(path);
         cli.check_health().await?;
-        Ok(Self { 
+        Ok(Self {
             cli,
             manager: SessionManager::new(),
         })
@@ -147,23 +141,28 @@ impl Tool for OpenCodeTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let session_id = args.session_id.unwrap_or_else(|| "default".to_string());
-        let cwd = self.manager.get_session_dir(&session_id).await
+        let cwd = self
+            .manager
+            .get_session_dir(&session_id)
+            .await
             .map_err(|e| ProviderError::Session(e.to_string()))?;
-        
+
         let config = OpenCodeConfig {
             cwd: Some(cwd),
             ..Default::default()
         };
         let result = self.cli.run(&args.instruction, &config).await?;
-        
+
         if result.exit_code != 0 {
-            return Err(ProviderError::OpenCode(rig_cli_opencode::OpenCodeError::NonZeroExit {
-                exit_code: result.exit_code,
-                pid: 0,
-                elapsed: std::time::Duration::from_millis(result.duration_ms),
-                stdout: result.stdout,
-                stderr: result.stderr,
-            }));
+            return Err(ProviderError::OpenCode(
+                rig_cli_opencode::OpenCodeError::NonZeroExit {
+                    exit_code: result.exit_code,
+                    pid: 0,
+                    elapsed: std::time::Duration::from_millis(result.duration_ms),
+                    stdout: result.stdout,
+                    stderr: result.stderr,
+                },
+            ));
         }
 
         Ok(result.stdout)

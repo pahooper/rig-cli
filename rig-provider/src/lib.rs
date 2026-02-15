@@ -1,6 +1,6 @@
 #![deny(missing_docs)]
 //! The Rig Provider crate acts as the central integration point for AI CLI adapters.
-//! 
+//!
 //! It implements the MCP (Model Context Protocol) server and bridges
 //! adapters like Claude Code, Codex, and `OpenCode` into the Rig ecosystem.
 
@@ -17,10 +17,10 @@ pub mod setup;
 pub use adapters::claude::ClaudeModel;
 pub use adapters::codex::CodexModel;
 pub use adapters::opencode::OpenCodeModel;
-/// Utility functions.
-pub mod utils;
 /// MCP tool agent builder for transparent CLI orchestration.
 pub mod mcp_agent;
+/// Utility functions.
+pub mod utils;
 
 pub use mcp_agent::{
     CliAdapter, CliAgent, CliAgentBuilder, McpStreamEvent, McpStreamHandle, McpToolAgent,

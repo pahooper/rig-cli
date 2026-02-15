@@ -62,7 +62,8 @@ fn setup_json_mcp(
 
     let mut data = if path.exists() {
         let content = fs::read_to_string(path)?;
-        serde_json::from_str::<Value>(&content).unwrap_or_else(|_| serde_json::json!({"mcpServers": {}}))
+        serde_json::from_str::<Value>(&content)
+            .unwrap_or_else(|_| serde_json::json!({"mcpServers": {}}))
     } else {
         serde_json::json!({"mcpServers": {}})
     };

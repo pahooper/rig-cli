@@ -55,7 +55,8 @@ pub fn discover_codex(explicit_path: Option<PathBuf>) -> Result<PathBuf, CodexEr
     // 5. Helpful error
     Err(CodexError::ExecutableNotFound(
         "codex not found. Install: npm install -g @openai/codex\n\
-         Searched: PATH, common npm install locations.".to_string()
+         Searched: PATH, common npm install locations."
+            .to_string(),
     ))
 }
 

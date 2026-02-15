@@ -18,5 +18,5 @@ pub mod orchestrator;
 pub use config::ExtractionConfig;
 pub use error::{AttemptRecord, ExtractionError};
 pub use feedback::build_validation_feedback;
-pub use metrics::{estimate_tokens, ExtractionMetrics};
+pub use metrics::{ExtractionMetrics, estimate_tokens};
 pub use orchestrator::ExtractionOrchestrator;

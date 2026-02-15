@@ -1,3 +1,6 @@
+//! Integration tests for MCP config generation, toolkit construction, and JSON validation.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
 use rig_cli_mcp::prelude::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

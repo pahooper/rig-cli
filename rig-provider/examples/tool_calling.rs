@@ -1,16 +1,18 @@
-use rig_cli_claude::{init, ClaudeCli};
+//! Demonstrates tool calling with the Claude Code CLI adapter.
+
 use rig::agent::AgentBuilder;
 use rig::completion::{Prompt, ToolDefinition};
 use rig::tool::Tool;
+use rig_cli_claude::{init, ClaudeCli};
 use rig_cli_provider::ClaudeModel;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 #[derive(Deserialize)]
 struct CalculatorArgs {
-    operation: String,
-    x: f64,
-    y: f64,
+    _operation: String,
+    _x: f64,
+    _y: f64,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -76,7 +78,7 @@ async fn main() -> anyhow::Result<()> {
         .prompt("Calculate 5 + 3 using the calculator tool.")
         .await?;
 
-    println!("Response: {}", response);
+    println!("Response: {response}");
 
     Ok(())
 }

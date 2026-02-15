@@ -75,8 +75,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// MCP server mode: serve the toolkit tools over stdio.
 async fn run_server(output_path: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
-    let output_path = output_path
-        .unwrap_or_else(|| PathBuf::from("/tmp/extraction_summarize_e2e_result.json"));
+    let output_path =
+        output_path.unwrap_or_else(|| PathBuf::from("/tmp/extraction_summarize_e2e_result.json"));
 
     let mut toolset = ToolSet::default();
 
@@ -115,11 +115,7 @@ async fn run_server(output_path: Option<PathBuf>) -> Result<(), Box<dyn std::err
     toolset.add_tool(example);
 
     // Serve over stdio — Claude Code will spawn this process
-    toolset
-        .into_handler()
-        .await?
-        .serve_stdio()
-        .await?;
+    toolset.into_handler().await?.serve_stdio().await?;
 
     Ok(())
 }
@@ -237,7 +233,10 @@ async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         summary.sentiment
     );
     assert!(summary.word_count >= 1, "word_count must be >= 1");
-    assert!(!summary.entities.is_empty(), "should have at least 1 entity");
+    assert!(
+        !summary.entities.is_empty(),
+        "should have at least 1 entity"
+    );
 
     println!("\nAll assertions passed.");
     println!("The agent called the MCP tools and submitted valid structured data.");

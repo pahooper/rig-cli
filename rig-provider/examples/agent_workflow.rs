@@ -1,6 +1,8 @@
-use rig_cli_claude::{init, ClaudeCli};
+//! Demonstrates a multi-step agent workflow using the Claude Code CLI adapter.
+
 use rig::agent::AgentBuilder;
 use rig::completion::Prompt;
+use rig_cli_claude::{init, ClaudeCli};
 use rig_cli_provider::ClaudeModel;
 
 #[tokio::main]
@@ -24,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .await?;
 
-    println!("\nFinal Agent Advice:\n{}", result);
+    println!("\nFinal Agent Advice:\n{result}");
 
     Ok(())
 }

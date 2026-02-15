@@ -9,7 +9,9 @@
 //! Run with: `cargo run --example extraction_retry_e2e`
 
 use rig_cli_claude::{init, ClaudeCli, OutputFormat, RunConfig};
-use rig_cli_mcp::extraction::{ExtractionConfig, ExtractionOrchestrator};
+use rig_cli_mcp::extraction::{
+    ExtractionConfig, ExtractionError, ExtractionMetrics, ExtractionOrchestrator,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -25,16 +27,8 @@ struct CodeReview {
     suggestion: String,
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    // 1. Initialize
-    println!("[1/4] Discovering Claude Code CLI...");
-    let report = init(None).await?;
-    let cli = ClaudeCli::new(report.claude_path.clone(), report.capabilities.clone());
-    println!("  Found: {}", report.claude_path.display());
-
-    // 2. Build a strict schema with constraints (not just type checking)
-    let schema = json!({
+fn build_schema() -> serde_json::Value {
+    json!({
         "type": "object",
         "properties": {
             "file_path": {
@@ -75,8 +69,103 @@ async fn main() -> anyhow::Result<()> {
         },
         "required": ["file_path", "severity", "line_start", "line_end", "category", "message", "suggestion"],
         "additionalProperties": false
-    });
-    println!("[2/4] Strict schema created (7 required fields, enums, ranges, no additionalProperties)");
+    })
+}
+
+fn handle_success(value: serde_json::Value, metrics: &ExtractionMetrics) -> anyhow::Result<()> {
+    println!("=== EXTRACTION SUCCEEDED ===\n");
+    println!("Extracted JSON:\n{}", serde_json::to_string_pretty(&value)?);
+    println!("\nMetrics:");
+    println!("  Attempts: {}", metrics.total_attempts);
+    println!("  Wall time: {:?}", metrics.wall_time);
+    println!("  Est. input tokens: {}", metrics.estimated_input_tokens);
+    println!("  Est. output tokens: {}", metrics.estimated_output_tokens);
+
+    let review: CodeReview = serde_json::from_value(value)?;
+    println!("\nDeserialized CodeReview:");
+    println!("  file_path: {}", review.file_path);
+    println!("  severity: {}", review.severity);
+    println!("  line_start: {}", review.line_start);
+    println!("  line_end: {}", review.line_end);
+    println!("  category: {}", review.category);
+    println!("  message: {}", review.message);
+    println!("  suggestion: {}", review.suggestion);
+
+    assert!(
+        ["low", "medium", "high", "critical"].contains(&review.severity.as_str()),
+        "severity must be a valid enum value"
+    );
+    assert!(
+        ["bug", "performance", "security", "style", "documentation"]
+            .contains(&review.category.as_str()),
+        "category must be a valid enum value"
+    );
+    assert!(review.line_start >= 1, "line_start must be >= 1");
+    assert!(review.line_end >= 1, "line_end must be >= 1");
+    assert!(
+        review.message.len() >= 10,
+        "message must be at least 10 chars"
+    );
+    assert!(
+        review.suggestion.len() >= 10,
+        "suggestion must be at least 10 chars"
+    );
+
+    if metrics.total_attempts > 1 {
+        println!(
+            "\nRetry loop exercised: took {} attempts to get valid output.",
+            metrics.total_attempts
+        );
+    } else {
+        println!("\nFirst-attempt success (retry path not exercised).");
+    }
+
+    println!("\nAll assertions passed.");
+    Ok(())
+}
+
+fn handle_failure(e: &ExtractionError) {
+    println!("=== EXTRACTION FAILED ===\n");
+    println!("Error: {e}");
+    if let ExtractionError::MaxRetriesExceeded {
+        history, metrics, ..
+    } = e
+    {
+        println!("\nAttempt history:");
+        for record in history {
+            println!(
+                "  Attempt {}: {} errors",
+                record.attempt_number,
+                record.validation_errors.len()
+            );
+            for err in &record.validation_errors {
+                println!("    - {err}");
+            }
+            let preview_len = record.raw_agent_output.len().min(200);
+            println!(
+                "    Raw output (first 200 chars): {}",
+                &record.raw_agent_output[..preview_len]
+            );
+        }
+        println!("\nMetrics:");
+        println!("  Attempts: {}", metrics.total_attempts);
+        println!("  Wall time: {:?}", metrics.wall_time);
+    }
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // 1. Initialize
+    println!("[1/4] Discovering Claude Code CLI...");
+    let report = init(None).await?;
+    let cli = ClaudeCli::new(report.claude_path.clone(), report.capabilities.clone());
+    println!("  Found: {}", report.claude_path.display());
+
+    // 2. Build schema
+    let schema = build_schema();
+    println!(
+        "[2/4] Strict schema created (7 required fields, enums, ranges, no additionalProperties)"
+    );
 
     // 3. Configure with 3 attempts so we can observe retry behavior
     let config = ExtractionConfig::default()
@@ -112,90 +201,9 @@ async fn main() -> anyhow::Result<()> {
         .await;
 
     match result {
-        Ok((value, metrics)) => {
-            println!("=== EXTRACTION SUCCEEDED ===\n");
-            println!(
-                "Extracted JSON:\n{}",
-                serde_json::to_string_pretty(&value)?
-            );
-            println!("\nMetrics:");
-            println!("  Attempts: {}", metrics.total_attempts);
-            println!("  Wall time: {:?}", metrics.wall_time);
-            println!("  Est. input tokens: {}", metrics.estimated_input_tokens);
-            println!("  Est. output tokens: {}", metrics.estimated_output_tokens);
-
-            // Deserialize to struct
-            let review: CodeReview = serde_json::from_value(value)?;
-            println!("\nDeserialized CodeReview:");
-            println!("  file_path: {}", review.file_path);
-            println!("  severity: {}", review.severity);
-            println!("  line_start: {}", review.line_start);
-            println!("  line_end: {}", review.line_end);
-            println!("  category: {}", review.category);
-            println!("  message: {}", review.message);
-            println!("  suggestion: {}", review.suggestion);
-
-            // Verify constraints
-            assert!(
-                ["low", "medium", "high", "critical"].contains(&review.severity.as_str()),
-                "severity must be a valid enum value"
-            );
-            assert!(
-                ["bug", "performance", "security", "style", "documentation"]
-                    .contains(&review.category.as_str()),
-                "category must be a valid enum value"
-            );
-            assert!(review.line_start >= 1, "line_start must be >= 1");
-            assert!(review.line_end >= 1, "line_end must be >= 1");
-            assert!(
-                review.message.len() >= 10,
-                "message must be at least 10 chars"
-            );
-            assert!(
-                review.suggestion.len() >= 10,
-                "suggestion must be at least 10 chars"
-            );
-
-            if metrics.total_attempts > 1 {
-                println!(
-                    "\nRetry loop exercised: took {} attempts to get valid output.",
-                    metrics.total_attempts
-                );
-            } else {
-                println!("\nFirst-attempt success (retry path not exercised).");
-            }
-
-            println!("\nAll assertions passed.");
-        }
+        Ok((value, metrics)) => handle_success(value, &metrics)?,
         Err(e) => {
-            println!("=== EXTRACTION FAILED ===\n");
-            println!("Error: {e}");
-            if let rig_cli_mcp::extraction::ExtractionError::MaxRetriesExceeded {
-                history,
-                metrics,
-                ..
-            } = &e
-            {
-                println!("\nAttempt history:");
-                for record in history {
-                    println!(
-                        "  Attempt {}: {} errors",
-                        record.attempt_number,
-                        record.validation_errors.len()
-                    );
-                    for err in &record.validation_errors {
-                        println!("    - {err}");
-                    }
-                    let preview_len = record.raw_agent_output.len().min(200);
-                    println!(
-                        "    Raw output (first 200 chars): {}",
-                        &record.raw_agent_output[..preview_len]
-                    );
-                }
-                println!("\nMetrics:");
-                println!("  Attempts: {}", metrics.total_attempts);
-                println!("  Wall time: {:?}", metrics.wall_time);
-            }
+            handle_failure(&e);
             std::process::exit(1);
         }
     }
