@@ -1,6 +1,6 @@
 [package]
 name = "rig-cli-claude"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 authors = ["Claude"]
 description = "Rust adapter for Claude Code CLI subprocess execution"

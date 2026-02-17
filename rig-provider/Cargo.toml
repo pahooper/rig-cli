@@ -1,6 +1,6 @@
 [package]
 name = "rig-cli-provider"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 description = "Rig provider turning CLI agents into idiomatic Rig CompletionModel and Tool implementations"
 license = "MIT"
@@ -23,7 +23,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 clap = { version = "4.5", features = ["derive"] }
 tempfile = "3.10"
 semver = "1.0"
-rig-cli-claude = { version = "0.3.2", path = "../claudecode-adapter", registry = "kellnr" }
+rig-cli-claude = { version = "0.3.3", path = "../claudecode-adapter", registry = "kellnr" }
 rig-cli-codex = { version = "0.3.2", path = "../codex-adapter", registry = "kellnr" }
 rig-cli-opencode = { version = "0.3.2", path = "../opencode-adapter", registry = "kellnr" }
 tokio-stream = "0.1.18"

@@ -77,6 +77,8 @@ fn fallback_locations() -> Vec<PathBuf> {
 fn fallback_locations() -> Vec<PathBuf> {
     let mut locations = Vec::new();
     if let Some(home) = dirs::home_dir() {
+        // Native installer location (preferred — actual .exe, not .cmd wrapper)
+        locations.push(home.join(".local/bin/claude.exe"));
         // npm global install on Windows
         locations.push(home.join("AppData/Roaming/npm/claude.cmd"));
     }

@@ -89,9 +89,9 @@ impl CompletionModel for ClaudeModel {
         }
 
         tokio::spawn(async move {
-            // Error from CLI stream is intentionally dropped here;
-            // the receiver will see the channel close and handle accordingly
-            let _ = cli.stream(&prompt_str, &config, tx).await;
+            if let Err(e) = cli.stream(&prompt_str, &config, tx).await {
+                tracing::error!(error = %e, "Claude CLI stream failed: {e}");
+            }
         });
 
         // Convert the receiver into a stream
