@@ -56,11 +56,21 @@
 
 use crate::types::{BuiltinToolSet, JsonSchema, OutputFormat, RunConfig, SystemPromptMode};
 use std::ffi::OsString;
+use std::path::Path;
 
 /// Builds the argument list for a `claude --print` invocation from the given
 /// prompt and configuration.
+///
+/// When `system_prompt_file` is `Some`, the system prompt text (for `Append`
+/// or `Replace` mode) has already been written to the given path.  The
+/// corresponding `--*-file` CLI flag is emitted instead of the inline flag,
+/// keeping the OS argument list short and avoiding length limits on Windows.
 #[must_use]
-pub fn build_args(prompt: &str, config: &RunConfig) -> Vec<OsString> {
+pub fn build_args(
+    prompt: &str,
+    config: &RunConfig,
+    system_prompt_file: Option<&Path>,
+) -> Vec<OsString> {
     let mut args = Vec::new();
 
     args.push(OsString::from("--print"));
@@ -83,13 +93,21 @@ pub fn build_args(prompt: &str, config: &RunConfig) -> Vec<OsString> {
         }
     }
 
-    match &config.system_prompt {
-        SystemPromptMode::None => {}
-        SystemPromptMode::Append(p) => {
+    match (&config.system_prompt, system_prompt_file) {
+        (SystemPromptMode::None, _) => {}
+        (SystemPromptMode::Append(_), Some(path)) => {
+            args.push(OsString::from("--append-system-prompt-file"));
+            args.push(OsString::from(path));
+        }
+        (SystemPromptMode::Append(p), None) => {
             args.push(OsString::from("--append-system-prompt"));
             args.push(OsString::from(p));
         }
-        SystemPromptMode::Replace(p) => {
+        (SystemPromptMode::Replace(_), Some(path)) => {
+            args.push(OsString::from("--system-prompt-file"));
+            args.push(OsString::from(path));
+        }
+        (SystemPromptMode::Replace(p), None) => {
             args.push(OsString::from("--system-prompt"));
             args.push(OsString::from(p));
         }
@@ -174,7 +192,7 @@ mod tests {
             },
             ..RunConfig::default()
         };
-        let args = build_args("test prompt", &config);
+        let args = build_args("test prompt", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Assert --tools "" is present (CONT-01)
@@ -197,7 +215,7 @@ mod tests {
             },
             ..RunConfig::default()
         };
-        let args = build_args("test prompt", &config);
+        let args = build_args("test prompt", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Assert --tools "Bash" is present (CONT-02)
@@ -220,7 +238,7 @@ mod tests {
             },
             ..RunConfig::default()
         };
-        let args = build_args("test prompt", &config);
+        let args = build_args("test prompt", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Assert --disable-slash-commands is present
@@ -239,7 +257,7 @@ mod tests {
             }),
             ..RunConfig::default()
         };
-        let args = build_args("test prompt", &config);
+        let args = build_args("test prompt", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Assert --mcp-config and --strict-mcp-config are present
@@ -266,7 +284,7 @@ mod tests {
             },
             ..RunConfig::default()
         };
-        let args = build_args("test prompt", &config);
+        let args = build_args("test prompt", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Assert --allowed-tools is present
@@ -296,7 +314,7 @@ mod tests {
             cwd: Some(PathBuf::from("/tmp/sandbox")),
             ..RunConfig::default()
         };
-        let args = build_args("test prompt", &config);
+        let args = build_args("test prompt", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Assert all containment flags are present (CONT-03)
@@ -347,7 +365,7 @@ mod tests {
             }),
             ..RunConfig::default()
         };
-        let args = build_args("test", &config);
+        let args = build_args("test", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Verify all containment flags present in correct order
@@ -380,7 +398,7 @@ mod tests {
             }),
             ..RunConfig::default()
         };
-        let args = build_args("test", &config);
+        let args = build_args("test", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Verify hybrid configuration
@@ -401,7 +419,7 @@ mod tests {
             system_prompt: SystemPromptMode::Replace("Custom system".to_string()),
             ..RunConfig::default()
         };
-        let args_replace = build_args("test", &config_replace);
+        let args_replace = build_args("test", &config_replace, None);
         let args_str: Vec<&str> = args_replace.iter().filter_map(|s| s.to_str()).collect();
         assert!(args_str
             .windows(2)
@@ -413,7 +431,7 @@ mod tests {
             system_prompt: SystemPromptMode::Append("Extra context".to_string()),
             ..RunConfig::default()
         };
-        let args_append = build_args("test", &config_append);
+        let args_append = build_args("test", &config_append, None);
         let args_str: Vec<&str> = args_append.iter().filter_map(|s| s.to_str()).collect();
         assert!(args_str
             .windows(2)
@@ -431,7 +449,7 @@ mod tests {
             }),
             ..RunConfig::default()
         };
-        let args = build_args("test", &config);
+        let args = build_args("test", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         // Both configs should be present with separate --mcp-config flags
@@ -451,7 +469,7 @@ mod tests {
             json_schema: JsonSchema::Inline(r#"{"type":"object"}"#.to_string()),
             ..RunConfig::default()
         };
-        let args = build_args("test", &config);
+        let args = build_args("test", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(args_str
@@ -470,7 +488,7 @@ mod tests {
             },
             ..RunConfig::default()
         };
-        let args = build_args("test", &config);
+        let args = build_args("test", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(args_str
@@ -482,7 +500,7 @@ mod tests {
     fn test_default_config_minimal_args() {
         // Default config should generate minimal args (--print, --output-format, and prompt)
         let config = RunConfig::default();
-        let args = build_args("test prompt", &config);
+        let args = build_args("test prompt", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert_eq!(args_str.len(), 4); // --print, --output-format, text, prompt
@@ -498,7 +516,7 @@ mod tests {
             no_session_persistence: true,
             ..RunConfig::default()
         };
-        let args = build_args("test", &config);
+        let args = build_args("test", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(
@@ -510,7 +528,7 @@ mod tests {
     #[test]
     fn test_no_session_persistence_default_off() {
         let config = RunConfig::default();
-        let args = build_args("test", &config);
+        let args = build_args("test", &config, None);
         let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
 
         assert!(

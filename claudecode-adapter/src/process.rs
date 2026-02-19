@@ -1,10 +1,11 @@
 //! Subprocess execution with streaming, timeouts, and signal handling.
 
 use crate::error::ClaudeError;
-use crate::types::{OutputFormat, RunConfig, RunResult};
+use crate::types::{OutputFormat, RunConfig, RunResult, SystemPromptMode};
 use std::process::Stdio;
 use std::time::{Duration, Instant};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tempfile::NamedTempFile;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
@@ -17,7 +18,26 @@ const MAX_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 /// Time to wait for a graceful SIGTERM exit before sending SIGKILL.
 const GRACE_PERIOD: Duration = Duration::from_secs(5);
 
+/// Byte threshold above which prompts and system prompts are offloaded from
+/// CLI positional arguments.  Windows limits total arg length to ~32 KB; we
+/// use 30 KB as a safe cross-platform threshold.
+const ARG_THRESHOLD: usize = 30_000;
+
 /// Executes the Claude CLI as a subprocess, optionally streaming events.
+///
+/// When the prompt exceeds [`ARG_THRESHOLD`] bytes it is piped via **stdin**
+/// instead of being passed as a positional CLI argument.  This avoids the
+/// Windows ~32 KB argument-length limit while keeping the prompt transparent
+/// to the agent (no Read tool required).
+///
+/// If the stdin approach produces an empty result (the Bug #7263 signature —
+/// exit 0, empty stdout), the function automatically retries using a **temp
+/// file** fallback: the prompt is written to a temp file and the agent is
+/// instructed to read it, with the `Read` builtin tool temporarily granted
+/// if the config uses `BuiltinToolSet::None`.
+///
+/// System prompts exceeding the threshold are always handled via the
+/// official `--append-system-prompt-file` / `--system-prompt-file` flags.
 ///
 /// # Errors
 ///
@@ -29,10 +49,130 @@ pub async fn run_claude(
     config: &RunConfig,
     sender: Option<mpsc::Sender<crate::types::StreamEvent>>,
 ) -> Result<RunResult, ClaudeError> {
-    let args = crate::cmd::build_args(prompt, config);
+    let use_stdin = prompt.len() > ARG_THRESHOLD;
+
+    // --- System prompt: temp file if large, inline otherwise ---------------
+    let sys_prompt_text = match &config.system_prompt {
+        SystemPromptMode::Append(p) | SystemPromptMode::Replace(p) => Some(p.as_str()),
+        SystemPromptMode::None => None,
+    };
+    let needs_sys_file = sys_prompt_text.map_or(false, |t| t.len() > ARG_THRESHOLD);
+
+    let _sys_prompt_file: Option<NamedTempFile> = if needs_sys_file {
+        Some(write_temp_file("rig_sysprompt_", sys_prompt_text.unwrap_or_default())?)
+    } else {
+        None
+    };
+
+    // --- Primary path: stdin for large prompts, positional arg otherwise ---
+    let effective_prompt = if use_stdin { "" } else { prompt };
+
+    let args = crate::cmd::build_args(
+        effective_prompt,
+        config,
+        _sys_prompt_file.as_ref().map(|f| f.path()),
+    );
+
+    let result = execute_once(path, &args, config, use_stdin, prompt, sender.clone()).await?;
+
+    // --- Bug #7263 regression guard: empty stdout with stdin mode ----------
+    // The bug signature is exit 0 + empty stdout when prompt was piped via
+    // stdin.  On detection we retry with a temp-file fallback.
+    if use_stdin && result.exit_code == 0 && result.stdout.trim().is_empty() {
+        tracing::warn!(
+            prompt_bytes = prompt.len(),
+            "Empty stdout with stdin mode — possible Bug #7263 regression, retrying with temp file"
+        );
+        return run_with_tempfile_fallback(path, prompt, config, &_sys_prompt_file, sender).await;
+    }
+
+    Ok(result)
+}
+
+/// Fallback path: write prompt to temp file, grant Read tool if needed.
+async fn run_with_tempfile_fallback(
+    path: &std::path::Path,
+    prompt: &str,
+    config: &RunConfig,
+    sys_prompt_file: &Option<NamedTempFile>,
+    sender: Option<mpsc::Sender<crate::types::StreamEvent>>,
+) -> Result<RunResult, ClaudeError> {
+    let _prompt_file = write_temp_file("rig_prompt_", prompt)?;
+    let instruction = format!(
+        "Read the file at {} and follow the instructions within.",
+        _prompt_file.path().display()
+    );
+
+    // When the agent has BuiltinToolSet::None we need to grant Read so it
+    // can access the prompt file.
+    let config_override;
+    let effective_config =
+        if matches!(config.tools.builtin, crate::types::BuiltinToolSet::None) {
+            config_override = RunConfig {
+                tools: crate::types::ToolPolicy {
+                    builtin: crate::types::BuiltinToolSet::Explicit(vec!["Read".to_string()]),
+                    ..config.tools.clone()
+                },
+                ..config.clone()
+            };
+            &config_override
+        } else {
+            config
+        };
+
+    let args = crate::cmd::build_args(
+        &instruction,
+        effective_config,
+        sys_prompt_file.as_ref().map(|f| f.path()),
+    );
+
+    execute_once(path, &args, effective_config, false, "", sender).await
+}
+
+/// Creates a named temp file with the given prefix and content.
+fn write_temp_file(prefix: &str, content: &str) -> Result<NamedTempFile, ClaudeError> {
+    let f = tempfile::Builder::new()
+        .prefix(prefix)
+        .suffix(".txt")
+        .tempfile()
+        .map_err(|e| ClaudeError::SpawnFailed {
+            stage: format!("{prefix} temp file creation"),
+            source: e,
+        })?;
+    std::fs::write(f.path(), content).map_err(|e| ClaudeError::SpawnFailed {
+        stage: format!("{prefix} temp file write"),
+        source: e,
+    })?;
+    Ok(f)
+}
+
+/// Spawns a single Claude CLI subprocess, optionally piping the prompt via
+/// stdin, collects output, and returns the result.
+async fn execute_once(
+    path: &std::path::Path,
+    args: &[std::ffi::OsString],
+    config: &RunConfig,
+    pipe_stdin: bool,
+    stdin_content: &str,
+    sender: Option<mpsc::Sender<crate::types::StreamEvent>>,
+) -> Result<RunResult, ClaudeError> {
     let start_time = Instant::now();
 
-    let mut child = spawn_child(path, &args, config)?;
+    let mut child = spawn_child(path, args, config, pipe_stdin)?;
+
+    // Write prompt to stdin and close the pipe so Claude sees EOF.
+    if pipe_stdin {
+        if let Some(mut stdin_pipe) = child.stdin.take() {
+            stdin_pipe
+                .write_all(stdin_content.as_bytes())
+                .await
+                .map_err(|e| ClaudeError::SpawnFailed {
+                    stage: "stdin write".to_string(),
+                    source: e,
+                })?;
+            drop(stdin_pipe);
+        }
+    }
 
     let stdout = child.stdout.take().ok_or(ClaudeError::NoStdout)?;
     let stderr = child.stderr.take().ok_or(ClaudeError::NoStderr)?;
@@ -79,9 +219,23 @@ fn spawn_child(
     path: &std::path::Path,
     args: &[std::ffi::OsString],
     config: &RunConfig,
+    pipe_stdin: bool,
 ) -> Result<tokio::process::Child, ClaudeError> {
     let mut cmd = Command::new(path);
     cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    // On Windows, prevent a visible console window from flashing when spawning
+    // the CLI subprocess from a GUI application (windows_subsystem = "windows").
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    if pipe_stdin {
+        cmd.stdin(Stdio::piped());
+    }
 
     if let Some(cwd) = &config.cwd {
         cmd.current_dir(cwd);
