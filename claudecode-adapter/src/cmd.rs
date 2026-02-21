@@ -165,6 +165,11 @@ pub fn build_args(
         args.push(OsString::from("--no-session-persistence"));
     }
 
+    if let Some(ref sources) = config.setting_sources {
+        args.push(OsString::from("--setting-sources"));
+        args.push(OsString::from(sources));
+    }
+
     args.push(OsString::from(prompt));
 
     args
@@ -534,6 +539,36 @@ mod tests {
         assert!(
             !args_str.contains(&"--no-session-persistence"),
             "Default config should NOT include --no-session-persistence"
+        );
+    }
+
+    #[test]
+    fn test_setting_sources_empty_isolation() {
+        let config = RunConfig {
+            setting_sources: Some("".to_string()),
+            ..RunConfig::default()
+        };
+        let args = build_args("test", &config, None);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            args_str.contains(&"--setting-sources"),
+            "Expected '--setting-sources' but got: {args_str:?}",
+        );
+        // Empty string should be passed to skip all user config
+        let idx = args_str.iter().position(|&s| s == "--setting-sources").unwrap();
+        assert_eq!(args_str[idx + 1], "", "setting-sources value should be empty string");
+    }
+
+    #[test]
+    fn test_setting_sources_default_off() {
+        let config = RunConfig::default();
+        let args = build_args("test", &config, None);
+        let args_str: Vec<&str> = args.iter().filter_map(|s| s.to_str()).collect();
+
+        assert!(
+            !args_str.contains(&"--setting-sources"),
+            "Default config should NOT include --setting-sources"
         );
     }
 }

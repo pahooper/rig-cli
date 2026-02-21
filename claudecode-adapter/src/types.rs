@@ -151,6 +151,16 @@ pub struct RunConfig {
     /// This prevents hanging when another Claude Code session is already
     /// running (which holds a version lock file).
     pub no_session_persistence: bool,
+    /// Override which setting sources the CLI loads (CLAUDE.md, hooks, MCP).
+    ///
+    /// When `Some("")`, adds `--setting-sources ""` which skips all user
+    /// configuration — CLAUDE.md files, hooks, and MCP servers defined in
+    /// `~/.claude/settings.json`. Useful for programmatic invocations that
+    /// need isolation from user-level config.
+    ///
+    /// When `None` (default), the flag is omitted and the CLI uses its
+    /// normal setting source resolution.
+    pub setting_sources: Option<String>,
 }
 
 impl Default for RunConfig {
@@ -172,6 +182,7 @@ impl Default for RunConfig {
             cwd: None,
             env: Vec::new(),
             no_session_persistence: false,
+            setting_sources: None,
         }
     }
 }
