@@ -54,8 +54,10 @@ pub fn discover_claude(explicit_path: Option<PathBuf>) -> Result<PathBuf, Claude
 
     // 5. Helpful error with install instructions
     Err(ClaudeError::ExecutableNotFound(
-        "claude not found. Install: npm install -g @anthropic-ai/claude-code\n\
-         Searched: PATH, common npm install locations."
+        "claude not found.\n\
+         Install (native): curl -fsSL https://claude.ai/install.sh | sh\n\
+         Install (npm):    npm install -g @anthropic-ai/claude-code\n\
+         Searched: PATH, native installer locations, npm install locations."
             .to_string(),
     ))
 }
@@ -64,11 +66,12 @@ pub fn discover_claude(explicit_path: Option<PathBuf>) -> Result<PathBuf, Claude
 fn fallback_locations() -> Vec<PathBuf> {
     let mut locations = Vec::new();
     if let Some(home) = dirs::home_dir() {
-        // npm global install locations on Unix
-        locations.push(home.join(".npm/bin/claude"));
+        // Native installer location (preferred)
         locations.push(home.join(".local/bin/claude"));
+        // npm global install fallbacks
+        locations.push(home.join(".npm/bin/claude"));
     }
-    // System-wide npm
+    // System-wide locations (native or npm)
     locations.push(PathBuf::from("/usr/local/bin/claude"));
     locations
 }
