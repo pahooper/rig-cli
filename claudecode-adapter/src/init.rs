@@ -15,17 +15,30 @@ use tokio::process::Command;
 pub async fn init(explicit_path: Option<PathBuf>) -> Result<InitReport, ClaudeError> {
     let path = discover_claude(explicit_path)?;
 
-    let version_output = Command::new(&path).arg("--version").output().await?;
+    let mut version_cmd = Command::new(&path);
+    version_cmd.arg("--version");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        version_cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let version_output = version_cmd.output().await?;
     let version = String::from_utf8_lossy(&version_output.stdout)
         .trim()
         .to_string();
 
     // Run a lightweight health check to verify the CLI is functional.
-    let health_check = Command::new(&path)
+    let mut health_cmd = Command::new(&path);
+    health_cmd
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn();
+        .stderr(std::process::Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        health_cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let health_check = health_cmd.spawn();
 
     let (doctor_ok, doctor_stdout, doctor_stderr) = if let Ok(mut child) = health_check {
         if let Some(mut stdin) = child.stdin.take() {
@@ -56,7 +69,14 @@ pub async fn init(explicit_path: Option<PathBuf>) -> Result<InitReport, ClaudeEr
         )
     };
 
-    let help_output = Command::new(&path).arg("--help").output().await?;
+    let mut help_cmd = Command::new(&path);
+    help_cmd.arg("--help");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        help_cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let help_output = help_cmd.output().await?;
     let help_text = String::from_utf8_lossy(&help_output.stdout);
 
     let feature_checks: &[(Feature, &str)] = &[
