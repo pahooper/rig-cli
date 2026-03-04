@@ -111,10 +111,7 @@ async fn get_version(binary: &std::path::Path) -> Option<String> {
     let mut cmd = tokio::process::Command::new(binary);
     cmd.arg("--version");
     #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-    }
+    cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     let output = cmd.output().await.ok()?;
 
     if output.status.success() {

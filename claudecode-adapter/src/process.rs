@@ -3,7 +3,9 @@
 use crate::error::ClaudeError;
 use crate::types::{OutputFormat, RunConfig, RunResult, SystemPromptMode};
 use std::process::Stdio;
-use std::time::{Duration, Instant};
+#[cfg(unix)]
+use std::time::Duration;
+use std::time::Instant;
 use tempfile::NamedTempFile;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
@@ -16,12 +18,83 @@ const CHANNEL_CAPACITY: usize = 100;
 /// Maximum bytes captured from a single pipe before truncation.
 const MAX_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 /// Time to wait for a graceful SIGTERM exit before sending SIGKILL.
+#[cfg(unix)]
 const GRACE_PERIOD: Duration = Duration::from_secs(5);
 
 /// Byte threshold above which prompts and system prompts are offloaded from
 /// CLI positional arguments.  Windows limits total arg length to ~32 KB; we
 /// use 30 KB as a safe cross-platform threshold.
 const ARG_THRESHOLD: usize = 30_000;
+
+/// JavaScript preload script that monkey-patches Node.js `child_process` to
+/// inject `windowsHide: true` into every `spawn`, `exec`, `execFile`, and
+/// `fork` call.  This prevents Claude Code's internal subprocess spawns
+/// from flashing console windows (upstream issue #28138).
+///
+/// Loaded via `NODE_OPTIONS=--require=<tempfile>` on the Claude CLI spawn.
+#[cfg(windows)]
+const WINDOWSHIDE_PATCH_JS: &str = r#"
+"use strict";
+const cp = require("child_process");
+
+function patchOpts(opts) {
+    if (opts == null) opts = {};
+    if (typeof opts !== "object") return opts;
+    opts.windowsHide = true;
+    return opts;
+}
+
+const _spawn = cp.spawn;
+cp.spawn = function spawn(cmd, args, opts) {
+    if (Array.isArray(args)) return _spawn.call(this, cmd, args, patchOpts(opts));
+    return _spawn.call(this, cmd, patchOpts(args), opts);
+};
+
+const _execFile = cp.execFile;
+cp.execFile = function execFile(file, args, opts, cb) {
+    if (typeof args === "function") return _execFile.call(this, file, args);
+    if (typeof opts === "function") return _execFile.call(this, file, args, opts);
+    return _execFile.call(this, file, args, patchOpts(opts), cb);
+};
+
+const _exec = cp.exec;
+cp.exec = function exec(cmd, opts, cb) {
+    if (typeof opts === "function") return _exec.call(this, cmd, patchOpts({}), opts);
+    return _exec.call(this, cmd, patchOpts(opts), cb);
+};
+
+const _fork = cp.fork;
+cp.fork = function fork(mod, args, opts) {
+    if (Array.isArray(args)) return _fork.call(this, mod, args, patchOpts(opts));
+    return _fork.call(this, mod, patchOpts(args), opts);
+};
+"#;
+
+/// Returns the path to the `windowshide-patch.js` file, writing it to the
+/// temp directory if it doesn't already exist or has stale content.
+///
+/// The file persists across spawns (not cleaned up) so that concurrent
+/// Claude CLI invocations can share it.  It's tiny (~1 KB) and idempotent.
+#[cfg(windows)]
+fn windowshide_patch_path() -> Result<std::path::PathBuf, ClaudeError> {
+    let path = std::env::temp_dir().join("rig_windowshide_patch.js");
+
+    // Only write if the file is missing or has different content (e.g. after
+    // a library upgrade with a newer patch script).
+    let needs_write = match std::fs::read_to_string(&path) {
+        Ok(existing) => existing.trim() != WINDOWSHIDE_PATCH_JS.trim(),
+        Err(_) => true,
+    };
+
+    if needs_write {
+        std::fs::write(&path, WINDOWSHIDE_PATCH_JS).map_err(|e| ClaudeError::SpawnFailed {
+            stage: "windowshide patch write".to_string(),
+            source: e,
+        })?;
+    }
+
+    Ok(path)
+}
 
 /// Executes the Claude CLI as a subprocess, optionally streaming events.
 ///
@@ -215,6 +288,20 @@ async fn execute_once(
 }
 
 /// Spawns the Claude CLI subprocess with the given arguments and config.
+///
+/// On Windows, applies two layers of console-window suppression:
+///
+/// 1. `CREATE_NO_WINDOW` (0x08000000) — creates a hidden console buffer
+///    instead of a visible window for the child process.
+/// 2. `NODE_OPTIONS=--require=windowshide-patch.js` — monkey-patches the
+///    Node.js `child_process` module to inject `windowsHide: true` into
+///    every `spawn`/`exec`/`execFile`/`fork` call, suppressing console
+///    windows from Claude Code's internal subprocess spawns (upstream
+///    issue #28138).
+///
+/// Layer 1 affects only the **immediate child**.  Layer 2 patches the
+/// Node.js runtime itself, covering grandchild processes spawned by
+/// Claude Code.
 fn spawn_child(
     path: &std::path::Path,
     args: &[std::ffi::OsString],
@@ -228,8 +315,7 @@ fn spawn_child(
     // the CLI subprocess from a GUI application (windows_subsystem = "windows").
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
@@ -243,6 +329,29 @@ fn spawn_child(
 
     for (k, v) in &config.env {
         cmd.env(k, v);
+    }
+
+    // On Windows, set NODE_OPTIONS to preload the windowshide patch so that
+    // Claude Code's internal child_process.spawn() calls get windowsHide:true.
+    #[cfg(windows)]
+    {
+        let patch_path = windowshide_patch_path()?;
+        let require_arg = format!("--require={}", patch_path.display());
+
+        // Append to existing NODE_OPTIONS if the caller or environment set any.
+        let caller_opts = config
+            .env
+            .iter()
+            .find(|(k, _)| k == "NODE_OPTIONS")
+            .map(|(_, v)| v.as_str());
+        let node_opts = match caller_opts {
+            Some(existing) => format!("{existing} {require_arg}"),
+            None => match std::env::var("NODE_OPTIONS") {
+                Ok(existing) => format!("{existing} {require_arg}"),
+                Err(_) => require_arg,
+            },
+        };
+        cmd.env("NODE_OPTIONS", node_opts);
     }
 
     cmd.spawn().map_err(|e| ClaudeError::SpawnFailed {

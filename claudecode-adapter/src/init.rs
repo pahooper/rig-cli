@@ -18,10 +18,7 @@ pub async fn init(explicit_path: Option<PathBuf>) -> Result<InitReport, ClaudeEr
     let mut version_cmd = Command::new(&path);
     version_cmd.arg("--version");
     #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        version_cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-    }
+    version_cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     let version_output = version_cmd.output().await?;
     let version = String::from_utf8_lossy(&version_output.stdout)
         .trim()
@@ -34,10 +31,7 @@ pub async fn init(explicit_path: Option<PathBuf>) -> Result<InitReport, ClaudeEr
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
     #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        health_cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-    }
+    health_cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     let health_check = health_cmd.spawn();
 
     let (doctor_ok, doctor_stdout, doctor_stderr) = if let Ok(mut child) = health_check {
@@ -72,10 +66,7 @@ pub async fn init(explicit_path: Option<PathBuf>) -> Result<InitReport, ClaudeEr
     let mut help_cmd = Command::new(&path);
     help_cmd.arg("--help");
     #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        help_cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-    }
+    help_cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     let help_output = help_cmd.output().await?;
     let help_text = String::from_utf8_lossy(&help_output.stdout);
 
